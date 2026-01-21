@@ -12423,6 +12423,9 @@ const assessment_category_score_entity_1 = __webpack_require__(105);
 const flexibility_item_weight_entity_1 = __webpack_require__(107);
 const flexibility_grade_threshold_entity_1 = __webpack_require__(108);
 const body_composition_standard_entity_1 = __webpack_require__(109);
+const exercise_entity_1 = __webpack_require__(67);
+const strength_standard_entity_1 = __webpack_require__(68);
+const program_milestone_entity_1 = __webpack_require__(58);
 const getDatabaseConfig = (configService) => {
     const nodeEnv = configService.get('NODE_ENV') || 'development';
     const isDevelopment = nodeEnv === 'development';
@@ -12446,6 +12449,9 @@ const getDatabaseConfig = (configService) => {
             flexibility_item_weight_entity_1.FlexibilityItemWeight,
             flexibility_grade_threshold_entity_1.FlexibilityGradeThreshold,
             body_composition_standard_entity_1.BodyCompositionStandard,
+            exercise_entity_1.Exercise,
+            strength_standard_entity_1.StrengthStandard,
+            program_milestone_entity_1.ProgramMilestone,
         ],
         migrations: [__dirname + '/../migrations/*{.ts,.js}'],
         synchronize: configService.get('DB_SYNCHRONIZE') === 'true',
