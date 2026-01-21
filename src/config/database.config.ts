@@ -17,6 +17,9 @@ import { AssessmentCategoryScore } from '../entities/assessment-category-score.e
 import { FlexibilityItemWeight } from '../entities/flexibility-item-weight.entity';
 import { FlexibilityGradeThreshold } from '../entities/flexibility-grade-threshold.entity';
 import { BodyCompositionStandard } from '../entities/body-composition-standard.entity';
+import { Exercise } from '../entities/exercise.entity';
+import { StrengthStandard } from '../entities/strength-standard.entity';
+import { ProgramMilestone } from '../entities/program-milestone.entity';
 
 export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOptions => {
 	const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
@@ -43,6 +46,9 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
 			FlexibilityItemWeight,
 			FlexibilityGradeThreshold,
 			BodyCompositionStandard,
+			Exercise,
+			StrengthStandard,
+			ProgramMilestone,
 		],
 		migrations: [__dirname + '/../migrations/*{.ts,.js}'],
 		synchronize: configService.get<string>('DB_SYNCHRONIZE') === 'true',
