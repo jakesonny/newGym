@@ -71,6 +71,11 @@ export class PTSession {
 	@Column({ type: 'boolean', name: 'milestone_created', default: false, comment: '마일스톤 생성 여부' })
 	milestoneCreated: boolean;
 
+	// ========== Phase 2 ENDURANCE 측정값 ==========
+
+	@Column({ type: 'int', name: 'step_test_time', nullable: true, comment: '스텝테스트 시간 (초)' })
+	stepTestTime?: number;
+
 	// ========== 기존 필드 ==========
 
 	@CreateDateColumn({ name: 'created_at' })

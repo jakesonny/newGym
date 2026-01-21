@@ -11,7 +11,7 @@ import {
 } from 'typeorm';
 import { Member } from './member.entity';
 import { ProgramMilestone } from './program-milestone.entity';
-import { MembershipType, MembershipStatus, GoalType, RiskStatus } from '../common/enums';
+import { MembershipType, MembershipStatus, GoalType, RiskStatus, GoalDirection } from '../common/enums';
 
 @Index('idx_memberships_member_id', ['memberId'])
 @Index('idx_memberships_status', ['status'])
@@ -90,10 +90,30 @@ export class Membership {
     type: 'enum',
     enum: RiskStatus,
     name: 'risk_status',
-    default: RiskStatus.GREEN,
-    comment: '위험 상태 (GREEN/YELLOW/RED)',
+    default: RiskStatus.FOUNDATION,
+    comment: '위험 상태 (FOUNDATION/GREEN/YELLOW/RED)',
   })
   riskStatus: RiskStatus;
+
+  // ========== Phase 2 추세 기반 판정 필드 ==========
+
+  @Column({
+    type: 'enum',
+    enum: GoalDirection,
+    name: 'goal_direction',
+    nullable: true,
+    comment: 'CUSTOM 목표용 방향 (INCREASE/DECREASE)',
+  })
+  goalDirection?: GoalDirection;
+
+  @Column({ type: 'boolean', name: 'is_rapid_progress', default: false, comment: '급변 플래그 (빠른 순방향 변화)' })
+  isRapidProgress: boolean;
+
+  @Column({ type: 'boolean', name: 'is_measurement_overdue', default: false, comment: '측정 미실시 플래그 (2주 경과)' })
+  isMeasurementOverdue: boolean;
+
+  @Column({ type: 'timestamp', name: 'last_measurement_at', nullable: true, comment: '마지막 측정 일시' })
+  lastMeasurementAt?: Date;
 
   @OneToMany(() => ProgramMilestone, (milestone) => milestone.membership)
   milestones: ProgramMilestone[];

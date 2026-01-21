@@ -177,7 +177,7 @@ export class MembersService {
           startValue: m.startValue ?? dto.initialMeasurement?.weight,
           currentValue: dto.initialMeasurement?.weight,
           currentProgress: 0,
-          riskStatus: RiskStatus.GREEN,
+          riskStatus: RiskStatus.FOUNDATION,
         });
 
         savedMembership = await queryRunner.manager.save(Membership, membership);

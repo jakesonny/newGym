@@ -45,12 +45,12 @@ const app_controller_1 = __webpack_require__(7);
 const app_service_1 = __webpack_require__(8);
 const auth_module_1 = __webpack_require__(10);
 const members_module_1 = __webpack_require__(48);
-const assessments_module_1 = __webpack_require__(116);
-const analytics_module_1 = __webpack_require__(121);
-const insights_module_1 = __webpack_require__(124);
-const exercises_module_1 = __webpack_require__(127);
-const strength_level_module_1 = __webpack_require__(131);
-const database_config_1 = __webpack_require__(136);
+const assessments_module_1 = __webpack_require__(117);
+const analytics_module_1 = __webpack_require__(122);
+const insights_module_1 = __webpack_require__(125);
+const exercises_module_1 = __webpack_require__(128);
+const strength_level_module_1 = __webpack_require__(132);
+const database_config_1 = __webpack_require__(137);
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -1252,7 +1252,7 @@ exports.StrengthLevelOrder = [
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ProgramDuration = exports.RiskStatusNames = exports.RiskStatus = exports.GoalTypeUnits = exports.GoalTypeNames = exports.GoalType = void 0;
+exports.RAPID_THRESHOLDS = exports.FLAT_THRESHOLDS = exports.MEASUREMENT_OVERDUE_DAYS = exports.MIN_MEASUREMENTS_FOR_TREND = exports.BlockPurposeNames = exports.BlockPurpose = exports.ProgramDuration = exports.RiskStatusNames = exports.RiskStatus = exports.GoalTypeDirections = exports.GoalDirection = exports.GoalTypeUnits = exports.GoalTypeNames = exports.GoalType = void 0;
 var GoalType;
 (function (GoalType) {
     GoalType["WEIGHT_LOSS"] = "WEIGHT_LOSS";
@@ -1260,6 +1260,7 @@ var GoalType;
     GoalType["STRENGTH_UP"] = "STRENGTH_UP";
     GoalType["ENDURANCE"] = "ENDURANCE";
     GoalType["BODY_FAT_LOSS"] = "BODY_FAT_LOSS";
+    GoalType["MAINTENANCE"] = "MAINTENANCE";
     GoalType["CUSTOM"] = "CUSTOM";
 })(GoalType || (exports.GoalType = GoalType = {}));
 exports.GoalTypeNames = {
@@ -1268,23 +1269,41 @@ exports.GoalTypeNames = {
     [GoalType.STRENGTH_UP]: '근력 상승',
     [GoalType.ENDURANCE]: '체력 증진',
     [GoalType.BODY_FAT_LOSS]: '체지방 감량',
+    [GoalType.MAINTENANCE]: '건강 유지',
     [GoalType.CUSTOM]: '기타',
 };
 exports.GoalTypeUnits = {
     [GoalType.WEIGHT_LOSS]: 'kg',
     [GoalType.MUSCLE_GAIN]: 'kg',
     [GoalType.STRENGTH_UP]: 'kg',
-    [GoalType.ENDURANCE]: '분',
+    [GoalType.ENDURANCE]: '초',
     [GoalType.BODY_FAT_LOSS]: '%',
+    [GoalType.MAINTENANCE]: 'kg',
     [GoalType.CUSTOM]: '',
+};
+var GoalDirection;
+(function (GoalDirection) {
+    GoalDirection["INCREASE"] = "INCREASE";
+    GoalDirection["DECREASE"] = "DECREASE";
+})(GoalDirection || (exports.GoalDirection = GoalDirection = {}));
+exports.GoalTypeDirections = {
+    [GoalType.WEIGHT_LOSS]: GoalDirection.DECREASE,
+    [GoalType.BODY_FAT_LOSS]: GoalDirection.DECREASE,
+    [GoalType.ENDURANCE]: GoalDirection.DECREASE,
+    [GoalType.MUSCLE_GAIN]: GoalDirection.INCREASE,
+    [GoalType.STRENGTH_UP]: GoalDirection.INCREASE,
+    [GoalType.MAINTENANCE]: GoalDirection.INCREASE,
+    [GoalType.CUSTOM]: GoalDirection.INCREASE,
 };
 var RiskStatus;
 (function (RiskStatus) {
+    RiskStatus["FOUNDATION"] = "FOUNDATION";
     RiskStatus["GREEN"] = "GREEN";
     RiskStatus["YELLOW"] = "YELLOW";
     RiskStatus["RED"] = "RED";
 })(RiskStatus || (exports.RiskStatus = RiskStatus = {}));
 exports.RiskStatusNames = {
+    [RiskStatus.FOUNDATION]: '기초 단계',
     [RiskStatus.GREEN]: '정상',
     [RiskStatus.YELLOW]: '주의',
     [RiskStatus.RED]: '위험',
@@ -1295,6 +1314,37 @@ var ProgramDuration;
     ProgramDuration[ProgramDuration["EIGHT_WEEKS"] = 8] = "EIGHT_WEEKS";
     ProgramDuration[ProgramDuration["TWELVE_WEEKS"] = 12] = "TWELVE_WEEKS";
 })(ProgramDuration || (exports.ProgramDuration = ProgramDuration = {}));
+var BlockPurpose;
+(function (BlockPurpose) {
+    BlockPurpose["ADAPTATION"] = "ADAPTATION";
+    BlockPurpose["INTENSITY"] = "INTENSITY";
+    BlockPurpose["CONSOLIDATION"] = "CONSOLIDATION";
+})(BlockPurpose || (exports.BlockPurpose = BlockPurpose = {}));
+exports.BlockPurposeNames = {
+    [BlockPurpose.ADAPTATION]: '적응',
+    [BlockPurpose.INTENSITY]: '강도 향상',
+    [BlockPurpose.CONSOLIDATION]: '정착/습관화',
+};
+exports.MIN_MEASUREMENTS_FOR_TREND = 2;
+exports.MEASUREMENT_OVERDUE_DAYS = 14;
+exports.FLAT_THRESHOLDS = {
+    [GoalType.WEIGHT_LOSS]: 0.5,
+    [GoalType.BODY_FAT_LOSS]: 0.3,
+    [GoalType.MUSCLE_GAIN]: 0.1,
+    [GoalType.STRENGTH_UP]: 2.5,
+    [GoalType.ENDURANCE]: 5,
+    [GoalType.MAINTENANCE]: 0.5,
+    [GoalType.CUSTOM]: 0,
+};
+exports.RAPID_THRESHOLDS = {
+    [GoalType.WEIGHT_LOSS]: 1.5,
+    [GoalType.BODY_FAT_LOSS]: 1.0,
+    [GoalType.MUSCLE_GAIN]: 0.3,
+    [GoalType.STRENGTH_UP]: 7.5,
+    [GoalType.ENDURANCE]: 20,
+    [GoalType.MAINTENANCE]: 1.0,
+    [GoalType.CUSTOM]: 0,
+};
 
 
 /***/ }),
@@ -2115,11 +2165,11 @@ const members_controller_1 = __webpack_require__(49);
 const members_service_1 = __webpack_require__(50);
 const workout_records_service_1 = __webpack_require__(66);
 const pt_sessions_service_1 = __webpack_require__(69);
-const workout_routines_service_1 = __webpack_require__(78);
-const injuries_controller_1 = __webpack_require__(97);
-const abilities_controller_1 = __webpack_require__(101);
-const analytics_controller_1 = __webpack_require__(114);
-const workout_routines_controller_1 = __webpack_require__(115);
+const workout_routines_service_1 = __webpack_require__(79);
+const injuries_controller_1 = __webpack_require__(98);
+const abilities_controller_1 = __webpack_require__(102);
+const analytics_controller_1 = __webpack_require__(115);
+const workout_routines_controller_1 = __webpack_require__(116);
 const member_entity_1 = __webpack_require__(51);
 const membership_entity_1 = __webpack_require__(57);
 const pt_usage_entity_1 = __webpack_require__(60);
@@ -2132,8 +2182,8 @@ const workout_routine_entity_1 = __webpack_require__(62);
 const exercise_entity_1 = __webpack_require__(67);
 const strength_standard_entity_1 = __webpack_require__(68);
 const program_milestone_entity_1 = __webpack_require__(58);
-const assessments_module_1 = __webpack_require__(116);
-const strength_level_evaluator_1 = __webpack_require__(76);
+const assessments_module_1 = __webpack_require__(117);
+const strength_level_evaluator_1 = __webpack_require__(77);
 let MembersModule = class MembersModule {
 };
 exports.MembersModule = MembersModule;
@@ -2195,24 +2245,24 @@ const swagger_1 = __webpack_require__(4);
 const members_service_1 = __webpack_require__(50);
 const workout_records_service_1 = __webpack_require__(66);
 const pt_sessions_service_1 = __webpack_require__(69);
-const workout_routines_service_1 = __webpack_require__(78);
-const create_member_dto_1 = __webpack_require__(79);
-const create_member_full_dto_1 = __webpack_require__(81);
-const update_member_dto_1 = __webpack_require__(83);
-const create_membership_dto_1 = __webpack_require__(84);
-const update_membership_dto_1 = __webpack_require__(85);
-const update_pt_usage_dto_1 = __webpack_require__(86);
-const update_goal_dto_1 = __webpack_require__(87);
-const create_goal_dto_1 = __webpack_require__(88);
-const goal_response_dto_1 = __webpack_require__(89);
-const create_workout_record_dto_1 = __webpack_require__(90);
-const update_workout_record_dto_1 = __webpack_require__(91);
+const workout_routines_service_1 = __webpack_require__(79);
+const create_member_dto_1 = __webpack_require__(80);
+const create_member_full_dto_1 = __webpack_require__(82);
+const update_member_dto_1 = __webpack_require__(84);
+const create_membership_dto_1 = __webpack_require__(85);
+const update_membership_dto_1 = __webpack_require__(86);
+const update_pt_usage_dto_1 = __webpack_require__(87);
+const update_goal_dto_1 = __webpack_require__(88);
+const create_goal_dto_1 = __webpack_require__(89);
+const goal_response_dto_1 = __webpack_require__(90);
+const create_workout_record_dto_1 = __webpack_require__(91);
+const update_workout_record_dto_1 = __webpack_require__(92);
 const workout_volume_query_dto_1 = __webpack_require__(63);
-const create_pt_session_dto_1 = __webpack_require__(92);
-const update_pt_session_dto_1 = __webpack_require__(93);
-const create_workout_routine_dto_1 = __webpack_require__(94);
-const update_workout_routine_dto_1 = __webpack_require__(95);
-const dashboard_response_dto_1 = __webpack_require__(96);
+const create_pt_session_dto_1 = __webpack_require__(93);
+const update_pt_session_dto_1 = __webpack_require__(94);
+const create_workout_routine_dto_1 = __webpack_require__(95);
+const update_workout_routine_dto_1 = __webpack_require__(96);
+const dashboard_response_dto_1 = __webpack_require__(97);
 const guards_1 = __webpack_require__(36);
 const roles_decorator_1 = __webpack_require__(40);
 const enums_1 = __webpack_require__(18);
@@ -4225,7 +4275,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Membership = void 0;
 const typeorm_1 = __webpack_require__(15);
@@ -4321,22 +4371,44 @@ __decorate([
         type: 'enum',
         enum: enums_1.RiskStatus,
         name: 'risk_status',
-        default: enums_1.RiskStatus.GREEN,
-        comment: '위험 상태 (GREEN/YELLOW/RED)',
+        default: enums_1.RiskStatus.FOUNDATION,
+        comment: '위험 상태 (FOUNDATION/GREEN/YELLOW/RED)',
     }),
     __metadata("design:type", typeof (_g = typeof enums_1.RiskStatus !== "undefined" && enums_1.RiskStatus) === "function" ? _g : Object)
 ], Membership.prototype, "riskStatus", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: enums_1.GoalDirection,
+        name: 'goal_direction',
+        nullable: true,
+        comment: 'CUSTOM 목표용 방향 (INCREASE/DECREASE)',
+    }),
+    __metadata("design:type", typeof (_h = typeof enums_1.GoalDirection !== "undefined" && enums_1.GoalDirection) === "function" ? _h : Object)
+], Membership.prototype, "goalDirection", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', name: 'is_rapid_progress', default: false, comment: '급변 플래그 (빠른 순방향 변화)' }),
+    __metadata("design:type", Boolean)
+], Membership.prototype, "isRapidProgress", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', name: 'is_measurement_overdue', default: false, comment: '측정 미실시 플래그 (2주 경과)' }),
+    __metadata("design:type", Boolean)
+], Membership.prototype, "isMeasurementOverdue", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', name: 'last_measurement_at', nullable: true, comment: '마지막 측정 일시' }),
+    __metadata("design:type", typeof (_j = typeof Date !== "undefined" && Date) === "function" ? _j : Object)
+], Membership.prototype, "lastMeasurementAt", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => program_milestone_entity_1.ProgramMilestone, (milestone) => milestone.membership),
     __metadata("design:type", Array)
 ], Membership.prototype, "milestones", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
-    __metadata("design:type", typeof (_h = typeof Date !== "undefined" && Date) === "function" ? _h : Object)
+    __metadata("design:type", typeof (_k = typeof Date !== "undefined" && Date) === "function" ? _k : Object)
 ], Membership.prototype, "createdAt", void 0);
 __decorate([
     (0, typeorm_1.UpdateDateColumn)({ name: 'updated_at' }),
-    __metadata("design:type", typeof (_j = typeof Date !== "undefined" && Date) === "function" ? _j : Object)
+    __metadata("design:type", typeof (_l = typeof Date !== "undefined" && Date) === "function" ? _l : Object)
 ], Membership.prototype, "updatedAt", void 0);
 exports.Membership = Membership = __decorate([
     (0, typeorm_1.Index)('idx_memberships_member_id', ['memberId']),
@@ -4361,12 +4433,13 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a, _b, _c, _d, _e, _f;
+var _a, _b, _c, _d, _e, _f, _g;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ProgramMilestone = void 0;
 const typeorm_1 = __webpack_require__(15);
 const membership_entity_1 = __webpack_require__(57);
 const pt_session_entity_1 = __webpack_require__(59);
+const enums_1 = __webpack_require__(18);
 let ProgramMilestone = class ProgramMilestone {
 };
 exports.ProgramMilestone = ProgramMilestone;
@@ -4399,8 +4472,30 @@ __decorate([
     __metadata("design:type", Number)
 ], ProgramMilestone.prototype, "weekNumber", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'int', name: 'block_number', nullable: true, comment: '블록 번호 (1, 2, 3...)' }),
+    __metadata("design:type", Number)
+], ProgramMilestone.prototype, "blockNumber", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: enums_1.BlockPurpose,
+        name: 'block_purpose',
+        nullable: true,
+        comment: '블록 목적 (ADAPTATION/INTENSITY/CONSOLIDATION)',
+    }),
+    __metadata("design:type", typeof (_c = typeof enums_1.BlockPurpose !== "undefined" && enums_1.BlockPurpose) === "function" ? _c : Object)
+], ProgramMilestone.prototype, "blockPurpose", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int', name: 'block_start_week', nullable: true, comment: '블록 시작 주차' }),
+    __metadata("design:type", Number)
+], ProgramMilestone.prototype, "blockStartWeek", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int', name: 'block_end_week', nullable: true, comment: '블록 종료 주차' }),
+    __metadata("design:type", Number)
+], ProgramMilestone.prototype, "blockEndWeek", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'date', name: 'target_date', comment: '목표 달성 예정일' }),
-    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+    __metadata("design:type", typeof (_d = typeof Date !== "undefined" && Date) === "function" ? _d : Object)
 ], ProgramMilestone.prototype, "targetDate", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'float', name: 'measured_weight', nullable: true, comment: '측정 체중 (kg)' }),
@@ -4428,7 +4523,7 @@ __decorate([
 ], ProgramMilestone.prototype, "isAchieved", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', name: 'achieved_at', nullable: true, comment: '달성 일시' }),
-    __metadata("design:type", typeof (_d = typeof Date !== "undefined" && Date) === "function" ? _d : Object)
+    __metadata("design:type", typeof (_e = typeof Date !== "undefined" && Date) === "function" ? _e : Object)
 ], ProgramMilestone.prototype, "achievedAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'text', name: 'trainer_feedback', nullable: true, comment: '트레이너 피드백' }),
@@ -4436,11 +4531,11 @@ __decorate([
 ], ProgramMilestone.prototype, "trainerFeedback", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
-    __metadata("design:type", typeof (_e = typeof Date !== "undefined" && Date) === "function" ? _e : Object)
+    __metadata("design:type", typeof (_f = typeof Date !== "undefined" && Date) === "function" ? _f : Object)
 ], ProgramMilestone.prototype, "createdAt", void 0);
 __decorate([
     (0, typeorm_1.UpdateDateColumn)({ name: 'updated_at' }),
-    __metadata("design:type", typeof (_f = typeof Date !== "undefined" && Date) === "function" ? _f : Object)
+    __metadata("design:type", typeof (_g = typeof Date !== "undefined" && Date) === "function" ? _g : Object)
 ], ProgramMilestone.prototype, "updatedAt", void 0);
 exports.ProgramMilestone = ProgramMilestone = __decorate([
     (0, typeorm_1.Index)('idx_program_milestones_membership_id', ['membershipId']),
@@ -4541,6 +4636,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'boolean', name: 'milestone_created', default: false, comment: '마일스톤 생성 여부' }),
     __metadata("design:type", Boolean)
 ], PTSession.prototype, "milestoneCreated", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int', name: 'step_test_time', nullable: true, comment: '스텝테스트 시간 (초)' }),
+    __metadata("design:type", Number)
+], PTSession.prototype, "stepTestTime", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", typeof (_d = typeof Date !== "undefined" && Date) === "function" ? _d : Object)
@@ -4990,16 +5089,16 @@ const workout_volume_query_dto_1 = __webpack_require__(63);
 const exceptions_1 = __webpack_require__(27);
 const pt_sessions_service_1 = __webpack_require__(69);
 const members_service_1 = __webpack_require__(50);
-const workout_helper_1 = __webpack_require__(70);
-const pt_usage_helper_1 = __webpack_require__(71);
-const query_builder_helper_1 = __webpack_require__(72);
-const date_range_helper_1 = __webpack_require__(73);
+const workout_helper_1 = __webpack_require__(71);
+const pt_usage_helper_1 = __webpack_require__(72);
+const query_builder_helper_1 = __webpack_require__(73);
+const date_range_helper_1 = __webpack_require__(74);
 const entity_update_helper_1 = __webpack_require__(29);
 const repository_helper_1 = __webpack_require__(64);
-const one_rep_max_calculator_1 = __webpack_require__(74);
-const relative_strength_calculator_1 = __webpack_require__(75);
-const strength_level_evaluator_1 = __webpack_require__(76);
-const workout_record_helper_1 = __webpack_require__(77);
+const one_rep_max_calculator_1 = __webpack_require__(75);
+const relative_strength_calculator_1 = __webpack_require__(76);
+const strength_level_evaluator_1 = __webpack_require__(77);
+const workout_record_helper_1 = __webpack_require__(78);
 const strength_standard_entity_1 = __webpack_require__(68);
 let WorkoutRecordsService = WorkoutRecordsService_1 = class WorkoutRecordsService {
     constructor(workoutRecordRepository, memberRepository, ptUsageRepository, exerciseRepository, strengthStandardRepository, ptSessionsService, membersService, strengthLevelEvaluator) {
@@ -5666,7 +5765,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var PTSessionsService_1;
-var _a, _b;
+var _a, _b, _c, _d;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PTSessionsService = void 0;
 const common_1 = __webpack_require__(2);
@@ -5674,12 +5773,16 @@ const typeorm_1 = __webpack_require__(6);
 const typeorm_2 = __webpack_require__(15);
 const pt_session_entity_1 = __webpack_require__(59);
 const member_entity_1 = __webpack_require__(51);
+const membership_entity_1 = __webpack_require__(57);
 const entity_update_helper_1 = __webpack_require__(29);
 const repository_helper_1 = __webpack_require__(64);
+const progress_calculator_1 = __webpack_require__(70);
 let PTSessionsService = PTSessionsService_1 = class PTSessionsService {
-    constructor(ptSessionRepository, memberRepository) {
+    constructor(ptSessionRepository, memberRepository, membershipRepository, dataSource) {
         this.ptSessionRepository = ptSessionRepository;
         this.memberRepository = memberRepository;
+        this.membershipRepository = membershipRepository;
+        this.dataSource = dataSource;
         this.logger = new common_1.Logger(PTSessionsService_1.name);
     }
     async findAll(memberId) {
@@ -5707,27 +5810,117 @@ let PTSessionsService = PTSessionsService_1 = class PTSessionsService {
         return lastSession ? lastSession.sessionNumber + 1 : 1;
     }
     async create(memberId, createDto) {
-        await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
-        const member = await this.memberRepository.findOne({ where: { id: memberId } });
-        const sessionNumber = await this.getNextSessionNumber(memberId);
-        const sessionData = entity_update_helper_1.EntityUpdateHelper.convertDateFields({
-            memberId,
-            sessionNumber,
-            mainContent: createDto.mainContent,
-            trainerComment: createDto.trainerComment,
-            sessionDate: createDto.sessionDate,
-        }, ['sessionDate']);
-        const session = this.ptSessionRepository.create(sessionData);
-        const savedSession = await this.ptSessionRepository.save(session);
-        member.completedSessions += 1;
-        if (member.totalSessions > 0) {
-            member.goalProgress = Math.round((member.completedSessions / member.totalSessions) * 100);
-            if (member.goalProgress > 100) {
-                member.goalProgress = 100;
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+        try {
+            const member = await queryRunner.manager.findOne(member_entity_1.Member, { where: { id: memberId } });
+            if (!member) {
+                throw new Error('회원을 찾을 수 없습니다.');
+            }
+            const sessionNumber = await this.getNextSessionNumber(memberId);
+            const sessionData = {
+                memberId,
+                sessionNumber,
+                mainContent: createDto.mainContent,
+                trainerComment: createDto.trainerComment,
+                sessionDate: new Date(createDto.sessionDate),
+                membershipId: createDto.membershipId,
+                measuredWeight: createDto.measuredWeight,
+                measuredMuscleMass: createDto.measuredMuscleMass,
+                measuredBodyFat: createDto.measuredBodyFat,
+                benchPress1RM: createDto.benchPress1RM,
+                squat1RM: createDto.squat1RM,
+                deadlift1RM: createDto.deadlift1RM,
+                stepTestTime: createDto.stepTestTime,
+            };
+            const session = queryRunner.manager.create(pt_session_entity_1.PTSession, sessionData);
+            const savedSession = await queryRunner.manager.save(pt_session_entity_1.PTSession, session);
+            member.completedSessions += 1;
+            if (member.totalSessions > 0) {
+                member.goalProgress = Math.round((member.completedSessions / member.totalSessions) * 100);
+                if (member.goalProgress > 100) {
+                    member.goalProgress = 100;
+                }
+            }
+            await queryRunner.manager.save(member_entity_1.Member, member);
+            if (createDto.membershipId && this.hasMeasurement(createDto)) {
+                await this.updateMembershipTrend(queryRunner, createDto.membershipId, createDto);
+            }
+            await queryRunner.commitTransaction();
+            return savedSession;
+        }
+        catch (error) {
+            await queryRunner.rollbackTransaction();
+            this.logger.error(`PT 세션 생성 실패: ${error.message}`);
+            throw error;
+        }
+        finally {
+            await queryRunner.release();
+        }
+    }
+    hasMeasurement(dto) {
+        return !!(dto.measuredWeight ||
+            dto.measuredMuscleMass ||
+            dto.measuredBodyFat ||
+            dto.benchPress1RM ||
+            dto.squat1RM ||
+            dto.deadlift1RM ||
+            dto.stepTestTime);
+    }
+    async updateMembershipTrend(queryRunner, membershipId, dto) {
+        const membership = await queryRunner.manager.findOne(membership_entity_1.Membership, {
+            where: { id: membershipId },
+        });
+        if (!membership || !membership.mainGoalType) {
+            return;
+        }
+        const currentValue = progress_calculator_1.ProgressCalculator.extractMeasurementValue(membership.mainGoalType, {
+            weight: dto.measuredWeight,
+            muscleMass: dto.measuredMuscleMass,
+            bodyFat: dto.measuredBodyFat,
+            benchPress1RM: dto.benchPress1RM,
+            squat1RM: dto.squat1RM,
+            deadlift1RM: dto.deadlift1RM,
+            stepTestTime: dto.stepTestTime,
+        });
+        if (currentValue === null) {
+            return;
+        }
+        const recentSessions = await queryRunner.manager.find(pt_session_entity_1.PTSession, {
+            where: { membershipId },
+            order: { sessionDate: 'ASC' },
+        });
+        const measurements = [];
+        for (const session of recentSessions) {
+            const value = progress_calculator_1.ProgressCalculator.extractMeasurementValue(membership.mainGoalType, {
+                weight: session.measuredWeight,
+                muscleMass: session.measuredMuscleMass,
+                bodyFat: session.measuredBodyFat,
+                benchPress1RM: session.benchPress1RM,
+                squat1RM: session.squat1RM,
+                deadlift1RM: session.deadlift1RM,
+                stepTestTime: session.stepTestTime,
+            });
+            if (value !== null) {
+                measurements.push(value);
             }
         }
-        await this.memberRepository.save(member);
-        return savedSession;
+        measurements.push(currentValue);
+        const { status, flags } = progress_calculator_1.ProgressCalculator.calculateRiskStatusByTrend(measurements, membership.mainGoalType, membership.goalDirection);
+        let progress = membership.currentProgress;
+        if (membership.startValue != null && membership.targetValue != null) {
+            progress = progress_calculator_1.ProgressCalculator.calculateProgress(membership.mainGoalType, membership.startValue, currentValue, membership.targetValue, membership.goalDirection);
+        }
+        await queryRunner.manager.update(membership_entity_1.Membership, membershipId, {
+            currentValue,
+            currentProgress: progress,
+            riskStatus: status,
+            isRapidProgress: flags.includes('rapid_progress'),
+            lastMeasurementAt: new Date(),
+            isMeasurementOverdue: false,
+        });
+        this.logger.log(`Membership ${membershipId} 업데이트: status=${status}, progress=${progress}%, flags=${flags.join(',')}`);
     }
     async update(id, memberId, updateDto) {
         const session = await this.findOne(id, memberId);
@@ -5756,12 +5949,203 @@ exports.PTSessionsService = PTSessionsService = PTSessionsService_1 = __decorate
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(pt_session_entity_1.PTSession)),
     __param(1, (0, typeorm_1.InjectRepository)(member_entity_1.Member)),
-    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, typeof (_b = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _b : Object])
+    __param(2, (0, typeorm_1.InjectRepository)(membership_entity_1.Membership)),
+    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, typeof (_b = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _b : Object, typeof (_c = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _c : Object, typeof (_d = typeof typeorm_2.DataSource !== "undefined" && typeorm_2.DataSource) === "function" ? _d : Object])
 ], PTSessionsService);
 
 
 /***/ }),
 /* 70 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ProgressCalculator = void 0;
+const enums_1 = __webpack_require__(18);
+class ProgressCalculator {
+    static calculateProgress(goalType, startValue, currentValue, targetValue, goalDirection) {
+        if (startValue === targetValue) {
+            return currentValue === targetValue ? 100 : 0;
+        }
+        const direction = goalType === enums_1.GoalType.CUSTOM && goalDirection
+            ? goalDirection
+            : enums_1.GoalTypeDirections[goalType];
+        let progress;
+        if (direction === enums_1.GoalDirection.DECREASE) {
+            const decrease = startValue - currentValue;
+            const targetDecrease = startValue - targetValue;
+            progress = targetDecrease !== 0 ? (decrease / targetDecrease) * 100 : 0;
+        }
+        else {
+            const increase = currentValue - startValue;
+            const targetIncrease = targetValue - startValue;
+            progress = targetIncrease !== 0 ? (increase / targetIncrease) * 100 : 0;
+        }
+        return Math.min(100, Math.max(0, Math.round(progress * 10) / 10));
+    }
+    static calculateRiskStatusByTrend(measurements, goalType, goalDirection) {
+        const flags = [];
+        if (measurements.length < enums_1.MIN_MEASUREMENTS_FOR_TREND) {
+            return { status: enums_1.RiskStatus.FOUNDATION, flags };
+        }
+        const direction = goalType === enums_1.GoalType.CUSTOM && goalDirection
+            ? goalDirection
+            : enums_1.GoalTypeDirections[goalType];
+        const recent = measurements.slice(-2);
+        const shortTermDelta = recent[1] - recent[0];
+        const absShortTermDelta = Math.abs(shortTermDelta);
+        const longTermDelta = measurements[measurements.length - 1] - measurements[0];
+        if (goalType === enums_1.GoalType.MAINTENANCE) {
+            return this.calculateMaintenanceStatus(absShortTermDelta, shortTermDelta, goalType, flags);
+        }
+        const isImproving = direction === enums_1.GoalDirection.DECREASE
+            ? shortTermDelta < 0
+            : shortTermDelta > 0;
+        const longTermImproving = direction === enums_1.GoalDirection.DECREASE
+            ? longTermDelta < 0
+            : longTermDelta > 0;
+        const rapidThreshold = enums_1.RAPID_THRESHOLDS[goalType];
+        if (absShortTermDelta >= rapidThreshold) {
+            if (isImproving) {
+                flags.push('rapid_progress');
+            }
+            else {
+                flags.push('rapid_decline');
+            }
+        }
+        const flatThreshold = enums_1.FLAT_THRESHOLDS[goalType];
+        if (absShortTermDelta <= flatThreshold) {
+            return {
+                status: enums_1.RiskStatus.YELLOW,
+                flags,
+                shortTermDelta,
+                longTermDelta,
+            };
+        }
+        if (isImproving) {
+            return {
+                status: enums_1.RiskStatus.GREEN,
+                flags,
+                shortTermDelta,
+                longTermDelta,
+            };
+        }
+        else {
+            if (measurements.length >= 3 && longTermImproving) {
+                return {
+                    status: enums_1.RiskStatus.YELLOW,
+                    flags,
+                    shortTermDelta,
+                    longTermDelta,
+                };
+            }
+            return {
+                status: enums_1.RiskStatus.RED,
+                flags,
+                shortTermDelta,
+                longTermDelta,
+            };
+        }
+    }
+    static calculateMaintenanceStatus(absShortTermDelta, shortTermDelta, goalType, flags) {
+        const flatThreshold = enums_1.FLAT_THRESHOLDS[goalType];
+        const rapidThreshold = enums_1.RAPID_THRESHOLDS[goalType];
+        if (absShortTermDelta <= flatThreshold) {
+            return { status: enums_1.RiskStatus.GREEN, flags };
+        }
+        if (absShortTermDelta >= rapidThreshold) {
+            flags.push('rapid_change');
+            return { status: enums_1.RiskStatus.YELLOW, flags };
+        }
+        return { status: enums_1.RiskStatus.YELLOW, flags };
+    }
+    static isMeasurementOverdue(lastMeasurementAt) {
+        if (!lastMeasurementAt)
+            return false;
+        const now = new Date();
+        const diffDays = (now.getTime() - lastMeasurementAt.getTime()) / (1000 * 60 * 60 * 24);
+        return diffDays >= enums_1.MEASUREMENT_OVERDUE_DAYS;
+    }
+    static calculateDaysRemaining(endDate) {
+        const now = new Date();
+        const diffTime = endDate.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return Math.max(0, diffDays);
+    }
+    static generateMilestoneBlocks(startDate, durationWeeks) {
+        const blocks = [];
+        const blockCount = durationWeeks / 4;
+        for (let i = 0; i < blockCount; i++) {
+            const startWeek = i * 4 + 1;
+            const endWeek = (i + 1) * 4;
+            let purpose;
+            if (i === 0) {
+                purpose = enums_1.BlockPurpose.ADAPTATION;
+            }
+            else if (i === blockCount - 1) {
+                purpose = enums_1.BlockPurpose.CONSOLIDATION;
+            }
+            else {
+                purpose = enums_1.BlockPurpose.INTENSITY;
+            }
+            const targetDate = new Date(startDate);
+            targetDate.setDate(targetDate.getDate() + endWeek * 7);
+            blocks.push({
+                blockNumber: i + 1,
+                startWeek,
+                endWeek,
+                purpose,
+                targetDate,
+            });
+        }
+        return blocks;
+    }
+    static generateMilestoneDates(startDate, durationWeeks) {
+        const milestones = [];
+        for (let week = 1; week <= durationWeeks; week++) {
+            const targetDate = new Date(startDate);
+            targetDate.setDate(targetDate.getDate() + week * 7);
+            milestones.push({
+                weekNumber: week,
+                targetDate,
+            });
+        }
+        return milestones;
+    }
+    static extractMeasurementValue(goalType, measurements) {
+        switch (goalType) {
+            case enums_1.GoalType.WEIGHT_LOSS:
+            case enums_1.GoalType.MAINTENANCE:
+                return measurements.weight ?? null;
+            case enums_1.GoalType.MUSCLE_GAIN:
+                return measurements.muscleMass ?? null;
+            case enums_1.GoalType.BODY_FAT_LOSS:
+                return measurements.bodyFat ?? null;
+            case enums_1.GoalType.STRENGTH_UP:
+                const big3 = [
+                    measurements.benchPress1RM,
+                    measurements.squat1RM,
+                    measurements.deadlift1RM,
+                ].filter((v) => v !== undefined && v !== null);
+                return big3.length > 0 ? big3.reduce((a, b) => a + b, 0) : null;
+            case enums_1.GoalType.ENDURANCE:
+                return measurements.stepTestTime ?? null;
+            default:
+                return null;
+        }
+    }
+    static getGoalDirection(goalType, goalDirection) {
+        if (goalType === enums_1.GoalType.CUSTOM && goalDirection) {
+            return goalDirection;
+        }
+        return enums_1.GoalTypeDirections[goalType];
+    }
+}
+exports.ProgressCalculator = ProgressCalculator;
+
+
+/***/ }),
+/* 71 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -5818,7 +6202,7 @@ exports.WorkoutHelper = WorkoutHelper;
 
 
 /***/ }),
-/* 71 */
+/* 72 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -5862,7 +6246,7 @@ exports.PTUsageHelper = PTUsageHelper;
 
 
 /***/ }),
-/* 72 */
+/* 73 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -5896,7 +6280,7 @@ exports.QueryBuilderHelper = QueryBuilderHelper;
 
 
 /***/ }),
-/* 73 */
+/* 74 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -5944,7 +6328,7 @@ exports.DateRangeHelper = DateRangeHelper;
 
 
 /***/ }),
-/* 74 */
+/* 75 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -6029,7 +6413,7 @@ exports.OneRepMaxCalculator = OneRepMaxCalculator;
 
 
 /***/ }),
-/* 75 */
+/* 76 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -6051,7 +6435,7 @@ class RelativeStrengthCalculator {
         };
     }
     static calculateFromWeightAndReps(weight, reps, bodyWeight, formula) {
-        const { OneRepMaxCalculator, OneRepMaxFormula } = __webpack_require__(74);
+        const { OneRepMaxCalculator, OneRepMaxFormula } = __webpack_require__(75);
         const oneRepMaxResult = OneRepMaxCalculator.calculate(weight, reps, formula || OneRepMaxFormula.EPLEY);
         return this.calculate(oneRepMaxResult.oneRepMax, bodyWeight);
     }
@@ -6060,7 +6444,7 @@ exports.RelativeStrengthCalculator = RelativeStrengthCalculator;
 
 
 /***/ }),
-/* 76 */
+/* 77 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -6248,13 +6632,13 @@ exports.StrengthLevelEvaluator = StrengthLevelEvaluator = __decorate([
 
 
 /***/ }),
-/* 77 */
+/* 78 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.WorkoutRecordHelper = void 0;
-const date_range_helper_1 = __webpack_require__(73);
+const date_range_helper_1 = __webpack_require__(74);
 class WorkoutRecordHelper {
     static filterRecordsWithOneRM(records) {
         return records.filter((r) => r.oneRepMax !== null && r.oneRepMax !== undefined);
@@ -6326,7 +6710,7 @@ exports.WorkoutRecordHelper = WorkoutRecordHelper;
 
 
 /***/ }),
-/* 78 */
+/* 79 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -6354,7 +6738,7 @@ const member_entity_1 = __webpack_require__(51);
 const workout_record_entity_1 = __webpack_require__(61);
 const exercise_entity_1 = __webpack_require__(67);
 const exceptions_1 = __webpack_require__(27);
-const query_builder_helper_1 = __webpack_require__(72);
+const query_builder_helper_1 = __webpack_require__(73);
 const entity_update_helper_1 = __webpack_require__(29);
 const repository_helper_1 = __webpack_require__(64);
 let WorkoutRoutinesService = WorkoutRoutinesService_1 = class WorkoutRoutinesService {
@@ -6513,7 +6897,7 @@ let WorkoutRoutinesService = WorkoutRoutinesService_1 = class WorkoutRoutinesSer
             },
         });
         if (latestRecord && latestRecord.oneRepMax) {
-            const { OneRepMaxCalculator } = await Promise.resolve().then(() => __webpack_require__(74));
+            const { OneRepMaxCalculator } = await Promise.resolve().then(() => __webpack_require__(75));
             let suggestedWeight = latestRecord.oneRepMax / (1 + reps / 30);
             return {
                 suggestedWeight: Math.round(suggestedWeight * 10) / 10,
@@ -6549,7 +6933,7 @@ exports.WorkoutRoutinesService = WorkoutRoutinesService = WorkoutRoutinesService
 
 
 /***/ }),
-/* 79 */
+/* 80 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -6568,7 +6952,7 @@ exports.CreateMemberDto = void 0;
 const class_validator_1 = __webpack_require__(31);
 const swagger_1 = __webpack_require__(4);
 const enums_1 = __webpack_require__(18);
-const is_phone_number_decorator_1 = __webpack_require__(80);
+const is_phone_number_decorator_1 = __webpack_require__(81);
 class CreateMemberDto {
 }
 exports.CreateMemberDto = CreateMemberDto;
@@ -6670,7 +7054,7 @@ __decorate([
 
 
 /***/ }),
-/* 80 */
+/* 81 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -6721,7 +7105,7 @@ function IsPhoneNumber(validationOptions) {
 
 
 /***/ }),
-/* 81 */
+/* 82 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -6739,7 +7123,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CreateMemberFullDto = exports.InitialMeasurementDto = exports.MembershipProgramDto = exports.MemberBasicInfoDto = void 0;
 const class_validator_1 = __webpack_require__(31);
 const swagger_1 = __webpack_require__(4);
-const class_transformer_1 = __webpack_require__(82);
+const class_transformer_1 = __webpack_require__(83);
 const enums_1 = __webpack_require__(18);
 class MemberBasicInfoDto {
 }
@@ -7002,13 +7386,13 @@ __decorate([
 
 
 /***/ }),
-/* 82 */
+/* 83 */
 /***/ ((module) => {
 
 module.exports = require("class-transformer");
 
 /***/ }),
-/* 83 */
+/* 84 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7027,7 +7411,7 @@ exports.UpdateMemberDto = void 0;
 const class_validator_1 = __webpack_require__(31);
 const swagger_1 = __webpack_require__(4);
 const enums_1 = __webpack_require__(18);
-const is_phone_number_decorator_1 = __webpack_require__(80);
+const is_phone_number_decorator_1 = __webpack_require__(81);
 class UpdateMemberDto {
 }
 exports.UpdateMemberDto = UpdateMemberDto;
@@ -7123,7 +7507,7 @@ __decorate([
 
 
 /***/ }),
-/* 84 */
+/* 85 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7141,7 +7525,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CreateMembershipDto = exports.ProgramInfoDto = void 0;
 const class_validator_1 = __webpack_require__(31);
 const swagger_1 = __webpack_require__(4);
-const class_transformer_1 = __webpack_require__(82);
+const class_transformer_1 = __webpack_require__(83);
 const enums_1 = __webpack_require__(18);
 class ProgramInfoDto {
 }
@@ -7262,7 +7646,7 @@ __decorate([
 
 
 /***/ }),
-/* 85 */
+/* 86 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7336,7 +7720,7 @@ __decorate([
 
 
 /***/ }),
-/* 86 */
+/* 87 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7392,7 +7776,7 @@ __decorate([
 
 
 /***/ }),
-/* 87 */
+/* 88 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7473,7 +7857,7 @@ __decorate([
 
 
 /***/ }),
-/* 88 */
+/* 89 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7527,7 +7911,7 @@ __decorate([
 
 
 /***/ }),
-/* 89 */
+/* 90 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7630,7 +8014,7 @@ __decorate([
 
 
 /***/ }),
-/* 90 */
+/* 91 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7760,7 +8144,7 @@ __decorate([
 
 
 /***/ }),
-/* 91 */
+/* 92 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7893,7 +8277,7 @@ __decorate([
 
 
 /***/ }),
-/* 92 */
+/* 93 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8006,6 +8390,15 @@ __decorate([
 ], CreatePTSessionDto.prototype, "deadlift1RM", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
+        description: '스텝테스트 시간 (초) - ENDURANCE 목표용',
+        example: 180,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreatePTSessionDto.prototype, "stepTestTime", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
         description: '마일스톤 자동 생성 여부 (기본: true)',
         example: true,
         default: true,
@@ -8016,7 +8409,7 @@ __decorate([
 
 
 /***/ }),
-/* 93 */
+/* 94 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8069,7 +8462,7 @@ __decorate([
 
 
 /***/ }),
-/* 94 */
+/* 95 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8086,7 +8479,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CreateWorkoutRoutineDto = exports.ExerciseDto = void 0;
 const swagger_1 = __webpack_require__(4);
 const class_validator_1 = __webpack_require__(31);
-const class_transformer_1 = __webpack_require__(82);
+const class_transformer_1 = __webpack_require__(83);
 class ExerciseDto {
 }
 exports.ExerciseDto = ExerciseDto;
@@ -8245,7 +8638,7 @@ __decorate([
 
 
 /***/ }),
-/* 95 */
+/* 96 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8262,8 +8655,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UpdateWorkoutRoutineDto = void 0;
 const swagger_1 = __webpack_require__(4);
 const class_validator_1 = __webpack_require__(31);
-const class_transformer_1 = __webpack_require__(82);
-const create_workout_routine_dto_1 = __webpack_require__(94);
+const class_transformer_1 = __webpack_require__(83);
+const create_workout_routine_dto_1 = __webpack_require__(95);
 class UpdateWorkoutRoutineDto {
 }
 exports.UpdateWorkoutRoutineDto = UpdateWorkoutRoutineDto;
@@ -8329,7 +8722,7 @@ __decorate([
 
 
 /***/ }),
-/* 96 */
+/* 97 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8550,7 +8943,7 @@ __decorate([
 
 
 /***/ }),
-/* 97 */
+/* 98 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8578,9 +8971,9 @@ const roles_decorator_1 = __webpack_require__(40);
 const enums_1 = __webpack_require__(18);
 const injury_history_entity_1 = __webpack_require__(55);
 const injury_restriction_entity_1 = __webpack_require__(56);
-const create_injury_dto_1 = __webpack_require__(98);
-const update_injury_dto_1 = __webpack_require__(99);
-const create_injury_restriction_dto_1 = __webpack_require__(100);
+const create_injury_dto_1 = __webpack_require__(99);
+const update_injury_dto_1 = __webpack_require__(100);
+const create_injury_restriction_dto_1 = __webpack_require__(101);
 const api_response_1 = __webpack_require__(43);
 const exceptions_1 = __webpack_require__(27);
 const entity_update_helper_1 = __webpack_require__(29);
@@ -8733,7 +9126,7 @@ exports.InjuriesController = InjuriesController = __decorate([
 
 
 /***/ }),
-/* 98 */
+/* 99 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8813,7 +9206,7 @@ __decorate([
 
 
 /***/ }),
-/* 99 */
+/* 100 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8898,7 +9291,7 @@ __decorate([
 
 
 /***/ }),
-/* 100 */
+/* 101 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8932,7 +9325,7 @@ __decorate([
 
 
 /***/ }),
-/* 101 */
+/* 102 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8954,11 +9347,11 @@ exports.AbilitiesController = void 0;
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(4);
 const guards_1 = __webpack_require__(36);
-const assessments_service_1 = __webpack_require__(102);
+const assessments_service_1 = __webpack_require__(103);
 const api_response_1 = __webpack_require__(43);
-const compare_snapshots_query_dto_1 = __webpack_require__(112);
-const snapshot_normalizer_1 = __webpack_require__(104);
-const hexagon_response_dto_1 = __webpack_require__(113);
+const compare_snapshots_query_dto_1 = __webpack_require__(113);
+const snapshot_normalizer_1 = __webpack_require__(105);
+const hexagon_response_dto_1 = __webpack_require__(114);
 let AbilitiesController = class AbilitiesController {
     constructor(assessmentsService) {
         this.assessmentsService = assessmentsService;
@@ -9067,7 +9460,7 @@ exports.AbilitiesController = AbilitiesController = __decorate([
 
 
 /***/ }),
-/* 102 */
+/* 103 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -9094,14 +9487,14 @@ const assessment_entity_1 = __webpack_require__(52);
 const assessment_item_entity_1 = __webpack_require__(53);
 const enums_1 = __webpack_require__(18);
 const ability_snapshot_entity_1 = __webpack_require__(54);
-const score_calculator_1 = __webpack_require__(103);
+const score_calculator_1 = __webpack_require__(104);
 const exceptions_1 = __webpack_require__(27);
 const date_helper_1 = __webpack_require__(9);
-const snapshot_normalizer_1 = __webpack_require__(104);
+const snapshot_normalizer_1 = __webpack_require__(105);
 const entity_update_helper_1 = __webpack_require__(29);
 const repository_helper_1 = __webpack_require__(64);
-const grade_score_converter_1 = __webpack_require__(105);
-const analytics_helper_1 = __webpack_require__(111);
+const grade_score_converter_1 = __webpack_require__(106);
+const analytics_helper_1 = __webpack_require__(112);
 const member_entity_1 = __webpack_require__(51);
 let AssessmentsService = AssessmentsService_1 = class AssessmentsService {
     constructor(assessmentRepository, assessmentItemRepository, abilitySnapshotRepository, memberRepository, scoreCalculator, gradeScoreConverter) {
@@ -9438,7 +9831,7 @@ exports.AssessmentsService = AssessmentsService = AssessmentsService_1 = __decor
 
 
 /***/ }),
-/* 103 */
+/* 104 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -9629,7 +10022,7 @@ exports.ScoreCalculator = ScoreCalculator = __decorate([
 
 
 /***/ }),
-/* 104 */
+/* 105 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -9695,7 +10088,7 @@ exports.SnapshotNormalizer = SnapshotNormalizer;
 
 
 /***/ }),
-/* 105 */
+/* 106 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -9718,10 +10111,10 @@ exports.GradeScoreConverter = void 0;
 const common_1 = __webpack_require__(2);
 const typeorm_1 = __webpack_require__(6);
 const typeorm_2 = __webpack_require__(15);
-const assessment_category_score_entity_1 = __webpack_require__(106);
-const flexibility_item_weight_entity_1 = __webpack_require__(108);
-const flexibility_grade_threshold_entity_1 = __webpack_require__(109);
-const body_composition_standard_entity_1 = __webpack_require__(110);
+const assessment_category_score_entity_1 = __webpack_require__(107);
+const flexibility_item_weight_entity_1 = __webpack_require__(109);
+const flexibility_grade_threshold_entity_1 = __webpack_require__(110);
+const body_composition_standard_entity_1 = __webpack_require__(111);
 const enums_1 = __webpack_require__(18);
 let GradeScoreConverter = GradeScoreConverter_1 = class GradeScoreConverter {
     constructor(categoryScoreRepository, flexibilityWeightRepository, flexibilityThresholdRepository, bodyCompositionStandardRepository) {
@@ -9987,7 +10380,7 @@ exports.GradeScoreConverter = GradeScoreConverter = GradeScoreConverter_1 = __de
 
 
 /***/ }),
-/* 106 */
+/* 107 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10005,7 +10398,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AssessmentCategoryScore = void 0;
 const typeorm_1 = __webpack_require__(15);
 const enums_1 = __webpack_require__(18);
-const assessment_grade_constant_entity_1 = __webpack_require__(107);
+const assessment_grade_constant_entity_1 = __webpack_require__(108);
 let AssessmentCategoryScore = class AssessmentCategoryScore {
 };
 exports.AssessmentCategoryScore = AssessmentCategoryScore;
@@ -10070,7 +10463,7 @@ exports.AssessmentCategoryScore = AssessmentCategoryScore = __decorate([
 
 
 /***/ }),
-/* 107 */
+/* 108 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10138,7 +10531,7 @@ exports.AssessmentGradeConstant = AssessmentGradeConstant = __decorate([
 
 
 /***/ }),
-/* 108 */
+/* 109 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10202,7 +10595,7 @@ exports.FlexibilityItemWeight = FlexibilityItemWeight = __decorate([
 
 
 /***/ }),
-/* 109 */
+/* 110 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10219,7 +10612,7 @@ var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.FlexibilityGradeThreshold = void 0;
 const typeorm_1 = __webpack_require__(15);
-const assessment_grade_constant_entity_1 = __webpack_require__(107);
+const assessment_grade_constant_entity_1 = __webpack_require__(108);
 let FlexibilityGradeThreshold = class FlexibilityGradeThreshold {
 };
 exports.FlexibilityGradeThreshold = FlexibilityGradeThreshold;
@@ -10271,7 +10664,7 @@ exports.FlexibilityGradeThreshold = FlexibilityGradeThreshold = __decorate([
 
 
 /***/ }),
-/* 110 */
+/* 111 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10343,13 +10736,13 @@ exports.BodyCompositionStandard = BodyCompositionStandard = __decorate([
 
 
 /***/ }),
-/* 111 */
+/* 112 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AnalyticsHelper = exports.HEXAGON_INDICATOR_NAMES = void 0;
-const snapshot_normalizer_1 = __webpack_require__(104);
+const snapshot_normalizer_1 = __webpack_require__(105);
 exports.HEXAGON_INDICATOR_NAMES = {
     strength: '하체 근력',
     cardio: '심폐 지구력',
@@ -10455,7 +10848,7 @@ exports.AnalyticsHelper = AnalyticsHelper;
 
 
 /***/ }),
-/* 112 */
+/* 113 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10472,7 +10865,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CompareSnapshotsQueryDto = void 0;
 const class_validator_1 = __webpack_require__(31);
 const swagger_1 = __webpack_require__(4);
-const class_transformer_1 = __webpack_require__(82);
+const class_transformer_1 = __webpack_require__(83);
 class CompareSnapshotsQueryDto {
 }
 exports.CompareSnapshotsQueryDto = CompareSnapshotsQueryDto;
@@ -10492,7 +10885,7 @@ __decorate([
 
 
 /***/ }),
-/* 113 */
+/* 114 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10568,7 +10961,7 @@ __decorate([
 
 
 /***/ }),
-/* 114 */
+/* 115 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10594,8 +10987,8 @@ const typeorm_2 = __webpack_require__(15);
 const guards_1 = __webpack_require__(36);
 const ability_snapshot_entity_1 = __webpack_require__(54);
 const api_response_1 = __webpack_require__(43);
-const snapshot_normalizer_1 = __webpack_require__(104);
-const analytics_helper_1 = __webpack_require__(111);
+const snapshot_normalizer_1 = __webpack_require__(105);
+const analytics_helper_1 = __webpack_require__(112);
 let MemberAnalyticsController = class MemberAnalyticsController {
     constructor(abilitySnapshotRepository) {
         this.abilitySnapshotRepository = abilitySnapshotRepository;
@@ -10647,7 +11040,7 @@ exports.MemberAnalyticsController = MemberAnalyticsController = __decorate([
 
 
 /***/ }),
-/* 115 */
+/* 116 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10668,9 +11061,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.WorkoutRoutinesController = void 0;
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(4);
-const workout_routines_service_1 = __webpack_require__(78);
-const create_workout_routine_dto_1 = __webpack_require__(94);
-const update_workout_routine_dto_1 = __webpack_require__(95);
+const workout_routines_service_1 = __webpack_require__(79);
+const create_workout_routine_dto_1 = __webpack_require__(95);
+const update_workout_routine_dto_1 = __webpack_require__(96);
 const guards_1 = __webpack_require__(36);
 const roles_decorator_1 = __webpack_require__(40);
 const enums_1 = __webpack_require__(18);
@@ -10809,7 +11202,7 @@ exports.WorkoutRoutinesController = WorkoutRoutinesController = __decorate([
 
 
 /***/ }),
-/* 116 */
+/* 117 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10823,21 +11216,21 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AssessmentsModule = void 0;
 const common_1 = __webpack_require__(2);
 const typeorm_1 = __webpack_require__(6);
-const assessments_controller_1 = __webpack_require__(117);
-const assessments_service_1 = __webpack_require__(102);
+const assessments_controller_1 = __webpack_require__(118);
+const assessments_service_1 = __webpack_require__(103);
 const assessment_entity_1 = __webpack_require__(52);
 const assessment_item_entity_1 = __webpack_require__(53);
 const ability_snapshot_entity_1 = __webpack_require__(54);
 const injury_restriction_entity_1 = __webpack_require__(56);
 const injury_history_entity_1 = __webpack_require__(55);
-const assessment_grade_constant_entity_1 = __webpack_require__(107);
-const assessment_category_score_entity_1 = __webpack_require__(106);
-const flexibility_item_weight_entity_1 = __webpack_require__(108);
-const flexibility_grade_threshold_entity_1 = __webpack_require__(109);
-const body_composition_standard_entity_1 = __webpack_require__(110);
+const assessment_grade_constant_entity_1 = __webpack_require__(108);
+const assessment_category_score_entity_1 = __webpack_require__(107);
+const flexibility_item_weight_entity_1 = __webpack_require__(109);
+const flexibility_grade_threshold_entity_1 = __webpack_require__(110);
+const body_composition_standard_entity_1 = __webpack_require__(111);
 const member_entity_1 = __webpack_require__(51);
-const score_calculator_1 = __webpack_require__(103);
-const grade_score_converter_1 = __webpack_require__(105);
+const score_calculator_1 = __webpack_require__(104);
+const grade_score_converter_1 = __webpack_require__(106);
 let AssessmentsModule = class AssessmentsModule {
 };
 exports.AssessmentsModule = AssessmentsModule;
@@ -10866,7 +11259,7 @@ exports.AssessmentsModule = AssessmentsModule = __decorate([
 
 
 /***/ }),
-/* 117 */
+/* 118 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10887,9 +11280,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AssessmentsController = void 0;
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(4);
-const assessments_service_1 = __webpack_require__(102);
-const create_assessment_dto_1 = __webpack_require__(118);
-const update_assessment_dto_1 = __webpack_require__(120);
+const assessments_service_1 = __webpack_require__(103);
+const create_assessment_dto_1 = __webpack_require__(119);
+const update_assessment_dto_1 = __webpack_require__(121);
 const guards_1 = __webpack_require__(36);
 const roles_decorator_1 = __webpack_require__(40);
 const enums_1 = __webpack_require__(18);
@@ -11027,7 +11420,7 @@ exports.AssessmentsController = AssessmentsController = __decorate([
 
 
 /***/ }),
-/* 118 */
+/* 119 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11044,10 +11437,10 @@ var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CreateAssessmentDto = void 0;
 const class_validator_1 = __webpack_require__(31);
-const class_transformer_1 = __webpack_require__(82);
+const class_transformer_1 = __webpack_require__(83);
 const swagger_1 = __webpack_require__(4);
 const enums_1 = __webpack_require__(18);
-const create_assessment_item_dto_1 = __webpack_require__(119);
+const create_assessment_item_dto_1 = __webpack_require__(120);
 class CreateAssessmentDto {
 }
 exports.CreateAssessmentDto = CreateAssessmentDto;
@@ -11157,7 +11550,7 @@ __decorate([
 
 
 /***/ }),
-/* 119 */
+/* 120 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11251,7 +11644,7 @@ __decorate([
 
 
 /***/ }),
-/* 120 */
+/* 121 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11268,10 +11661,10 @@ var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UpdateAssessmentDto = void 0;
 const class_validator_1 = __webpack_require__(31);
-const class_transformer_1 = __webpack_require__(82);
+const class_transformer_1 = __webpack_require__(83);
 const swagger_1 = __webpack_require__(4);
 const enums_1 = __webpack_require__(18);
-const create_assessment_item_dto_1 = __webpack_require__(119);
+const create_assessment_item_dto_1 = __webpack_require__(120);
 class UpdateAssessmentDto {
 }
 exports.UpdateAssessmentDto = UpdateAssessmentDto;
@@ -11361,7 +11754,7 @@ __decorate([
 
 
 /***/ }),
-/* 121 */
+/* 122 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11375,8 +11768,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AnalyticsModule = void 0;
 const common_1 = __webpack_require__(2);
 const typeorm_1 = __webpack_require__(6);
-const analytics_controller_1 = __webpack_require__(122);
-const analytics_service_1 = __webpack_require__(123);
+const analytics_controller_1 = __webpack_require__(123);
+const analytics_service_1 = __webpack_require__(124);
 const ability_snapshot_entity_1 = __webpack_require__(54);
 const member_entity_1 = __webpack_require__(51);
 let AnalyticsModule = class AnalyticsModule {
@@ -11393,7 +11786,7 @@ exports.AnalyticsModule = AnalyticsModule = __decorate([
 
 
 /***/ }),
-/* 122 */
+/* 123 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11414,7 +11807,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AnalyticsController = void 0;
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(4);
-const analytics_service_1 = __webpack_require__(123);
+const analytics_service_1 = __webpack_require__(124);
 const guards_1 = __webpack_require__(36);
 const api_response_1 = __webpack_require__(43);
 let AnalyticsController = class AnalyticsController {
@@ -11457,7 +11850,7 @@ exports.AnalyticsController = AnalyticsController = __decorate([
 
 
 /***/ }),
-/* 123 */
+/* 124 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11483,8 +11876,8 @@ const typeorm_2 = __webpack_require__(15);
 const ability_snapshot_entity_1 = __webpack_require__(54);
 const member_entity_1 = __webpack_require__(51);
 const exceptions_1 = __webpack_require__(27);
-const snapshot_normalizer_1 = __webpack_require__(104);
-const analytics_helper_1 = __webpack_require__(111);
+const snapshot_normalizer_1 = __webpack_require__(105);
+const analytics_helper_1 = __webpack_require__(112);
 let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
     constructor(abilitySnapshotRepository, memberRepository) {
         this.abilitySnapshotRepository = abilitySnapshotRepository;
@@ -11541,7 +11934,7 @@ exports.AnalyticsService = AnalyticsService = AnalyticsService_1 = __decorate([
 
 
 /***/ }),
-/* 124 */
+/* 125 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11555,8 +11948,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.InsightsModule = void 0;
 const common_1 = __webpack_require__(2);
 const typeorm_1 = __webpack_require__(6);
-const insights_controller_1 = __webpack_require__(125);
-const insights_service_1 = __webpack_require__(126);
+const insights_controller_1 = __webpack_require__(126);
+const insights_service_1 = __webpack_require__(127);
 const ability_snapshot_entity_1 = __webpack_require__(54);
 const member_entity_1 = __webpack_require__(51);
 const assessment_entity_1 = __webpack_require__(52);
@@ -11578,7 +11971,7 @@ exports.InsightsModule = InsightsModule = __decorate([
 
 
 /***/ }),
-/* 125 */
+/* 126 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11596,7 +11989,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.InsightsController = void 0;
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(4);
-const insights_service_1 = __webpack_require__(126);
+const insights_service_1 = __webpack_require__(127);
 const guards_1 = __webpack_require__(36);
 const roles_decorator_1 = __webpack_require__(40);
 const enums_1 = __webpack_require__(18);
@@ -11665,7 +12058,7 @@ exports.InsightsController = InsightsController = __decorate([
 
 
 /***/ }),
-/* 126 */
+/* 127 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11694,8 +12087,8 @@ const injury_history_entity_1 = __webpack_require__(55);
 const membership_entity_1 = __webpack_require__(57);
 const enums_1 = __webpack_require__(18);
 const date_helper_1 = __webpack_require__(9);
-const snapshot_normalizer_1 = __webpack_require__(104);
-const analytics_helper_1 = __webpack_require__(111);
+const snapshot_normalizer_1 = __webpack_require__(105);
+const analytics_helper_1 = __webpack_require__(112);
 let InsightsService = class InsightsService {
     constructor(abilitySnapshotRepository, memberRepository, assessmentRepository, injuryHistoryRepository, membershipRepository) {
         this.abilitySnapshotRepository = abilitySnapshotRepository;
@@ -12057,7 +12450,7 @@ exports.InsightsService = InsightsService = __decorate([
 
 
 /***/ }),
-/* 127 */
+/* 128 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12071,8 +12464,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ExercisesModule = void 0;
 const common_1 = __webpack_require__(2);
 const typeorm_1 = __webpack_require__(6);
-const exercises_controller_1 = __webpack_require__(128);
-const exercises_service_1 = __webpack_require__(129);
+const exercises_controller_1 = __webpack_require__(129);
+const exercises_service_1 = __webpack_require__(130);
 const exercise_entity_1 = __webpack_require__(67);
 const workout_record_entity_1 = __webpack_require__(61);
 let ExercisesModule = class ExercisesModule {
@@ -12089,7 +12482,7 @@ exports.ExercisesModule = ExercisesModule = __decorate([
 
 
 /***/ }),
-/* 128 */
+/* 129 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12110,8 +12503,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ExercisesController = void 0;
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(4);
-const exercises_service_1 = __webpack_require__(129);
-const get_exercises_dto_1 = __webpack_require__(130);
+const exercises_service_1 = __webpack_require__(130);
+const get_exercises_dto_1 = __webpack_require__(131);
 const guards_1 = __webpack_require__(36);
 const api_response_1 = __webpack_require__(43);
 let ExercisesController = class ExercisesController {
@@ -12164,7 +12557,7 @@ exports.ExercisesController = ExercisesController = __decorate([
 
 
 /***/ }),
-/* 129 */
+/* 130 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12292,7 +12685,7 @@ exports.ExercisesService = ExercisesService = ExercisesService_1 = __decorate([
 
 
 /***/ }),
-/* 130 */
+/* 131 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12309,7 +12702,7 @@ var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetExercisesDto = void 0;
 const class_validator_1 = __webpack_require__(31);
-const class_transformer_1 = __webpack_require__(82);
+const class_transformer_1 = __webpack_require__(83);
 const swagger_1 = __webpack_require__(4);
 const exercise_entity_1 = __webpack_require__(67);
 class GetExercisesDto {
@@ -12398,7 +12791,7 @@ __decorate([
 
 
 /***/ }),
-/* 131 */
+/* 132 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12412,8 +12805,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StrengthLevelModule = void 0;
 const common_1 = __webpack_require__(2);
 const typeorm_1 = __webpack_require__(6);
-const strength_level_controller_1 = __webpack_require__(132);
-const strength_level_service_1 = __webpack_require__(133);
+const strength_level_controller_1 = __webpack_require__(133);
+const strength_level_service_1 = __webpack_require__(134);
 const exercise_entity_1 = __webpack_require__(67);
 const strength_standard_entity_1 = __webpack_require__(68);
 let StrengthLevelModule = class StrengthLevelModule {
@@ -12430,7 +12823,7 @@ exports.StrengthLevelModule = StrengthLevelModule = __decorate([
 
 
 /***/ }),
-/* 132 */
+/* 133 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12451,9 +12844,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StrengthLevelController = void 0;
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(4);
-const strength_level_service_1 = __webpack_require__(133);
-const calculate_strength_level_dto_1 = __webpack_require__(134);
-const strength_level_response_dto_1 = __webpack_require__(135);
+const strength_level_service_1 = __webpack_require__(134);
+const calculate_strength_level_dto_1 = __webpack_require__(135);
+const strength_level_response_dto_1 = __webpack_require__(136);
 let StrengthLevelController = class StrengthLevelController {
     constructor(strengthLevelService) {
         this.strengthLevelService = strengthLevelService;
@@ -12513,7 +12906,7 @@ exports.StrengthLevelController = StrengthLevelController = __decorate([
 
 
 /***/ }),
-/* 133 */
+/* 134 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12539,8 +12932,8 @@ const typeorm_2 = __webpack_require__(15);
 const exercise_entity_1 = __webpack_require__(67);
 const strength_standard_entity_1 = __webpack_require__(68);
 const enums_1 = __webpack_require__(18);
-const calculate_strength_level_dto_1 = __webpack_require__(134);
-const strength_level_response_dto_1 = __webpack_require__(135);
+const calculate_strength_level_dto_1 = __webpack_require__(135);
+const strength_level_response_dto_1 = __webpack_require__(136);
 let StrengthLevelService = StrengthLevelService_1 = class StrengthLevelService {
     constructor(exerciseRepository, strengthStandardRepository) {
         this.exerciseRepository = exerciseRepository;
@@ -12710,7 +13103,7 @@ exports.StrengthLevelService = StrengthLevelService = StrengthLevelService_1 = _
 
 
 /***/ }),
-/* 134 */
+/* 135 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12806,7 +13199,7 @@ __decorate([
 
 
 /***/ }),
-/* 135 */
+/* 136 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -13012,7 +13405,7 @@ exports.StrengthLevelFriendlyNames = {
 
 
 /***/ }),
-/* 136 */
+/* 137 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -13030,11 +13423,11 @@ const injury_restriction_entity_1 = __webpack_require__(56);
 const workout_record_entity_1 = __webpack_require__(61);
 const pt_session_entity_1 = __webpack_require__(59);
 const workout_routine_entity_1 = __webpack_require__(62);
-const assessment_grade_constant_entity_1 = __webpack_require__(107);
-const assessment_category_score_entity_1 = __webpack_require__(106);
-const flexibility_item_weight_entity_1 = __webpack_require__(108);
-const flexibility_grade_threshold_entity_1 = __webpack_require__(109);
-const body_composition_standard_entity_1 = __webpack_require__(110);
+const assessment_grade_constant_entity_1 = __webpack_require__(108);
+const assessment_category_score_entity_1 = __webpack_require__(107);
+const flexibility_item_weight_entity_1 = __webpack_require__(109);
+const flexibility_grade_threshold_entity_1 = __webpack_require__(110);
+const body_composition_standard_entity_1 = __webpack_require__(111);
 const exercise_entity_1 = __webpack_require__(67);
 const strength_standard_entity_1 = __webpack_require__(68);
 const program_milestone_entity_1 = __webpack_require__(58);
@@ -13098,7 +13491,7 @@ exports.getDatabaseConfig = getDatabaseConfig;
 
 
 /***/ }),
-/* 137 */
+/* 138 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -13135,7 +13528,7 @@ exports.getCorsConfig = getCorsConfig;
 
 
 /***/ }),
-/* 138 */
+/* 139 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -13150,7 +13543,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.HttpExceptionFilter = void 0;
 const common_1 = __webpack_require__(2);
 const api_response_1 = __webpack_require__(43);
-const error_codes_1 = __webpack_require__(139);
+const error_codes_1 = __webpack_require__(140);
 const date_helper_1 = __webpack_require__(9);
 const api_exception_1 = __webpack_require__(28);
 let HttpExceptionFilter = HttpExceptionFilter_1 = class HttpExceptionFilter {
@@ -13261,7 +13654,7 @@ exports.HttpExceptionFilter = HttpExceptionFilter = HttpExceptionFilter_1 = __de
 
 
 /***/ }),
-/* 139 */
+/* 140 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -13287,7 +13680,7 @@ exports.ErrorCodes = {
 
 
 /***/ }),
-/* 140 */
+/* 141 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -13306,13 +13699,13 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-__exportStar(__webpack_require__(141), exports);
-__exportStar(__webpack_require__(143), exports);
+__exportStar(__webpack_require__(142), exports);
 __exportStar(__webpack_require__(144), exports);
+__exportStar(__webpack_require__(145), exports);
 
 
 /***/ }),
-/* 141 */
+/* 142 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -13326,7 +13719,7 @@ var LoggingInterceptor_1;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LoggingInterceptor = void 0;
 const common_1 = __webpack_require__(2);
-const operators_1 = __webpack_require__(142);
+const operators_1 = __webpack_require__(143);
 let LoggingInterceptor = LoggingInterceptor_1 = class LoggingInterceptor {
     constructor() {
         this.logger = new common_1.Logger(LoggingInterceptor_1.name);
@@ -13358,13 +13751,13 @@ exports.LoggingInterceptor = LoggingInterceptor = LoggingInterceptor_1 = __decor
 
 
 /***/ }),
-/* 142 */
+/* 143 */
 /***/ ((module) => {
 
 module.exports = require("rxjs/operators");
 
 /***/ }),
-/* 143 */
+/* 144 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -13377,7 +13770,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TransformInterceptor = void 0;
 const common_1 = __webpack_require__(2);
-const operators_1 = __webpack_require__(142);
+const operators_1 = __webpack_require__(143);
 let TransformInterceptor = class TransformInterceptor {
     intercept(context, next) {
         return next.handle().pipe((0, operators_1.map)((data) => {
@@ -13398,7 +13791,7 @@ exports.TransformInterceptor = TransformInterceptor = __decorate([
 
 
 /***/ }),
-/* 144 */
+/* 145 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -13414,8 +13807,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TimeoutInterceptor = void 0;
 const common_1 = __webpack_require__(2);
-const rxjs_1 = __webpack_require__(145);
-const operators_1 = __webpack_require__(142);
+const rxjs_1 = __webpack_require__(146);
+const operators_1 = __webpack_require__(143);
 let TimeoutInterceptor = class TimeoutInterceptor {
     constructor(timeoutMs = 30000) {
         this.timeoutMs = timeoutMs;
@@ -13437,7 +13830,7 @@ exports.TimeoutInterceptor = TimeoutInterceptor = __decorate([
 
 
 /***/ }),
-/* 145 */
+/* 146 */
 /***/ ((module) => {
 
 module.exports = require("rxjs");
@@ -13481,9 +13874,9 @@ const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
 const swagger_1 = __webpack_require__(4);
 const app_module_1 = __webpack_require__(5);
-const cors_config_1 = __webpack_require__(137);
-const http_exception_filter_1 = __webpack_require__(138);
-const interceptors_1 = __webpack_require__(140);
+const cors_config_1 = __webpack_require__(138);
+const http_exception_filter_1 = __webpack_require__(139);
+const interceptors_1 = __webpack_require__(141);
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     const configService = app.get(config_1.ConfigService);

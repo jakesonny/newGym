@@ -7,7 +7,7 @@ export const getCorsConfig = (configService: ConfigService): CorsOptions => {
 	// 기본 허용 origin 목록 (프론트엔드 배포 주소 포함)
 	const defaultOrigins = [
 		'http://localhost:3000',
-		'https://gym-admin-mu.vercel.app', // 프론트엔드 배포 주소
+		'https://gym-kappa-nine.vercel.app', // 프론트엔드 배포 주소
 	];
 	
 	const allowedOrigins = frontendUrl

@@ -412,7 +412,7 @@ export class InsightsService {
 			totalMembers: number;
 			activeMembers: number;
 			averageProgress: number;
-			riskCounts: { green: number; yellow: number; red: number };
+			riskCounts: { foundation: number; green: number; yellow: number; red: number };
 			missingMeasurements: number;
 		};
 		memberList: Array<{
@@ -475,7 +475,7 @@ export class InsightsService {
 
 		// 통계 계산
 		const activeMembers = members.filter(m => m.status === MemberStatus.ACTIVE);
-		const riskCounts = { green: 0, yellow: 0, red: 0 };
+		const riskCounts = { foundation: 0, green: 0, yellow: 0, red: 0 };
 		let totalProgress = 0;
 		let progressCount = 0;
 		let missingMeasurements = 0;
@@ -484,9 +484,10 @@ export class InsightsService {
 			const membership = membershipByMember.get(member.id);
 			const lastAssessmentDate = lastAssessmentByMember.get(member.id);
 
-			// 위험 상태 카운트
-			const riskStatus = membership?.riskStatus || RiskStatus.GREEN;
-			if (riskStatus === RiskStatus.GREEN) riskCounts.green++;
+			// 위험 상태 카운트 (FOUNDATION 포함)
+			const riskStatus = membership?.riskStatus || RiskStatus.FOUNDATION;
+			if (riskStatus === RiskStatus.FOUNDATION) riskCounts.foundation++;
+			else if (riskStatus === RiskStatus.GREEN) riskCounts.green++;
 			else if (riskStatus === RiskStatus.YELLOW) riskCounts.yellow++;
 			else if (riskStatus === RiskStatus.RED) riskCounts.red++;
 

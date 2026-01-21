@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Membership } from './membership.entity';
 import { PTSession } from './pt-session.entity';
+import { BlockPurpose } from '../common/enums';
 
 @Index('idx_program_milestones_membership_id', ['membershipId'])
 @Index('idx_program_milestones_week_number', ['weekNumber'])
@@ -37,6 +38,26 @@ export class ProgramMilestone {
 
 	@Column({ type: 'int', name: 'week_number', comment: '주차 (1, 2, 3...)' })
 	weekNumber: number;
+
+	// ========== Phase 2: 4주 블록 구조 ==========
+
+	@Column({ type: 'int', name: 'block_number', nullable: true, comment: '블록 번호 (1, 2, 3...)' })
+	blockNumber?: number;
+
+	@Column({
+		type: 'enum',
+		enum: BlockPurpose,
+		name: 'block_purpose',
+		nullable: true,
+		comment: '블록 목적 (ADAPTATION/INTENSITY/CONSOLIDATION)',
+	})
+	blockPurpose?: BlockPurpose;
+
+	@Column({ type: 'int', name: 'block_start_week', nullable: true, comment: '블록 시작 주차' })
+	blockStartWeek?: number;
+
+	@Column({ type: 'int', name: 'block_end_week', nullable: true, comment: '블록 종료 주차' })
+	blockEndWeek?: number;
 
 	@Column({ type: 'date', name: 'target_date', comment: '목표 달성 예정일' })
 	targetDate: Date;

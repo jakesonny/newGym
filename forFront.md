@@ -218,14 +218,14 @@ const response = await fetch('/api/strength-level/calculate', {
 
 ---
 
-## Phase 2: 프로그램 관리 시스템 (엔티티 완료, API 진행중)
+## Phase 2: 프로그램 관리 시스템 (추세 기반 판정 완료)
 
 ### 변경 사항 요약
 
 기존 `Membership` 엔티티를 확장하여 프로그램 기능을 통합했습니다.
-- **Membership** = 회원권 + 프로그램 정보
-- **PTSession** = PT 세션 + 측정값 기록
-- **ProgramMilestone** = 주차별 마일스톤 (PT 세션 후 자동 생성)
+- **Membership** = 회원권 + 프로그램 정보 + 추세 기반 상태
+- **PTSession** = PT 세션 + 측정값 기록 → **자동 Membership 업데이트 트리거**
+- **ProgramMilestone** = 4주 블록 기반 마일스톤
 
 ### 새로운 Enum 타입
 
@@ -235,15 +235,58 @@ type GoalType =
   | "WEIGHT_LOSS"    // 체중 감량
   | "MUSCLE_GAIN"    // 근육량 증가
   | "STRENGTH_UP"    // 근력 상승
-  | "ENDURANCE"      // 체력 증진
+  | "ENDURANCE"      // 체력 증진 (stepTestTime 기준, 낮을수록 좋음)
   | "BODY_FAT_LOSS"  // 체지방 감량
+  | "MAINTENANCE"    // 건강 유지 (변화 없음 = 정상)
   | "CUSTOM";        // 기타
 
-// 위험 상태
+// 목표 방향 (CUSTOM 목표용)
+type GoalDirection = 
+  | "INCREASE"  // 증가 목표
+  | "DECREASE"; // 감소 목표
+
+// 위험 상태 (추세 기반 판정)
 type RiskStatus = 
-  | "GREEN"   // 정상 진행 (70% 이상)
-  | "YELLOW"  // 주의 필요 (30-70%)
-  | "RED";    // 위험 (30% 미만)
+  | "FOUNDATION"  // 기초 단계 (측정 0~1회, 추세 판정 불가)
+  | "GREEN"       // 정상 진행 (목표 방향으로 개선 중)
+  | "YELLOW"      // 주의 필요 (정체 또는 단기 역행)
+  | "RED";        // 위험 (지속적 역행)
+
+// 4주 블록 목적
+type BlockPurpose = 
+  | "ADAPTATION"     // 적응 (1블록)
+  | "INTENSITY"      // 볼륨/강도 (중간 블록)
+  | "CONSOLIDATION"; // 정착/습관화 (마지막 블록)
+```
+
+### 추세 기반 riskStatus 판정 로직
+
+```typescript
+// 판정 기준 (실제 측정값 변화 기반)
+// - 최소 2회 이상 측정 필요 (미만시 FOUNDATION)
+// - 정체(FLAT): 변화량 < 임계값 → YELLOW
+// - 급변(RAPID): 목표 방향 빠른 변화 → isRapidProgress 플래그
+// - 역행: 목표 반대 방향 → RED
+
+// 정체 임계값 (주간 기준)
+FLAT_THRESHOLDS = {
+  WEIGHT_LOSS: 0.5,    // kg
+  BODY_FAT_LOSS: 0.3,  // %
+  MUSCLE_GAIN: 0.1,    // kg
+  STRENGTH_UP: 2.5,    // kg
+  ENDURANCE: 5,        // 초
+  MAINTENANCE: 0.5,    // kg
+};
+
+// 급변 임계값 (주간 기준)
+RAPID_THRESHOLDS = {
+  WEIGHT_LOSS: 1.5,    // kg
+  BODY_FAT_LOSS: 1.0,  // %
+  MUSCLE_GAIN: 0.3,    // kg
+  STRENGTH_UP: 7.5,    // kg
+  ENDURANCE: 20,       // 초
+  MAINTENANCE: 1.0,    // kg
+};
 ```
 
 ### 회원권 생성 API 확장
@@ -285,7 +328,7 @@ interface MembershipResponse {
   status: string;
   price: number;
   
-  // 프로그램 관련 필드 (새로 추가)
+  // 프로그램 관련 필드
   durationWeeks?: number;
   mainGoalType?: GoalType;
   mainGoalLabel?: string;
@@ -294,7 +337,13 @@ interface MembershipResponse {
   startValue?: number;
   currentValue?: number;
   currentProgress: number;      // 0-100
-  riskStatus: RiskStatus;       // "GREEN" | "YELLOW" | "RED"
+  riskStatus: RiskStatus;       // "FOUNDATION" | "GREEN" | "YELLOW" | "RED"
+  
+  // Phase 2 추세 기반 필드
+  goalDirection?: GoalDirection;     // CUSTOM 목표용 방향
+  isRapidProgress: boolean;          // 급변 플래그 (빠른 순방향 변화)
+  isMeasurementOverdue: boolean;     // 측정 미실시 플래그 (2주 경과)
+  lastMeasurementAt?: string;        // 마지막 측정 일시
   
   // 마일스톤 목록
   milestones?: ProgramMilestone[];
@@ -314,22 +363,27 @@ interface CreatePTSessionRequest {
   mainContent: string;      // 수업 내용
   trainerComment?: string;  // 트레이너 코멘트
   
-  // 새로 추가 - 프로그램 연동 및 측정값
+  // 프로그램 연동
   membershipId?: string;    // 연결할 회원권/프로그램 ID
   
-  // 측정값 (선택)
+  // 측정값 (선택) - 입력시 자동으로 Membership 추세 업데이트
   measuredWeight?: number;      // 체중 (kg)
   measuredMuscleMass?: number;  // 골격근량 (kg)
   measuredBodyFat?: number;     // 체지방률 (%)
   benchPress1RM?: number;       // 벤치프레스 1RM (kg)
   squat1RM?: number;            // 스쿼트 1RM (kg)
   deadlift1RM?: number;         // 데드리프트 1RM (kg)
+  stepTestTime?: number;        // 스텝테스트 시간 (초) - ENDURANCE용
   
   createMilestone?: boolean;    // 마일스톤 자동 생성 여부 (기본: true)
 }
 ```
 
-### 마일스톤 구조
+**자동 업데이트 (측정값 입력시)**:
+- `membershipId`와 측정값이 함께 입력되면 해당 Membership의 추세가 자동 업데이트됩니다.
+- 업데이트 항목: `currentValue`, `currentProgress`, `riskStatus`, `isRapidProgress`, `lastMeasurementAt`
+
+### 마일스톤 구조 (4주 블록 기반)
 
 ```typescript
 interface ProgramMilestone {
@@ -338,6 +392,12 @@ interface ProgramMilestone {
   ptSessionId?: string;       // 연결된 PT 세션
   weekNumber: number;         // 주차 (1, 2, 3...)
   targetDate: string;         // 목표 달성 예정일
+  
+  // 4주 블록 정보
+  blockNumber?: number;       // 블록 번호 (1, 2, 3)
+  blockPurpose?: BlockPurpose; // 블록 목적
+  blockStartWeek?: number;    // 블록 시작 주차
+  blockEndWeek?: number;      // 블록 종료 주차
   
   // 측정값
   measuredWeight?: number;
@@ -358,20 +418,31 @@ interface ProgramMilestone {
 ### 진행률 계산 로직
 
 ```typescript
-// 감소 목표 (체중 감량, 체지방 감량)
+// 감소 목표 (체중 감량, 체지방 감량, ENDURANCE)
 progress = (startValue - currentValue) / (startValue - targetValue) * 100
 
 // 증가 목표 (근육량 증가, 근력 상승)
 progress = (currentValue - startValue) / (targetValue - startValue) * 100
+
+// 0-100% 범위로 클램핑
+progress = Math.min(100, Math.max(0, progress))
 ```
 
-### 위험 상태 판정 기준
+### 위험 상태 판정 기준 (추세 기반)
 
 | 상태 | 기준 | 설명 |
 |------|------|------|
-| GREEN | 예상 진행률의 70% 이상 | 정상 진행 |
-| YELLOW | 예상 진행률의 30-70% | 주의 필요 |
-| RED | 예상 진행률의 30% 미만 | 위험 |
+| FOUNDATION | 측정 0~1회 | 기초 단계, 추세 판정 불가 |
+| GREEN | 목표 방향 개선 | 정상 진행 중 |
+| YELLOW | 정체 (변화 < 임계값) | 주의 필요, 루틴 점검 권장 |
+| RED | 목표 반대 방향 | 위험, 즉시 개입 필요 |
+
+### 플래그 설명
+
+| 플래그 | 의미 |
+|--------|------|
+| `isRapidProgress` | 목표 방향으로 급격한 변화 (과훈련/식단 주의) |
+| `isMeasurementOverdue` | 마지막 측정 후 14일 경과 |
 
 ---
 
@@ -553,7 +624,7 @@ const response = await fetch('/api/members/full', {
 | `startValue` | 미입력시 `initialMeasurement.weight` 사용 |
 | `currentValue` | `initialMeasurement.weight` 자동 설정 |
 | `currentProgress` | 0으로 초기화 |
-| `riskStatus` | GREEN으로 초기화 |
+| `riskStatus` | FOUNDATION으로 초기화 (신규 회원) |
 | `totalSessions` | `ptTotalCount` 값 사용 |
 
 ### 기존 API와 비교
@@ -682,6 +753,7 @@ interface CenterDashboardResponse {
       activeMembers: number;      // 활성 회원 수
       averageProgress: number;    // 평균 진행률 (%)
       riskCounts: {
+        foundation: number;       // 기초 단계 회원 수 (신규)
         green: number;            // 정상 회원 수
         yellow: number;           // 주의 회원 수
         red: number;              // 위험 회원 수
@@ -741,4 +813,4 @@ Phase 5 개발 전에 다음 사항들의 결정이 필요합니다:
 ---
 
 *마지막 업데이트: 2026-01-21*
-*Phase 1 완료, Phase 2 엔티티 완료, Phase 3 완료, Phase 4 완료, 코드 리팩토링 완료*
+*Phase 1 완료, Phase 2 추세 기반 시스템 완료, Phase 3 완료, Phase 4 완료, 코드 리팩토링 완료*

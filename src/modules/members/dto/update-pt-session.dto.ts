@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsDateString, IsOptional } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsDateString, IsOptional, IsNumber } from 'class-validator';
 
 export class UpdatePTSessionDto {
 	@ApiProperty({
@@ -28,5 +28,63 @@ export class UpdatePTSessionDto {
 	@IsOptional()
 	@IsString()
 	trainerComment?: string;
+
+	// ========== Phase 2 추가: 측정값 ==========
+
+	@ApiPropertyOptional({
+		description: '측정 체중 (kg)',
+		example: 79.5,
+	})
+	@IsOptional()
+	@IsNumber()
+	measuredWeight?: number;
+
+	@ApiPropertyOptional({
+		description: '측정 골격근량 (kg)',
+		example: 35.2,
+	})
+	@IsOptional()
+	@IsNumber()
+	measuredMuscleMass?: number;
+
+	@ApiPropertyOptional({
+		description: '측정 체지방률 (%)',
+		example: 18.5,
+	})
+	@IsOptional()
+	@IsNumber()
+	measuredBodyFat?: number;
+
+	@ApiPropertyOptional({
+		description: '벤치프레스 1RM (kg)',
+		example: 80,
+	})
+	@IsOptional()
+	@IsNumber()
+	benchPress1RM?: number;
+
+	@ApiPropertyOptional({
+		description: '스쿼트 1RM (kg)',
+		example: 100,
+	})
+	@IsOptional()
+	@IsNumber()
+	squat1RM?: number;
+
+	@ApiPropertyOptional({
+		description: '데드리프트 1RM (kg)',
+		example: 120,
+	})
+	@IsOptional()
+	@IsNumber()
+	deadlift1RM?: number;
+
+	@ApiPropertyOptional({
+		description: '스텝테스트 시간 (초)',
+		example: 180,
+	})
+	@IsOptional()
+	@IsNumber()
+	stepTestTime?: number;
 }
 

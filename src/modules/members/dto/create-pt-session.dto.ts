@@ -86,6 +86,14 @@ export class CreatePTSessionDto {
 	deadlift1RM?: number;
 
 	@ApiPropertyOptional({
+		description: '스텝테스트 시간 (초) - ENDURANCE 목표용',
+		example: 180,
+	})
+	@IsOptional()
+	@IsNumber()
+	stepTestTime?: number;
+
+	@ApiPropertyOptional({
 		description: '마일스톤 자동 생성 여부 (기본: true)',
 		example: true,
 		default: true,
