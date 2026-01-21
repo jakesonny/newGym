@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Member } from '../../../entities/member.entity';
 
 export class GoalResponseDto {
 	@ApiProperty({
@@ -58,5 +59,22 @@ export class GoalResponseDto {
 		example: '2024-01-15T00:00:00.000Z',
 	})
 	updatedAt: Date;
+
+	/**
+	 * Member 엔티티를 GoalResponseDto로 변환
+	 */
+	static fromMember(member: Member): GoalResponseDto {
+		return {
+			id: member.id,
+			memberId: member.id,
+			goal: member.goal,
+			goalProgress: member.goalProgress,
+			goalTrainerComment: member.goalTrainerComment,
+			totalSessions: member.totalSessions,
+			completedSessions: member.completedSessions,
+			createdAt: member.createdAt,
+			updatedAt: member.updatedAt,
+		};
+	}
 }
 

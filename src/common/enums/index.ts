@@ -5,4 +5,5 @@ export * from './assessment.enum';
 export * from './injury.enum';
 export * from './gender.enum';
 export * from './strength-level.enum';
+export * from './program.enum';
 

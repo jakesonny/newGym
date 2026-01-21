@@ -5,15 +5,18 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
   Index,
 } from 'typeorm';
 import { Member } from './member.entity';
-import { MembershipType, MembershipStatus } from '../common/enums';
+import { ProgramMilestone } from './program-milestone.entity';
+import { MembershipType, MembershipStatus, GoalType, RiskStatus } from '../common/enums';
 
 @Index('idx_memberships_member_id', ['memberId'])
 @Index('idx_memberships_status', ['status'])
 @Index('idx_memberships_expiry_date', ['expiryDate'])
+@Index('idx_memberships_risk_status', ['riskStatus'])
 @Entity('memberships')
 export class Membership {
   @PrimaryGeneratedColumn('uuid')
@@ -50,6 +53,52 @@ export class Membership {
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   price: number;
+
+  // ========== 프로그램 관련 필드 (Phase 2 추가) ==========
+
+  @Column({ type: 'int', name: 'duration_weeks', nullable: true, comment: '프로그램 기간 (4, 8, 12주)' })
+  durationWeeks?: number;
+
+  @Column({
+    type: 'enum',
+    enum: GoalType,
+    name: 'main_goal_type',
+    nullable: true,
+    comment: '메인 목표 유형',
+  })
+  mainGoalType?: GoalType;
+
+  @Column({ name: 'main_goal_label', nullable: true, comment: '메인 목표 라벨 (예: 체중 감량)' })
+  mainGoalLabel?: string;
+
+  @Column({ type: 'float', name: 'target_value', nullable: true, comment: '목표 수치' })
+  targetValue?: number;
+
+  @Column({ name: 'target_unit', nullable: true, comment: '목표 단위 (kg, %)' })
+  targetUnit?: string;
+
+  @Column({ type: 'float', name: 'start_value', nullable: true, comment: '시작 수치' })
+  startValue?: number;
+
+  @Column({ type: 'float', name: 'current_value', nullable: true, comment: '현재 수치' })
+  currentValue?: number;
+
+  @Column({ type: 'int', name: 'current_progress', default: 0, comment: '현재 진행률 (0-100)' })
+  currentProgress: number;
+
+  @Column({
+    type: 'enum',
+    enum: RiskStatus,
+    name: 'risk_status',
+    default: RiskStatus.GREEN,
+    comment: '위험 상태 (GREEN/YELLOW/RED)',
+  })
+  riskStatus: RiskStatus;
+
+  @OneToMany(() => ProgramMilestone, (milestone) => milestone.membership)
+  milestones: ProgramMilestone[];
+
+  // ========== 기존 필드 ==========
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

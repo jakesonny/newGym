@@ -8,13 +8,10 @@ import { InjuryHistory } from "../../entities/injury-history.entity";
 import { MemberStatus, RecoveryStatus } from "../../common/enums";
 import { DateHelper } from "../../common/utils/date-helper";
 import { SnapshotNormalizer } from "../../common/utils/snapshot-normalizer";
-import { AnalyticsHelper } from "../../common/utils/analytics-helper";
+import { AnalyticsHelper, HexagonIndicator } from "../../common/utils/analytics-helper";
 
 export interface HexagonData {
-	indicators: Array<{
-		name: string;
-		score: number;
-	}>;
+	indicators: HexagonIndicator[];
 	assessedAt: string;
 	version: string;
 }
@@ -87,60 +84,39 @@ export class InsightsService {
 
 		if (members.length === 0) {
 			return {
-				indicators: [
-					{ name: "하체 근력", score: 0 },
-					{ name: "심폐 지구력", score: 0 },
-					{ name: "근지구력", score: 0 },
-					{ name: "유연성", score: 0 }, // 1차피드백: 유연성 추가
-					{ name: "체성분 밸런스", score: 0 },
-					{ name: "부상 안정성", score: 0 },
-				],
+				indicators: AnalyticsHelper.emptyHexagonIndicators(),
 				assessedAt: DateHelper.getKoreaTimeISOString(),
 				version: "v1",
 			};
 		}
 
 		const latestSnapshots = await Promise.all(
-			members.map(async (member) => {
-				return this.abilitySnapshotRepository.findOne({
+			members.map((member) =>
+				this.abilitySnapshotRepository.findOne({
 					where: { memberId: member.id },
 					order: { assessedAt: "DESC" },
-				});
-			})
+				})
+			)
 		);
 
 		const validSnapshots = SnapshotNormalizer.normalizeArray(latestSnapshots);
 
 		if (validSnapshots.length === 0) {
 			return {
-				indicators: [
-					{ name: "하체 근력", score: 0 },
-					{ name: "심폐 지구력", score: 0 },
-					{ name: "근지구력", score: 0 },
-					{ name: "유연성", score: 0 },
-					{ name: "체성분 밸런스", score: 0 },
-					{ name: "부상 안정성", score: 0 },
-				],
+				indicators: AnalyticsHelper.emptyHexagonIndicators(),
 				assessedAt: DateHelper.getKoreaTimeISOString(),
 				version: "v1",
 			};
 		}
 
 		const averages = AnalyticsHelper.calculateAverages(validSnapshots);
-
-		const latestDate = validSnapshots.reduce((latest, snapshot) => {
-			return snapshot.assessedAt > latest ? snapshot.assessedAt : latest;
-		}, validSnapshots[0].assessedAt);
+		const latestDate = validSnapshots.reduce((latest, snapshot) => 
+			snapshot.assessedAt > latest ? snapshot.assessedAt : latest, 
+			validSnapshots[0].assessedAt
+		);
 
 		return {
-			indicators: [
-				{ name: "하체 근력", score: Math.round(averages.strengthScore) },
-				{ name: "심폐 지구력", score: Math.round(averages.cardioScore) },
-				{ name: "근지구력", score: Math.round(averages.enduranceScore) },
-				{ name: "유연성", score: Math.round(averages.flexibilityScore) }, // 1차피드백: 유연성 추가
-				{ name: "체성분 밸런스", score: Math.round(averages.bodyScore) },
-				{ name: "부상 안정성", score: Math.round(averages.stabilityScore) },
-			],
+			indicators: AnalyticsHelper.averagesToHexagonIndicators(averages),
 			assessedAt: DateHelper.toKoreaTimeISOString(latestDate),
 			version: validSnapshots[0].version || "v1",
 		};

@@ -9,6 +9,7 @@ import { AssessmentsModule } from "./modules/assessments/assessments.module";
 import { AnalyticsModule } from "./modules/analytics/analytics.module";
 import { InsightsModule } from "./modules/insights/insights.module";
 import { ExercisesModule } from "./modules/exercises/exercises.module";
+import { StrengthLevelModule } from "./modules/strength-level/strength-level.module";
 import { getDatabaseConfig } from "./config/database.config";
 
 @Module({
@@ -27,6 +28,7 @@ import { getDatabaseConfig } from "./config/database.config";
 		AnalyticsModule,
 		InsightsModule,
 		ExercisesModule,
+		StrengthLevelModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],

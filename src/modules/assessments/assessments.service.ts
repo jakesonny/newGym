@@ -6,25 +6,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { Assessment } from '../../entities/assessment.entity';
 import { AssessmentItem } from '../../entities/assessment-item.entity';
-import { AssessmentType, Condition, Category, EvaluationType } from '../../common/enums';
+import { AssessmentType, Category } from '../../common/enums';
 import { AbilitySnapshot } from '../../entities/ability-snapshot.entity';
 import { ScoreCalculator } from '../../common/utils/score-calculator';
 import { CreateAssessmentDto } from './dto/create-assessment.dto';
 import { UpdateAssessmentDto } from './dto/update-assessment.dto';
-import { CreateAssessmentItemDto } from './dto/create-assessment-item.dto';
 import { ApiExceptions } from '../../common/exceptions';
 import { DateHelper } from '../../common/utils/date-helper';
 import { SnapshotNormalizer } from '../../common/utils/snapshot-normalizer';
 import { EntityUpdateHelper } from '../../common/utils/entity-update-helper';
 import { RepositoryHelper } from '../../common/utils/repository-helper';
 import { GradeScoreConverter } from '../../common/utils/grade-score-converter';
+import { AnalyticsHelper } from '../../common/utils/analytics-helper';
 import { Member } from '../../entities/member.entity';
-import { Exercise } from '../../entities/exercise.entity';
-import { StrengthStandard } from '../../entities/strength-standard.entity';
-import { OneRepMaxCalculator, OneRepMaxFormula } from '../../common/utils/one-rep-max-calculator';
-import { RelativeStrengthCalculator } from '../../common/utils/relative-strength-calculator';
-// TODO: 추후 구현 예정 - Strength Level 판정 기능
-// import { StrengthLevelEvaluator } from '../../common/utils/strength-level-evaluator';
 
 @Injectable()
 export class AssessmentsService {
@@ -39,10 +33,6 @@ export class AssessmentsService {
 		private abilitySnapshotRepository: Repository<AbilitySnapshot>,
 		@InjectRepository(Member)
 		private memberRepository: Repository<Member>,
-		@InjectRepository(Exercise)
-		private exerciseRepository: Repository<Exercise>,
-		@InjectRepository(StrengthStandard)
-		private strengthStandardRepository: Repository<StrengthStandard>,
 		private scoreCalculator: ScoreCalculator,
 		private gradeScoreConverter: GradeScoreConverter,
 	) {}
@@ -248,40 +238,6 @@ export class AssessmentsService {
           score = itemDto.value;
         }
 
-        // TODO: 추후 구현 예정 - Strength Level 계산
-        // STRENGTH 카테고리이고 무게와 횟수가 있으면 Strength Level 계산
-        let detailsWithStrength = itemDto.details || {};
-        /*
-        if (
-          itemDto.category === Category.STRENGTH &&
-          itemDto.value !== undefined &&
-          itemDto.value !== null &&
-          itemDto.unit &&
-          member
-        ) {
-          try {
-            const strengthInfo = await this.calculateStrengthLevelForAssessment(
-              itemDto.name,
-              itemDto.value,
-              itemDto.unit,
-              member,
-            );
-            if (strengthInfo) {
-              detailsWithStrength = {
-                ...detailsWithStrength,
-                strengthLevel: strengthInfo.level,
-                oneRepMax: strengthInfo.oneRepMax,
-                relativeStrength: strengthInfo.relativeStrength,
-              };
-            }
-          } catch (error) {
-            this.logger.warn(
-              `Strength Level 계산 실패: ${error.message} (ExerciseName: ${itemDto.name})`,
-            );
-          }
-        }
-        */
-
         const assessmentItem = this.assessmentItemRepository.create({
           assessmentId: savedAssessment.id,
           category: itemDto.category,
@@ -289,7 +245,7 @@ export class AssessmentsService {
           value: itemDto.value,
           unit: itemDto.unit,
           score,
-          details: detailsWithStrength, // 등급, 내부 점수, 관찰 포인트, Strength Level 등 상세 정보
+          details: itemDto.details || {},
         });
 
         return this.assessmentItemRepository.save(assessmentItem);
@@ -382,40 +338,6 @@ export class AssessmentsService {
             score = itemDto.value;
           }
 
-          // TODO: 추후 구현 예정 - Strength Level 계산
-          // STRENGTH 카테고리이고 무게와 횟수가 있으면 Strength Level 계산
-          let detailsWithStrength = itemDto.details || {};
-          /*
-          if (
-            itemDto.category === Category.STRENGTH &&
-            itemDto.value !== undefined &&
-            itemDto.value !== null &&
-            itemDto.unit &&
-            member
-          ) {
-            try {
-              const strengthInfo = await this.calculateStrengthLevelForAssessment(
-                itemDto.name,
-                itemDto.value,
-                itemDto.unit,
-                member,
-              );
-              if (strengthInfo) {
-                detailsWithStrength = {
-                  ...detailsWithStrength,
-                  strengthLevel: strengthInfo.level,
-                  oneRepMax: strengthInfo.oneRepMax,
-                  relativeStrength: strengthInfo.relativeStrength,
-                };
-              }
-            } catch (error) {
-              this.logger.warn(
-                `Strength Level 계산 실패: ${error.message} (ExerciseName: ${itemDto.name})`,
-              );
-            }
-          }
-          */
-
           const assessmentItem = this.assessmentItemRepository.create({
             assessmentId: id,
             category: itemDto.category,
@@ -423,7 +345,7 @@ export class AssessmentsService {
             value: itemDto.value,
             unit: itemDto.unit,
             score,
-            details: detailsWithStrength, // 등급, 내부 점수, 관찰 포인트, Strength Level 등 상세 정보
+            details: itemDto.details || {},
           });
 
           return this.assessmentItemRepository.save(assessmentItem);
@@ -543,12 +465,7 @@ export class AssessmentsService {
 	}
 
 	/**
-	 * 능력치 헥사곤 데이터 (6개 지표)
-	 */
-	/**
 	 * 레이더 차트용 헥사곤 데이터 조회
-	 * @param memberId 회원 ID
-	 * @param includeInitial 초기 평가 포함 여부 (기본값: false)
 	 */
 	async getHexagonData(
 		memberId: string,
@@ -571,39 +488,20 @@ export class AssessmentsService {
 		}
 
 		const current = {
-			indicators: [
-				{ name: "하체 근력", score: snapshot.strengthScore ?? 0 },
-				{ name: "심폐 지구력", score: snapshot.cardioScore ?? 0 },
-				{ name: "근지구력", score: snapshot.enduranceScore ?? 0 },
-				{ name: "유연성", score: snapshot.flexibilityScore ?? 0 },
-				{ name: "체성분 밸런스", score: snapshot.bodyScore ?? 0 },
-				{ name: "부상 안정성", score: snapshot.stabilityScore ?? 0 },
-			],
+			indicators: AnalyticsHelper.toHexagonIndicators(snapshot),
 			assessedAt: DateHelper.toKoreaTimeISOString(snapshot.assessedAt),
 			version: snapshot.version || "v1",
 		};
 
-		// 초기 평가 포함 요청 시
 		if (includeInitial) {
 			const initialSnapshot = await this.getInitialSnapshot(memberId);
-			const initial = initialSnapshot
-				? {
-						indicators: [
-							{ name: "하체 근력", score: initialSnapshot.strengthScore ?? 0 },
-							{ name: "심폐 지구력", score: initialSnapshot.cardioScore ?? 0 },
-							{ name: "근지구력", score: initialSnapshot.enduranceScore ?? 0 },
-							{ name: "유연성", score: initialSnapshot.flexibilityScore ?? 0 },
-							{ name: "체성분 밸런스", score: initialSnapshot.bodyScore ?? 0 },
-							{ name: "부상 안정성", score: initialSnapshot.stabilityScore ?? 0 },
-						],
-						assessedAt: DateHelper.toKoreaTimeISOString(initialSnapshot.assessedAt),
-						version: initialSnapshot.version || "v1",
-					}
-				: null;
-
 			return {
 				...current,
-				initial,
+				initial: initialSnapshot ? {
+					indicators: AnalyticsHelper.toHexagonIndicators(initialSnapshot),
+					assessedAt: DateHelper.toKoreaTimeISOString(initialSnapshot.assessedAt),
+					version: initialSnapshot.version || "v1",
+				} : null,
 			};
 		}
 
@@ -646,96 +544,10 @@ export class AssessmentsService {
 		return {
 			history: snapshots.map((snapshot) => ({
 				assessedAt: DateHelper.toKoreaTimeISOString(snapshot.assessedAt),
-				indicators: [
-					{ name: "하체 근력", score: snapshot.strengthScore ?? 0 },
-					{ name: "심폐 지구력", score: snapshot.cardioScore ?? 0 },
-					{ name: "근지구력", score: snapshot.enduranceScore ?? 0 },
-					{ name: "유연성", score: snapshot.flexibilityScore ?? 0 }, // 1차피드백: 유연성 추가
-					{ name: "체성분 밸런스", score: snapshot.bodyScore ?? 0 },
-					{ name: "부상 안정성", score: snapshot.stabilityScore ?? 0 },
-				],
+				indicators: AnalyticsHelper.toHexagonIndicators(snapshot),
 				version: snapshot.version || "v1",
 			})),
 		};
 	}
-
-	/**
-	 * AssessmentItem의 Strength Level 계산
-	 * TODO: 추후 구현 예정 - Strength Level 판정 기능
-	 * @param exerciseName 운동명
-	 * @param value 측정값 (무게)
-	 * @param unit 단위 (kg, lb 등)
-	 * @param member 회원 정보
-	 * @returns Strength Level 정보
-	 */
-	/*
-	private async calculateStrengthLevelForAssessment(
-		exerciseName: string,
-		value: number,
-		unit: string,
-		member: Member,
-	): Promise<{
-		level: string | null;
-		oneRepMax: number;
-		relativeStrength: number;
-	} | null> {
-		// 체중이나 성별이 없으면 계산 불가
-		if (!member.weight || !member.gender) {
-			return null;
-		}
-
-			// 단위 변환 (lb → kg)
-			const { UnitConverter } = await import('../../common/utils/unit-converter');
-			let weightKg = value;
-			if (unit.toLowerCase() === 'lb' || unit.toLowerCase() === 'lbs') {
-				weightKg = UnitConverter.lbToKg(value);
-			}
-
-		// 운동명으로 Exercise 찾기
-		const exercise = await this.exerciseRepository.findOne({
-			where: [
-				{ name: exerciseName },
-				{ nameEn: exerciseName },
-			],
-		});
-
-		if (!exercise) {
-			return null;
-		}
-
-		// 횟수는 기본값으로 1회 (1RM 계산을 위해)
-		// 실제로는 평가 항목에 횟수 정보가 있어야 하지만, 여기서는 1RM으로 가정
-		const reps = 1; // 1RM이므로 1회
-
-		// 1RM 계산 (이미 1RM이면 그대로 사용)
-		const oneRepMaxResult = OneRepMaxCalculator.calculate(
-			weightKg,
-			reps,
-			OneRepMaxFormula.EPLEY,
-		);
-
-		// 상대적 강도 계산
-		const relativeStrengthResult = RelativeStrengthCalculator.calculate(
-			oneRepMaxResult.oneRepMax,
-			member.weight,
-		);
-
-		// Strength Level 판정
-		const evaluator = new StrengthLevelEvaluator(this.strengthStandardRepository);
-		const evaluationResult = await evaluator.evaluate(
-			exercise.id,
-			oneRepMaxResult.oneRepMax,
-			member.weight,
-			member.gender,
-			member.age, // 나이 파라미터 추가
-		);
-
-		return {
-			level: evaluationResult.level || null,
-			oneRepMax: oneRepMaxResult.oneRepMax,
-			relativeStrength: relativeStrengthResult.relativeStrength,
-		};
-	}
-	*/
 }
 

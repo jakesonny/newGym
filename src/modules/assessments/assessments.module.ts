@@ -13,8 +13,6 @@ import { FlexibilityItemWeight } from '../../entities/flexibility-item-weight.en
 import { FlexibilityGradeThreshold } from '../../entities/flexibility-grade-threshold.entity';
 import { BodyCompositionStandard } from '../../entities/body-composition-standard.entity';
 import { Member } from '../../entities/member.entity';
-import { Exercise } from '../../entities/exercise.entity';
-import { StrengthStandard } from '../../entities/strength-standard.entity';
 import { ScoreCalculator } from '../../common/utils/score-calculator';
 import { GradeScoreConverter } from '../../common/utils/grade-score-converter';
 
@@ -32,13 +30,11 @@ import { GradeScoreConverter } from '../../common/utils/grade-score-converter';
       FlexibilityGradeThreshold,
       BodyCompositionStandard,
       Member,
-      Exercise,
-      StrengthStandard,
     ]),
   ],
   controllers: [AssessmentsController],
   providers: [AssessmentsService, ScoreCalculator, GradeScoreConverter],
-	exports: [AssessmentsService],
+  exports: [AssessmentsService],
 })
 export class AssessmentsModule {}
 

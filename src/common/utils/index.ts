@@ -12,6 +12,7 @@ export * from './repository-helper';
 export * from './date-range-helper';
 export * from './analytics-helper';
 export * from './workout-helper';
+export * from './workout-record-helper';
 export * from './pt-usage-helper';
 export * from './query-builder-helper';
 export * from './entity-update-helper';
@@ -20,6 +21,6 @@ export * from './grade-score-converter';
 export * from './one-rep-max-calculator';
 export * from './unit-converter';
 export * from './relative-strength-calculator';
-// TODO: 추후 구현 예정 - Strength Level 판정 기능
-// export * from './strength-level-evaluator';
+export * from './strength-level-evaluator';
+export * from './progress-calculator';
 

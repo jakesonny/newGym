@@ -20,6 +20,7 @@ import { PTSession } from "../../entities/pt-session.entity";
 import { WorkoutRoutine } from "../../entities/workout-routine.entity";
 import { Exercise } from "../../entities/exercise.entity";
 import { StrengthStandard } from "../../entities/strength-standard.entity";
+import { ProgramMilestone } from "../../entities/program-milestone.entity";
 import { AssessmentsModule } from "../assessments/assessments.module";
 import { StrengthLevelEvaluator } from "../../common/utils/strength-level-evaluator";
 
@@ -38,6 +39,7 @@ import { StrengthLevelEvaluator } from "../../common/utils/strength-level-evalua
 			Exercise,
 			StrengthStandard,
 			WorkoutRecord,
+			ProgramMilestone,
 		]),
 		AssessmentsModule,
 	],

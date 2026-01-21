@@ -2,6 +2,26 @@ import { AbilitySnapshot } from '../../entities/ability-snapshot.entity';
 import { SnapshotNormalizer } from './snapshot-normalizer';
 
 /**
+ * 헥사곤 지표 인터페이스
+ */
+export interface HexagonIndicator {
+	name: string;
+	score: number;
+}
+
+/**
+ * 헥사곤 지표 이름 상수
+ */
+export const HEXAGON_INDICATOR_NAMES = {
+	strength: '하체 근력',
+	cardio: '심폐 지구력',
+	endurance: '근지구력',
+	flexibility: '유연성',
+	body: '체성분 밸런스',
+	stability: '부상 안정성',
+} as const;
+
+/**
  * 분석 관련 헬퍼 유틸리티
  */
 export class AnalyticsHelper {
@@ -61,6 +81,56 @@ export class AnalyticsHelper {
 			stabilityScore: sums.stabilityScore / count,
 			totalScore: sums.totalScore / count,
 		};
+	}
+
+	/**
+	 * 스냅샷을 헥사곤 지표 배열로 변환
+	 */
+	static toHexagonIndicators(snapshot: AbilitySnapshot | null): HexagonIndicator[] {
+		const normalized = snapshot ? SnapshotNormalizer.normalize(snapshot) : null;
+		return [
+			{ name: HEXAGON_INDICATOR_NAMES.strength, score: normalized?.strengthScore ?? 0 },
+			{ name: HEXAGON_INDICATOR_NAMES.cardio, score: normalized?.cardioScore ?? 0 },
+			{ name: HEXAGON_INDICATOR_NAMES.endurance, score: normalized?.enduranceScore ?? 0 },
+			{ name: HEXAGON_INDICATOR_NAMES.flexibility, score: normalized?.flexibilityScore ?? 0 },
+			{ name: HEXAGON_INDICATOR_NAMES.body, score: normalized?.bodyScore ?? 0 },
+			{ name: HEXAGON_INDICATOR_NAMES.stability, score: normalized?.stabilityScore ?? 0 },
+		];
+	}
+
+	/**
+	 * 평균값을 헥사곤 지표 배열로 변환
+	 */
+	static averagesToHexagonIndicators(averages: {
+		strengthScore: number;
+		cardioScore: number;
+		enduranceScore: number;
+		flexibilityScore: number;
+		bodyScore: number;
+		stabilityScore: number;
+	}): HexagonIndicator[] {
+		return [
+			{ name: HEXAGON_INDICATOR_NAMES.strength, score: Math.round(averages.strengthScore) },
+			{ name: HEXAGON_INDICATOR_NAMES.cardio, score: Math.round(averages.cardioScore) },
+			{ name: HEXAGON_INDICATOR_NAMES.endurance, score: Math.round(averages.enduranceScore) },
+			{ name: HEXAGON_INDICATOR_NAMES.flexibility, score: Math.round(averages.flexibilityScore) },
+			{ name: HEXAGON_INDICATOR_NAMES.body, score: Math.round(averages.bodyScore) },
+			{ name: HEXAGON_INDICATOR_NAMES.stability, score: Math.round(averages.stabilityScore) },
+		];
+	}
+
+	/**
+	 * 빈 헥사곤 지표 배열 생성
+	 */
+	static emptyHexagonIndicators(): HexagonIndicator[] {
+		return [
+			{ name: HEXAGON_INDICATOR_NAMES.strength, score: 0 },
+			{ name: HEXAGON_INDICATOR_NAMES.cardio, score: 0 },
+			{ name: HEXAGON_INDICATOR_NAMES.endurance, score: 0 },
+			{ name: HEXAGON_INDICATOR_NAMES.flexibility, score: 0 },
+			{ name: HEXAGON_INDICATOR_NAMES.body, score: 0 },
+			{ name: HEXAGON_INDICATOR_NAMES.stability, score: 0 },
+		];
 	}
 
 	/**

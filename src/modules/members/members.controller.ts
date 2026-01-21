@@ -231,19 +231,7 @@ export class MembersController {
 		@Body() createGoalDto: CreateGoalDto,
 	) {
 		const member = await this.membersService.createGoal(id, createGoalDto);
-		// Member 엔티티를 GoalResponseDto 형식으로 변환
-		const goalResponse: GoalResponseDto = {
-			id: member.id,
-			memberId: member.id,
-			goal: member.goal,
-			goalProgress: member.goalProgress,
-			goalTrainerComment: member.goalTrainerComment,
-			totalSessions: member.totalSessions,
-			completedSessions: member.completedSessions,
-			createdAt: member.createdAt,
-			updatedAt: member.updatedAt,
-		};
-		return ApiResponseHelper.success(goalResponse, '목표 생성 성공');
+		return ApiResponseHelper.success(GoalResponseDto.fromMember(member), '목표 생성 성공');
 	}
 
 	@Put(':id/goals')
@@ -266,19 +254,7 @@ export class MembersController {
 		@Body() updateGoalDto: UpdateGoalDto,
 	) {
 		const member = await this.membersService.updateGoal(id, updateGoalDto);
-		// Member 엔티티를 GoalResponseDto 형식으로 변환
-		const goalResponse: GoalResponseDto = {
-			id: member.id,
-			memberId: member.id,
-			goal: member.goal,
-			goalProgress: member.goalProgress,
-			goalTrainerComment: member.goalTrainerComment,
-			totalSessions: member.totalSessions,
-			completedSessions: member.completedSessions,
-			createdAt: member.createdAt,
-			updatedAt: member.updatedAt,
-		};
-		return ApiResponseHelper.success(goalResponse, '목표 수정 성공');
+		return ApiResponseHelper.success(GoalResponseDto.fromMember(member), '목표 수정 성공');
 	}
 
 	@Delete(':id/goals')

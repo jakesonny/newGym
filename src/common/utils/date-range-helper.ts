@@ -7,7 +7,7 @@ export class DateRangeHelper {
 	 */
 	static getWeekRange(date: Date = new Date()): { start: Date; end: Date } {
 		const dayOfWeek = date.getDay();
-		const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 일요일이면 6일 전, 아니면 dayOfWeek - 1
+		const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
 		const start = new Date(date);
 		start.setDate(date.getDate() - diff);
@@ -33,6 +33,20 @@ export class DateRangeHelper {
 	}
 
 	/**
+	 * N일 전 범위 계산
+	 */
+	static getDaysAgoRange(days: number, date: Date = new Date()): { start: Date; end: Date } {
+		const start = new Date(date);
+		start.setDate(date.getDate() - days);
+		start.setHours(0, 0, 0, 0);
+
+		const end = new Date(date);
+		end.setHours(23, 59, 59, 999);
+
+		return { start, end };
+	}
+
+	/**
 	 * 날짜 문자열을 Date로 변환 (YYYY-MM-DD 형식)
 	 */
 	static parseDateString(dateString: string): Date {
@@ -43,6 +57,14 @@ export class DateRangeHelper {
 	 * Date를 YYYY-MM-DD 형식 문자열로 변환
 	 */
 	static formatDateString(date: Date): string {
+		return date.toISOString().split('T')[0];
+	}
+
+	/**
+	 * Date 또는 string을 YYYY-MM-DD 형식 문자열로 변환
+	 */
+	static toDateString(date: Date | string): string {
+		if (typeof date === 'string') return date.split('T')[0];
 		return date.toISOString().split('T')[0];
 	}
 }

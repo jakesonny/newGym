@@ -20,6 +20,7 @@ import { RepositoryHelper } from '../../common/utils/repository-helper';
 import { OneRepMaxCalculator, OneRepMaxFormula } from '../../common/utils/one-rep-max-calculator';
 import { RelativeStrengthCalculator } from '../../common/utils/relative-strength-calculator';
 import { StrengthLevelEvaluator } from '../../common/utils/strength-level-evaluator';
+import { WorkoutRecordHelper } from '../../common/utils/workout-record-helper';
 import { StrengthStandard } from '../../entities/strength-standard.entity';
 
 @Injectable()
@@ -212,52 +213,28 @@ export class WorkoutRecordsService {
 		await RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
 
 		const period = query.period || VolumePeriod.WEEK;
-		const now = new Date();
-		let startDate: Date;
-
-		if (period === VolumePeriod.WEEK) {
-			// 이번 주 시작 (월요일)
-			const dayOfWeek = now.getDay();
-			const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 일요일이면 6일 전, 아니면 dayOfWeek - 1
-			startDate = new Date(now);
-			startDate.setDate(now.getDate() - diff);
-			startDate.setHours(0, 0, 0, 0);
-		} else {
-			// 이번 달 시작
-			startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-		}
-
-		const endDate = new Date(now);
-		endDate.setHours(23, 59, 59, 999);
+		const { start: startDate, end: endDate } = period === VolumePeriod.WEEK
+			? DateRangeHelper.getWeekRange()
+			: DateRangeHelper.getMonthRange();
 
 		const records = await this.workoutRecordRepository.find({
-			where: {
-				memberId,
-				workoutDate: Between(startDate, endDate),
-			},
+			where: { memberId, workoutDate: Between(startDate, endDate) },
 		});
 
-		// 부위별 볼륨 집계
-		const volumeMap = new Map<string, number>();
-
-		records.forEach((record) => {
-			const currentVolume = volumeMap.get(record.bodyPart) || 0;
-			volumeMap.set(record.bodyPart, currentVolume + record.volume);
-		});
-
+		const volumeMap = WorkoutHelper.aggregateByBodyPart(records);
 		const bodyPartVolumes = Array.from(volumeMap.entries())
-			.map(([bodyPart, volume]) => ({
+			.map(([bodyPart, data]) => ({
 				bodyPart,
-				volume: Math.round(volume * 100) / 100, // 소수점 2자리
+				volume: WorkoutHelper.roundToTwo(data.volume),
 			}))
-			.sort((a, b) => b.volume - a.volume); // 볼륨 내림차순 정렬
+			.sort((a, b) => b.volume - a.volume);
 
 		const totalVolume = bodyPartVolumes.reduce((sum, item) => sum + item.volume, 0);
 
 		return {
 			period,
 			bodyPartVolumes,
-			totalVolume: Math.round(totalVolume * 100) / 100,
+			totalVolume: WorkoutHelper.roundToTwo(totalVolume),
 		};
 	}
 
@@ -302,94 +279,32 @@ export class WorkoutRecordsService {
 		// 주간 분석
 		if (!period || period === 'WEEKLY') {
 			const { start: weekStart, end: weekEnd } = DateRangeHelper.getWeekRange();
-
 			const weeklyRecords = await this.workoutRecordRepository.find({
-				where: {
-					memberId,
-					workoutDate: Between(weekStart, weekEnd),
-				},
+				where: { memberId, workoutDate: Between(weekStart, weekEnd) },
 			});
 
-			const weeklyMap = new Map<
-				string,
-				{ volume: number; sets: number; reps: number; count: number }
-			>();
-
-			weeklyRecords.forEach((record) => {
-				const existing = weeklyMap.get(record.bodyPart) || {
-					volume: 0,
-					sets: 0,
-					reps: 0,
-					count: 0,
-				};
-				weeklyMap.set(record.bodyPart, {
-					volume: existing.volume + record.volume,
-					sets: existing.sets + record.sets,
-					reps: existing.reps + record.reps,
-					count: existing.count + 1,
-				});
-			});
-
+			const weeklyMap = WorkoutHelper.aggregateByBodyPart(weeklyRecords);
 			result.weekly = {
 				period: 'WEEKLY',
-				startDate: weekStart.toISOString().split('T')[0],
-				endDate: weekEnd.toISOString().split('T')[0],
-				bodyPartVolumes: Array.from(weeklyMap.entries()).map(
-					([bodyPart, data]) => ({
-						bodyPart,
-						totalVolume: Math.round(data.volume * 100) / 100,
-						totalSets: data.sets,
-						totalReps: data.reps,
-						recordCount: data.count,
-					}),
-				),
+				startDate: DateRangeHelper.formatDateString(weekStart),
+				endDate: DateRangeHelper.formatDateString(weekEnd),
+				bodyPartVolumes: WorkoutHelper.volumeMapToResults(weeklyMap),
 			};
 		}
 
 		// 월간 분석
 		if (!period || period === 'MONTHLY') {
 			const { start: monthStart, end: monthEnd } = DateRangeHelper.getMonthRange();
-
 			const monthlyRecords = await this.workoutRecordRepository.find({
-				where: {
-					memberId,
-					workoutDate: Between(monthStart, monthEnd),
-				},
+				where: { memberId, workoutDate: Between(monthStart, monthEnd) },
 			});
 
-			const monthlyMap = new Map<
-				string,
-				{ volume: number; sets: number; reps: number; count: number }
-			>();
-
-			monthlyRecords.forEach((record) => {
-				const existing = monthlyMap.get(record.bodyPart) || {
-					volume: 0,
-					sets: 0,
-					reps: 0,
-					count: 0,
-				};
-				monthlyMap.set(record.bodyPart, {
-					volume: existing.volume + record.volume,
-					sets: existing.sets + record.sets,
-					reps: existing.reps + record.reps,
-					count: existing.count + 1,
-				});
-			});
-
+			const monthlyMap = WorkoutHelper.aggregateByBodyPart(monthlyRecords);
 			result.monthly = {
 				period: 'MONTHLY',
 				startDate: DateRangeHelper.formatDateString(monthStart),
 				endDate: DateRangeHelper.formatDateString(monthEnd),
-				bodyPartVolumes: Array.from(monthlyMap.entries()).map(
-					([bodyPart, data]) => ({
-						bodyPart,
-						totalVolume: Math.round(data.volume * 100) / 100,
-						totalSets: data.sets,
-						totalReps: data.reps,
-						recordCount: data.count,
-					}),
-				),
+				bodyPartVolumes: WorkoutHelper.volumeMapToResults(monthlyMap),
 			};
 		}
 
@@ -748,116 +663,47 @@ export class WorkoutRecordsService {
 	async getOneRepMaxEstimate(memberId: string): Promise<{
 		exercises: Array<{
 			exerciseName: string;
-			latest: {
-				oneRepMax: number;
-				strengthLevel: string | null;
-				workoutDate: string;
-			} | null;
-			max: {
-				oneRepMax: number;
-				workoutDate: string;
-			} | null;
-			history: Array<{
-				oneRepMax: number;
-				workoutDate: string;
-				strengthLevel?: string | null;
-			}>;
+			latest: { oneRepMax: number; strengthLevel: string | null; workoutDate: string } | null;
+			max: { oneRepMax: number; workoutDate: string } | null;
+			history: Array<{ oneRepMax: number; workoutDate: string; strengthLevel?: string | null }>;
 		}>;
 	}> {
 		await RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
 
-		const majorExercises = ['벤치프레스', 'Bench Press', '스쿼트', 'Squat', '데드리프트', 'Deadlift'];
 		const exerciseNames = [
 			['벤치프레스', 'Bench Press'],
 			['스쿼트', 'Squat'],
 			['데드리프트', 'Deadlift'],
 		];
 
-		const result: Array<{
-			exerciseName: string;
-			latest: {
-				oneRepMax: number;
-				strengthLevel: string | null;
-				workoutDate: string;
-			} | null;
-			max: {
-				oneRepMax: number;
-				workoutDate: string;
-			} | null;
-			history: Array<{
-				oneRepMax: number;
-				workoutDate: string;
-				strengthLevel?: string | null;
-			}>;
-		}> = [];
-
-		for (const [primaryName, englishName] of exerciseNames) {
-			// 한글명과 영문명 모두 검색
-			const records = await this.workoutRecordRepository.find({
-				where: [
-					{ memberId, exerciseName: primaryName },
-					{ memberId, exerciseName: englishName },
-				],
-				order: {
-					workoutDate: 'ASC',
-					createdAt: 'ASC',
-				},
-			});
-
-			// 1RM이 있는 기록만 필터링
-			const recordsWith1RM = records.filter(
-				(r) => r.oneRepMax !== null && r.oneRepMax !== undefined,
-			);
-
-			if (recordsWith1RM.length === 0) {
-				result.push({
-					exerciseName: primaryName,
-					latest: null,
-					max: null,
-					history: [],
+		const result = await Promise.all(
+			exerciseNames.map(async ([primaryName, englishName]) => {
+				const records = await this.workoutRecordRepository.find({
+					where: [
+						{ memberId, exerciseName: primaryName },
+						{ memberId, exerciseName: englishName },
+					],
+					order: { workoutDate: 'ASC', createdAt: 'ASC' },
 				});
-				continue;
-			}
 
-			// 히스토리 생성
-			const history = recordsWith1RM.map((record) => ({
-				oneRepMax: record.oneRepMax!,
-				workoutDate: record.workoutDate.toISOString().split('T')[0],
-				strengthLevel: record.strengthLevel || null,
-			}));
+				const recordsWith1RM = WorkoutRecordHelper.filterRecordsWithOneRM(records);
 
-			// 최신 1RM (가장 최근 기록)
-			const latestRecord = recordsWith1RM[recordsWith1RM.length - 1];
-			const latest = latestRecord
-				? {
-						oneRepMax: latestRecord.oneRepMax!,
-						strengthLevel: latestRecord.strengthLevel || null,
-						workoutDate: latestRecord.workoutDate.toISOString().split('T')[0],
-					}
-				: null;
-
-			// 최고 1RM
-			const maxRecord = recordsWith1RM.reduce((best, record) => {
-				if (!best || record.oneRepMax! > best.oneRepMax!) {
-					return record;
+				if (recordsWith1RM.length === 0) {
+					return { exerciseName: primaryName, latest: null, max: null, history: [] };
 				}
-				return best;
-			}, null as typeof recordsWith1RM[0] | null);
 
-			const max = maxRecord
-				? {
-						oneRepMax: maxRecord.oneRepMax!,
-						workoutDate: maxRecord.workoutDate.toISOString().split('T')[0],
-					}
-				: null;
+				const history = WorkoutRecordHelper.buildHistory(recordsWith1RM);
+				const latestRecord = WorkoutRecordHelper.getLatestRecord(recordsWith1RM);
+				const maxRecord = WorkoutRecordHelper.getBestRecord(recordsWith1RM);
 
-			result.push({
-				exerciseName: primaryName,
-				latest,
-				max,
-				history,
-			});
-		}
+				return {
+					exerciseName: primaryName,
+					latest: latestRecord ? WorkoutRecordHelper.toOneRepMaxInfo(latestRecord) : null,
+					max: maxRecord ? { oneRepMax: maxRecord.oneRepMax!, workoutDate: DateRangeHelper.toDateString(maxRecord.workoutDate) } : null,
+					history,
+				};
+			}),
+		);
 
 		return { exercises: result };
 	}
@@ -872,18 +718,9 @@ export class WorkoutRecordsService {
 		endDate?: string,
 	): Promise<{
 		exerciseName?: string;
-		trend: Array<{
-			date: string;
-			oneRepMax: number;
-			strengthLevel?: string | null;
-		}>;
+		trend: Array<{ date: string; oneRepMax: number; strengthLevel?: string | null }>;
 	}> {
 		await RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
-
-		const where: any = { memberId };
-		if (exerciseName) {
-			where.exerciseName = exerciseName;
-		}
 
 		const queryBuilder = this.workoutRecordRepository.createQueryBuilder('record');
 		QueryBuilderHelper.addMemberIdFilter(queryBuilder, 'record.memberId', memberId);
@@ -894,26 +731,10 @@ export class WorkoutRecordsService {
 			);
 		}
 		QueryBuilderHelper.addDateRangeFilter(queryBuilder, 'record.workoutDate', startDate, endDate);
-		queryBuilder.orderBy('record.workoutDate', 'ASC');
-		queryBuilder.addOrderBy('record.createdAt', 'ASC');
+		queryBuilder.orderBy('record.workoutDate', 'ASC').addOrderBy('record.createdAt', 'ASC');
 
 		const records = await queryBuilder.getMany();
-
-		// 날짜별로 그룹화하여 최고 1RM 반환
-		const dateMap = new Map<string, { oneRepMax: number; strengthLevel?: string | null }>();
-
-		records.forEach((record) => {
-			if (record.oneRepMax !== null && record.oneRepMax !== undefined) {
-				const date = record.workoutDate.toISOString().split('T')[0];
-				const existing = dateMap.get(date);
-				if (!existing || record.oneRepMax > existing.oneRepMax) {
-					dateMap.set(date, {
-						oneRepMax: record.oneRepMax,
-						strengthLevel: record.strengthLevel || null,
-					});
-				}
-			}
-		});
+		const dateMap = WorkoutRecordHelper.groupByDateWithMaxOneRM(records);
 
 		const trend = Array.from(dateMap.entries()).map(([date, info]) => ({
 			date,
@@ -921,10 +742,7 @@ export class WorkoutRecordsService {
 			strengthLevel: info.strengthLevel,
 		}));
 
-		return {
-			exerciseName: exerciseName || undefined,
-			trend,
-		};
+		return { exerciseName: exerciseName || undefined, trend };
 	}
 
 	/**
@@ -952,30 +770,10 @@ export class WorkoutRecordsService {
 			queryBuilder.andWhere('record.bodyPart = :bodyPart', { bodyPart });
 		}
 
-		queryBuilder.orderBy('record.workoutDate', 'ASC');
-		queryBuilder.addOrderBy('record.createdAt', 'ASC');
-
+		queryBuilder.orderBy('record.workoutDate', 'ASC').addOrderBy('record.createdAt', 'ASC');
 		const records = await queryBuilder.getMany();
 
-		// 날짜별로 그룹화
-		const dateMap = new Map<
-			string,
-			{ totalVolume: number; bodyPartMap: Map<string, number> }
-		>();
-
-		records.forEach((record) => {
-			const date = record.workoutDate.toISOString().split('T')[0];
-			const existing = dateMap.get(date) || {
-				totalVolume: 0,
-				bodyPartMap: new Map<string, number>(),
-			};
-
-			existing.totalVolume += record.volume;
-			const bodyPartVolume = existing.bodyPartMap.get(record.bodyPart) || 0;
-			existing.bodyPartMap.set(record.bodyPart, bodyPartVolume + record.volume);
-
-			dateMap.set(date, existing);
-		});
+		const dateMap = WorkoutRecordHelper.groupByDateWithVolume(records);
 
 		const trend = Array.from(dateMap.entries()).map(([date, data]) => {
 			const result: {
@@ -984,16 +782,12 @@ export class WorkoutRecordsService {
 				bodyPartVolumes?: Array<{ bodyPart: string; volume: number }>;
 			} = {
 				date,
-				totalVolume: Math.round(data.totalVolume * 100) / 100,
+				totalVolume: WorkoutHelper.roundToTwo(data.totalVolume),
 			};
 
-			// bodyPart가 지정되지 않았으면 부위별 볼륨도 포함
 			if (!bodyPart && data.bodyPartMap.size > 0) {
 				result.bodyPartVolumes = Array.from(data.bodyPartMap.entries()).map(
-					([bodyPart, volume]) => ({
-						bodyPart,
-						volume: Math.round(volume * 100) / 100,
-					}),
+					([bp, volume]) => ({ bodyPart: bp, volume: WorkoutHelper.roundToTwo(volume) }),
 				);
 			}
 
@@ -1015,18 +809,9 @@ export class WorkoutRecordsService {
 	): Promise<{
 		type: 'one_rm' | 'volume';
 		exerciseName?: string;
-		data: Array<{
-			date: string;
-			value: number;
-			strengthLevel?: string | null;
-		}>;
+		data: Array<{ date: string; value: number; strengthLevel?: string | null }>;
 	}> {
 		await RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
-
-		const where: any = { memberId };
-		if (exerciseName) {
-			where.exerciseName = exerciseName;
-		}
 
 		const queryBuilder = this.workoutRecordRepository.createQueryBuilder('record');
 		QueryBuilderHelper.addMemberIdFilter(queryBuilder, 'record.memberId', memberId);
@@ -1034,71 +819,32 @@ export class WorkoutRecordsService {
 			queryBuilder.andWhere('record.exerciseName = :exerciseName', { exerciseName });
 		}
 		QueryBuilderHelper.addDateRangeFilter(queryBuilder, 'record.workoutDate', startDate, endDate);
-		queryBuilder.orderBy('record.workoutDate', 'ASC');
-		queryBuilder.addOrderBy('record.createdAt', 'ASC');
+		queryBuilder.orderBy('record.workoutDate', 'ASC').addOrderBy('record.createdAt', 'ASC');
 
 		const records = await queryBuilder.getMany();
 
-		const data: Array<{
-			date: string;
-			value: number;
-			strengthLevel?: string | null;
-		}> = [];
+		let data: Array<{ date: string; value: number; strengthLevel?: string | null }>;
 
 		if (type === 'one_rm') {
-			// 1RM 추세: 날짜별로 그룹화하고 가장 높은 1RM 사용
-			const dateMap = new Map<string, { value: number; strengthLevel?: string | null }>();
-
-			records.forEach((record) => {
-				if (record.oneRepMax !== null && record.oneRepMax !== undefined) {
-					const date = record.workoutDate.toISOString().split('T')[0];
-					const existing = dateMap.get(date);
-					if (!existing || record.oneRepMax > existing.value) {
-						dateMap.set(date, {
-							value: record.oneRepMax,
-							strengthLevel: record.strengthLevel || null,
-						});
-					}
-				}
-			});
-
-			data.push(
-				...Array.from(dateMap.entries()).map(([date, info]) => ({
-					date,
-					value: info.value,
-					strengthLevel: info.strengthLevel,
-				})),
-			);
+			const dateMap = WorkoutRecordHelper.groupByDateWithMaxOneRM(records);
+			data = Array.from(dateMap.entries()).map(([date, info]) => ({
+				date,
+				value: info.oneRepMax,
+				strengthLevel: info.strengthLevel,
+			}));
 		} else {
-			// 볼륨 추세: 날짜별로 볼륨 합계
-			const dateMap = new Map<string, number>();
-
-			records.forEach((record) => {
-				const date = record.workoutDate.toISOString().split('T')[0];
-				const existing = dateMap.get(date) || 0;
-				dateMap.set(date, existing + record.volume);
-			});
-
-			data.push(
-				...Array.from(dateMap.entries()).map(([date, volume]) => ({
-					date,
-					value: Math.round(volume * 100) / 100,
-				})),
-			);
+			const dateMap = WorkoutRecordHelper.groupByDateWithVolume(records);
+			data = Array.from(dateMap.entries()).map(([date, info]) => ({
+				date,
+				value: WorkoutHelper.roundToTwo(info.totalVolume),
+			}));
 		}
 
-		return {
-			type,
-			exerciseName: exerciseName || undefined,
-			data,
-		};
+		return { type, exerciseName: exerciseName || undefined, data };
 	}
 
 	/**
 	 * 회원의 운동별 Strength Level 변화 추적
-	 * @param memberId 회원 ID
-	 * @param exerciseName 운동명 (선택적, 없으면 모든 운동)
-	 * @returns Strength Level 변화 추적 결과
 	 */
 	async getStrengthProgress(
 		memberId: string,
@@ -1120,31 +866,24 @@ export class WorkoutRecordsService {
 		await RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
 
 		const where: any = { memberId };
-		if (exerciseName) {
-			where.exerciseName = exerciseName;
-		}
+		if (exerciseName) where.exerciseName = exerciseName;
 
 		const records = await this.workoutRecordRepository.find({
 			where,
-			order: {
-				workoutDate: 'ASC',
-				createdAt: 'ASC',
-			},
+			order: { workoutDate: 'ASC', createdAt: 'ASC' },
 		});
 
 		const history = records.map((record) => ({
 			oneRepMax: record.oneRepMax || null,
 			relativeStrength: record.relativeStrength || null,
 			strengthLevel: record.strengthLevel || null,
-			workoutDate: record.workoutDate.toISOString().split('T')[0],
+			workoutDate: DateRangeHelper.toDateString(record.workoutDate),
 		}));
-
-		const current = history.length > 0 ? history[history.length - 1] : undefined;
 
 		return {
 			exerciseName: exerciseName || undefined,
 			history,
-			current,
+			current: history.length > 0 ? history[history.length - 1] : undefined,
 		};
 	}
 }

@@ -63,60 +63,110 @@ export class AuthService {
 	}
 
   async register(registerDto: RegisterDto) {
-    const existingUser = await this.userRepository.findOne({
-      where: { email: registerDto.email },
-    });
+    try {
+      this.logger.log(`회원가입 시도 시작: ${registerDto.email}`);
+      
+      const existingUser = await this.userRepository.findOne({
+        where: { email: registerDto.email },
+      });
 
-		if (existingUser) {
-			this.logger.warn(
-				`회원가입 실패: 이미 등록된 이메일입니다. Email: ${registerDto.email}`,
-			);
-			throw ApiExceptions.memberAlreadyExists("이미 등록된 이메일입니다.");
-		}
+      if (existingUser) {
+        this.logger.warn(
+          `회원가입 실패: 이미 등록된 이메일입니다. Email: ${registerDto.email}`,
+        );
+        throw ApiExceptions.memberAlreadyExists("이미 등록된 이메일입니다.");
+      }
 
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-		const requestedRole = registerDto.role || Role.MEMBER;
-		
-		// TRAINER는 ADMIN 승인 필요 (isApproved: false)
-		// MEMBER는 자동 승인 (isApproved: true)
-		// ADMIN은 회원가입 불가 (test 계정만 사용)
-		const isApproved = requestedRole === Role.MEMBER;
+      const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+      const requestedRole = registerDto.role || Role.MEMBER;
+      
+      // TRAINER는 ADMIN 승인 필요 (isApproved: false)
+      // MEMBER는 자동 승인 (isApproved: true)
+      // ADMIN은 회원가입 불가 (test 계정만 사용)
+      const isApproved = requestedRole === Role.MEMBER;
 
-		if (requestedRole === Role.ADMIN) {
-			this.logger.warn(
-				`회원가입 실패: ADMIN 역할은 회원가입으로 생성할 수 없습니다. Email: ${registerDto.email}`,
-			);
-			throw ApiExceptions.forbidden("ADMIN 역할은 회원가입으로 생성할 수 없습니다.");
-		}
+      if (requestedRole === Role.ADMIN) {
+        this.logger.warn(
+          `회원가입 실패: ADMIN 역할은 회원가입으로 생성할 수 없습니다. Email: ${registerDto.email}`,
+        );
+        throw ApiExceptions.forbidden("ADMIN 역할은 회원가입으로 생성할 수 없습니다.");
+      }
 
-		const user = this.userRepository.create({
-			email: registerDto.email,
-			password: hashedPassword,
-			name: registerDto.name,
-			role: requestedRole,
-			isApproved: isApproved,
-			provider: 'LOCAL', // 일반 회원가입은 LOCAL
-			providerId: null,
-		});
+      const user = this.userRepository.create({
+        email: registerDto.email,
+        password: hashedPassword,
+        name: registerDto.name,
+        role: requestedRole,
+        isApproved: isApproved,
+        provider: 'LOCAL', // 일반 회원가입은 LOCAL
+        providerId: null,
+      });
 
-    const savedUser = await this.userRepository.save(user);
+      this.logger.log(`사용자 객체 생성 완료, DB 저장 시도: ${registerDto.email}`);
+      
+      // 에러 처리를 위한 try-catch 추가
+      let savedUser: User;
+      try {
+        savedUser = await this.userRepository.save(user);
+        this.logger.log(`DB 저장 성공 - ID: ${savedUser.id}, Email: ${savedUser.email}`);
+      } catch (saveError: any) {
+        this.logger.error(
+          `DB 저장 실패: ${saveError.message}`,
+          saveError.stack,
+        );
+        throw ApiExceptions.internalServerError(
+          `회원가입 처리 중 오류가 발생했습니다: ${saveError.message}`,
+        );
+      }
 
-		if (requestedRole === Role.TRAINER) {
-			this.logger.log(
-				`TRAINER 회원가입 완료 (승인 대기): ${savedUser.email} - ADMIN 승인 필요`,
-			);
-		}
+      // 저장 후 실제로 DB에 있는지 확인
+      const verifyUser = await this.userRepository.findOne({
+        where: { id: savedUser.id },
+      });
 
-    return {
-      id: savedUser.id,
-      email: savedUser.email,
-      name: savedUser.name,
-      role: savedUser.role,
-      isApproved: savedUser.isApproved,
-      message: requestedRole === Role.TRAINER 
-				? 'TRAINER 회원가입이 완료되었습니다. ADMIN의 승인을 기다려주세요.'
-				: '회원가입이 완료되었습니다.',
-    };
+      if (!verifyUser) {
+        this.logger.error(
+          `DB 저장 검증 실패: 저장 후 조회되지 않음. ID: ${savedUser.id}`,
+        );
+        throw ApiExceptions.internalServerError(
+          '회원가입은 완료되었지만 데이터베이스에 저장되지 않았습니다.',
+        );
+      }
+
+      if (requestedRole === Role.TRAINER) {
+        this.logger.log(
+          `TRAINER 회원가입 완료 (승인 대기): ${savedUser.email} - ADMIN 승인 필요`,
+        );
+      }
+
+      this.logger.log(`회원가입 완료: ${savedUser.email} (ID: ${savedUser.id})`);
+
+      return {
+        id: savedUser.id,
+        email: savedUser.email,
+        name: savedUser.name,
+        role: savedUser.role,
+        isApproved: savedUser.isApproved,
+        message: requestedRole === Role.TRAINER 
+          ? 'TRAINER 회원가입이 완료되었습니다. ADMIN의 승인을 기다려주세요.'
+          : '회원가입이 완료되었습니다.',
+      };
+    } catch (error: any) {
+      // 이미 처리된 에러는 그대로 throw
+      if (error instanceof Error && (
+        error.message.includes('이미 등록된') || 
+        error.message.includes('ADMIN 역할')
+      )) {
+        throw error;
+      }
+      
+      // 예상치 못한 에러 로깅
+      this.logger.error(
+        `회원가입 중 예상치 못한 오류 발생: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 
 	async findById(id: string): Promise<User | null> {
