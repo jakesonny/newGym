@@ -23,6 +23,7 @@ import { WorkoutRecordsService } from './workout-records.service';
 import { PTSessionsService } from './pt-sessions.service';
 import { WorkoutRoutinesService } from './workout-routines.service';
 import { CreateMemberDto } from './dto/create-member.dto';
+import { CreateMemberFullDto } from './dto/create-member-full.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { CreateMembershipDto } from './dto/create-membership.dto';
 import { UpdateMembershipDto } from './dto/update-membership.dto';
@@ -81,9 +82,26 @@ export class MembersController {
 	@HttpCode(HttpStatus.CREATED)
 	@UseGuards(JwtRolesGuard)
 	@Roles(Role.ADMIN, Role.TRAINER)
+	@ApiOperation({ summary: '회원 등록 (기본)', description: '기본 정보만으로 회원을 등록합니다.' })
 	async create(@Body() createMemberDto: CreateMemberDto) {
 		const member = await this.membersService.create(createMemberDto);
 		return ApiResponseHelper.success(member, "회원 등록 성공");
+	}
+
+	@Post('full')
+	@HttpCode(HttpStatus.CREATED)
+	@UseGuards(JwtRolesGuard)
+	@Roles(Role.ADMIN, Role.TRAINER)
+	@ApiOperation({
+		summary: '회원 등록 (3단계 위저드)',
+		description: '기본 정보 + 회원권/프로그램 + 초기 측정값을 한 번에 등록합니다.',
+	})
+	@ApiResponse({ status: 201, description: '회원 등록 성공' })
+	@ApiResponse({ status: 400, description: '유효성 검사 실패' })
+	@ApiResponse({ status: 409, description: '이미 등록된 이메일' })
+	async createFull(@Body() createMemberFullDto: CreateMemberFullDto) {
+		const result = await this.membersService.createFull(createMemberFullDto);
+		return ApiResponseHelper.success(result, '회원 등록 성공');
 	}
 
 	@Put(':id')
@@ -191,6 +209,19 @@ export class MembersController {
 	) {
 		await this.membersService.deleteMembership(id, membershipId);
 		return ApiResponseHelper.success(null, "회원권 삭제 성공");
+	}
+
+	// Phase 4: Goal Analyst API
+	@Get(':id/goal-analyst')
+	@ApiOperation({
+		summary: 'Goal Analyst 조회',
+		description: '회원의 목표 진행 상황, 추세, 다음 목표 등을 분석합니다.',
+	})
+	@ApiResponse({ status: 200, description: 'Goal Analyst 조회 성공' })
+	@ApiResponse({ status: 404, description: '회원을 찾을 수 없습니다' })
+	async getGoalAnalyst(@Param('id') id: string) {
+		const goalAnalyst = await this.membersService.getGoalAnalyst(id);
+		return ApiResponseHelper.success(goalAnalyst, 'Goal Analyst 조회 성공');
 	}
 
 	// 1차피드백: 목표 관리 (프론트엔드 요청사항: 복수형 goals 사용)

@@ -419,15 +419,159 @@ AnalyticsHelper.emptyHexagonIndicators()               // 빈 헥사곤 지표
 
 ---
 
-## Phase 3: 회원 등록 API 확장 (예정)
+## Phase 3: 회원 등록 API 확장 (완료)
 
-> 개발 예정 - 3단계 위저드 지원을 위한 API 확장
+### 새 엔드포인트
+
+```
+POST /api/members/full
+```
+
+### 특징
+- **3단계 위저드 통합**: 기본 정보 + 회원권/프로그램 + 초기 측정값을 한 번에 등록
+- **트랜잭션 처리**: 모든 데이터가 원자적으로 저장됨
+- **기존 API 유지**: `POST /api/members`는 그대로 사용 가능
+
+### Request
+
+```typescript
+// POST /api/members/full
+// Content-Type: application/json
+// Authorization: Bearer {token}
+
+interface CreateMemberFullRequest {
+  // ========== Step 1: 기본 정보 (필수) ==========
+  name: string;           // 회원 이름
+  phone: string;          // 전화번호 (010-1234-5678)
+  email: string;          // 이메일
+  joinDate: string;       // 가입일 (YYYY-MM-DD)
+  birthDate?: string;     // 생년월일 (YYYY-MM-DD)
+  gender?: "MALE" | "FEMALE";
+  height?: number;        // 키 (cm)
+  weight?: number;        // 몸무게 (kg)
+  status?: "ACTIVE" | "INACTIVE" | "SUSPENDED";
+
+  // ========== Step 2: 회원권 + 프로그램 (선택) ==========
+  membership?: {
+    membershipType: "MONTHLY" | "QUARTERLY" | "YEARLY" | "LIFETIME";
+    purchaseDate: string;   // YYYY-MM-DD
+    expiryDate: string;     // YYYY-MM-DD
+    status?: "ACTIVE" | "EXPIRED" | "SUSPENDED";
+    price: number;
+    
+    // 프로그램 정보 (선택)
+    durationWeeks?: 4 | 8 | 12;
+    mainGoalType?: "WEIGHT_LOSS" | "MUSCLE_GAIN" | "STRENGTH_UP" | "ENDURANCE" | "BODY_FAT_LOSS" | "CUSTOM";
+    mainGoalLabel?: string;   // 미입력시 GoalType에서 자동 생성
+    targetValue?: number;     // 목표 수치
+    targetUnit?: string;      // 미입력시 GoalType에서 자동 설정
+    startValue?: number;      // 시작 수치
+    
+    // PT 횟수
+    ptTotalCount?: number;    // PT 총 횟수
+  };
+
+  // ========== Step 3: 초기 측정값 (선택) ==========
+  initialMeasurement?: {
+    weight?: number;          // 체중 (kg)
+    muscleMass?: number;      // 골격근량 (kg)
+    bodyFat?: number;         // 체지방률 (%)
+    benchPress1RM?: number;   // 벤치프레스 1RM (kg)
+    squat1RM?: number;        // 스쿼트 1RM (kg)
+    deadlift1RM?: number;     // 데드리프트 1RM (kg)
+  };
+}
+```
+
+### Response
+
+```typescript
+interface CreateMemberFullResponse {
+  success: boolean;
+  data: {
+    member: Member;           // 생성된 회원 정보
+    membership?: Membership;  // 생성된 회원권 (Step 2 입력시)
+    ptUsage?: PTUsage;        // 생성된 PT 횟수 (ptTotalCount 입력시)
+  };
+  message: string;
+}
+```
+
+### 사용 예시
+
+```typescript
+// 전체 정보 등록 (3단계 모두)
+const response = await fetch('/api/members/full', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  },
+  body: JSON.stringify({
+    // Step 1: 기본 정보
+    name: '홍길동',
+    phone: '010-1234-5678',
+    email: 'hong@example.com',
+    joinDate: '2024-01-15',
+    birthDate: '1990-05-20',
+    gender: 'MALE',
+    height: 175,
+    weight: 80,
+    
+    // Step 2: 회원권 + 프로그램
+    membership: {
+      membershipType: 'QUARTERLY',
+      purchaseDate: '2024-01-15',
+      expiryDate: '2024-04-15',
+      price: 500000,
+      durationWeeks: 12,
+      mainGoalType: 'WEIGHT_LOSS',
+      targetValue: 10,
+      startValue: 80,
+      ptTotalCount: 24
+    },
+    
+    // Step 3: 초기 측정값
+    initialMeasurement: {
+      weight: 80,
+      muscleMass: 32,
+      bodyFat: 22,
+      benchPress1RM: 60,
+      squat1RM: 80,
+      deadlift1RM: 100
+    }
+  })
+});
+```
+
+### 자동 처리 로직
+
+| 항목 | 자동 처리 |
+|------|----------|
+| `mainGoalLabel` | 미입력시 `mainGoalType`에서 한글명 자동 생성 |
+| `targetUnit` | 미입력시 `mainGoalType`에서 자동 설정 (kg, % 등) |
+| `startValue` | 미입력시 `initialMeasurement.weight` 사용 |
+| `currentValue` | `initialMeasurement.weight` 자동 설정 |
+| `currentProgress` | 0으로 초기화 |
+| `riskStatus` | GREEN으로 초기화 |
+| `totalSessions` | `ptTotalCount` 값 사용 |
+
+### 기존 API와 비교
+
+| 항목 | `POST /api/members` | `POST /api/members/full` |
+|------|---------------------|--------------------------|
+| 기본 정보 | ✅ | ✅ |
+| 회원권 | ❌ (별도 API 필요) | ✅ (선택) |
+| 프로그램 | ❌ | ✅ (선택) |
+| PT 횟수 | ❌ (별도 API 필요) | ✅ (선택) |
+| 초기 측정값 | ❌ | ✅ (선택) |
+| 트랜잭션 | 단일 | 통합 |
 
 ---
 
-## Phase 4: 회원 상세/대시보드 API 확장 (예정)
+## Phase 4: 회원 상세/대시보드 API 확장 (완료)
 
-### 예정 엔드포인트
+### 새 엔드포인트
 
 | Method | Endpoint | 설명 |
 |--------|----------|------|
@@ -436,14 +580,165 @@ AnalyticsHelper.emptyHexagonIndicators()               // 빈 헥사곤 지표
 
 ---
 
-## 협의 필요 사항 (Phase 4 진행 전)
+### Goal Analyst API
 
-Phase 4 개발 전에 다음 사항들의 결정이 필요합니다:
+```
+GET /api/members/:id/goal-analyst
+Authorization: Bearer {token}
+```
 
-1. **3개 영역 카드 정의**: BODY/STRENGTH/CONDITIONING - 기존 6개 평가 영역과 별개로 새로 정의 필요
-2. **티어 기준**: Elite/Average/Under 판정 기준 - 지표 조사 완료, 최종 결정 필요
+#### Response
+
+```typescript
+interface GoalAnalystResponse {
+  success: boolean;
+  data: {
+    // 프로그램 정보
+    program: {
+      mainGoal: string | null;        // "체중 감량"
+      mainGoalType: string | null;    // "WEIGHT_LOSS"
+      durationWeeks: number | null;   // 12
+      startValue: number | null;      // 85
+      currentValue: number | null;    // 80
+      targetValue: number | null;     // 75
+      targetUnit: string | null;      // "kg"
+      currentProgress: number;        // 50 (%)
+      riskStatus: string;             // "GREEN" | "YELLOW" | "RED"
+      startDate: string | null;       // "2024-01-15"
+      endDate: string | null;         // "2024-04-15"
+    };
+    
+    // Progress Roadmap (시작 → 현재 → 목표)
+    progressRoadmap: {
+      start: { value: number; date: string } | null;
+      current: { value: number; date: string } | null;
+      goal: { value: number; date: string } | null;
+    };
+    
+    // 추세 분석
+    trend: {
+      direction: "UP" | "DOWN" | "STABLE";
+      recentValues: Array<{ date: string; value: number }>;
+      averageChange: number;  // 평균 변화량
+    };
+    
+    // 다음 목표
+    nextTarget: {
+      value: number | null;       // 79.5
+      description: string | null; // "다음 주 목표: 0.5kg 감량"
+    };
+    
+    // 수업 진행률
+    sessionProgress: {
+      totalSessions: number;
+      completedSessions: number;
+      progressPercentage: number;
+    };
+  };
+  message: string;
+}
+```
+
+#### 사용 예시
+
+```typescript
+const response = await fetch(`/api/members/${memberId}/goal-analyst`, {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+
+const { data } = await response.json();
+
+// Progress Roadmap 표시
+console.log(`시작: ${data.progressRoadmap.start?.value}kg`);
+console.log(`현재: ${data.progressRoadmap.current?.value}kg`);
+console.log(`목표: ${data.progressRoadmap.goal?.value}kg`);
+
+// 추세 표시
+console.log(`추세: ${data.trend.direction}`);
+console.log(`평균 변화: ${data.trend.averageChange}kg/주`);
+
+// 다음 목표
+console.log(data.nextTarget.description);
+```
 
 ---
 
-*마지막 업데이트: 2026-01-19*
-*Phase 1 완료, Phase 2 엔티티 완료, 코드 리팩토링 완료 (배포 준비 완료)*
+### 센터 대시보드 API
+
+```
+GET /api/insights/center-dashboard
+Authorization: Bearer {token}
+```
+
+#### Response
+
+```typescript
+interface CenterDashboardResponse {
+  success: boolean;
+  data: {
+    // 요약 통계
+    summary: {
+      totalMembers: number;       // 전체 회원 수
+      activeMembers: number;      // 활성 회원 수
+      averageProgress: number;    // 평균 진행률 (%)
+      riskCounts: {
+        green: number;            // 정상 회원 수
+        yellow: number;           // 주의 회원 수
+        red: number;              // 위험 회원 수
+      };
+      missingMeasurements: number; // 측정 미입력 회원 수
+    };
+    
+    // 회원 목록
+    memberList: Array<{
+      id: string;
+      name: string;
+      phone: string;
+      status: string;             // "ACTIVE" | "INACTIVE" | "SUSPENDED"
+      riskStatus: string;         // "GREEN" | "YELLOW" | "RED"
+      program: {
+        mainGoal: string | null;
+        currentProgress: number;
+        durationWeeks: number | null;
+      } | null;
+      lastAssessmentDate: string | null;
+      completedSessions: number;
+      totalSessions: number;
+    }>;
+  };
+  message: string;
+}
+```
+
+#### 사용 예시
+
+```typescript
+const response = await fetch('/api/insights/center-dashboard', {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+
+const { data } = await response.json();
+
+// 요약 통계 표시
+console.log(`전체 회원: ${data.summary.totalMembers}명`);
+console.log(`평균 진행률: ${data.summary.averageProgress}%`);
+console.log(`위험 회원: ${data.summary.riskCounts.red}명`);
+
+// 회원 목록 필터링
+const riskMembers = data.memberList.filter(m => m.riskStatus === 'RED');
+const missingData = data.memberList.filter(m => !m.lastAssessmentDate);
+```
+
+---
+
+## 협의 필요 사항 (Phase 5 진행 전)
+
+Phase 5 개발 전에 다음 사항들의 결정이 필요합니다:
+
+1. **3개 영역 카드 정의**: BODY/STRENGTH/CONDITIONING - 기존 6개 평가 영역과 매핑 방법
+2. **티어 기준**: Elite/Average/Under 판정 기준 최종 결정
+
+---
+
+*마지막 업데이트: 2026-01-21*
+*Phase 1 완료, Phase 2 엔티티 완료, Phase 3 완료, Phase 4 완료, 코드 리팩토링 완료*

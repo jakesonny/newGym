@@ -5,7 +5,8 @@ import { AbilitySnapshot } from "../../entities/ability-snapshot.entity";
 import { Member } from "../../entities/member.entity";
 import { Assessment } from "../../entities/assessment.entity";
 import { InjuryHistory } from "../../entities/injury-history.entity";
-import { MemberStatus, RecoveryStatus } from "../../common/enums";
+import { Membership } from "../../entities/membership.entity";
+import { MemberStatus, RecoveryStatus, MembershipStatus, RiskStatus } from "../../common/enums";
 import { DateHelper } from "../../common/utils/date-helper";
 import { SnapshotNormalizer } from "../../common/utils/snapshot-normalizer";
 import { AnalyticsHelper, HexagonIndicator } from "../../common/utils/analytics-helper";
@@ -71,7 +72,9 @@ export class InsightsService {
 		@InjectRepository(Assessment)
 		private assessmentRepository: Repository<Assessment>,
 		@InjectRepository(InjuryHistory)
-		private injuryHistoryRepository: Repository<InjuryHistory>
+		private injuryHistoryRepository: Repository<InjuryHistory>,
+		@InjectRepository(Membership)
+		private membershipRepository: Repository<Membership>,
 	) {}
 
 	/**
@@ -398,5 +401,137 @@ export class InsightsService {
 		}
 
 		return Array.from(riskMembersMap.values());
+	}
+
+	/**
+	 * 센터 대시보드 (Phase 4)
+	 * 센터 전체 통계 및 회원 목록
+	 */
+	async getCenterDashboard(): Promise<{
+		summary: {
+			totalMembers: number;
+			activeMembers: number;
+			averageProgress: number;
+			riskCounts: { green: number; yellow: number; red: number };
+			missingMeasurements: number;
+		};
+		memberList: Array<{
+			id: string;
+			name: string;
+			phone: string;
+			status: string;
+			riskStatus: string;
+			program: {
+				mainGoal: string | null;
+				currentProgress: number;
+				durationWeeks: number | null;
+			} | null;
+			lastAssessmentDate: string | null;
+			completedSessions: number;
+			totalSessions: number;
+		}>;
+	}> {
+		// 전체 회원 조회
+		const members = await this.memberRepository.find({
+			select: ['id', 'name', 'phone', 'status', 'totalSessions', 'completedSessions'],
+			order: { createdAt: 'DESC' },
+		});
+
+		const memberIds = members.map(m => m.id);
+
+		// 병렬 쿼리 실행
+		const [memberships, lastAssessments] = await Promise.all([
+			// 활성 회원권 조회
+			this.membershipRepository.find({
+				where: { memberId: In(memberIds), status: MembershipStatus.ACTIVE },
+				select: ['memberId', 'mainGoalLabel', 'currentProgress', 'durationWeeks', 'riskStatus'],
+			}),
+			// 최근 평가 조회
+			this.assessmentRepository
+				.createQueryBuilder('assessment')
+				.select(['assessment.memberId', 'assessment.assessedAt'])
+				.where('assessment.memberId IN (:...memberIds)', { memberIds })
+				.andWhere('assessment.deletedAt IS NULL')
+				.orderBy('assessment.memberId', 'ASC')
+				.addOrderBy('assessment.assessedAt', 'DESC')
+				.getMany(),
+		]);
+
+		// 회원별 회원권 매핑
+		const membershipByMember = new Map<string, Membership>();
+		for (const membership of memberships) {
+			if (!membershipByMember.has(membership.memberId)) {
+				membershipByMember.set(membership.memberId, membership);
+			}
+		}
+
+		// 회원별 최근 평가일 매핑
+		const lastAssessmentByMember = new Map<string, Date>();
+		for (const assessment of lastAssessments) {
+			if (!lastAssessmentByMember.has(assessment.memberId)) {
+				lastAssessmentByMember.set(assessment.memberId, assessment.assessedAt);
+			}
+		}
+
+		// 통계 계산
+		const activeMembers = members.filter(m => m.status === MemberStatus.ACTIVE);
+		const riskCounts = { green: 0, yellow: 0, red: 0 };
+		let totalProgress = 0;
+		let progressCount = 0;
+		let missingMeasurements = 0;
+
+		const memberList = members.map(member => {
+			const membership = membershipByMember.get(member.id);
+			const lastAssessmentDate = lastAssessmentByMember.get(member.id);
+
+			// 위험 상태 카운트
+			const riskStatus = membership?.riskStatus || RiskStatus.GREEN;
+			if (riskStatus === RiskStatus.GREEN) riskCounts.green++;
+			else if (riskStatus === RiskStatus.YELLOW) riskCounts.yellow++;
+			else if (riskStatus === RiskStatus.RED) riskCounts.red++;
+
+			// 평균 진행률 계산
+			if (membership?.currentProgress) {
+				totalProgress += membership.currentProgress;
+				progressCount++;
+			}
+
+			// 미입력 측정 데이터 카운트 (30일 이상 평가 없음)
+			if (!lastAssessmentDate) {
+				missingMeasurements++;
+			} else {
+				const daysSince = (Date.now() - new Date(lastAssessmentDate).getTime()) / (1000 * 60 * 60 * 24);
+				if (daysSince > 30) missingMeasurements++;
+			}
+
+			return {
+				id: member.id,
+				name: member.name,
+				phone: member.phone,
+				status: member.status,
+				riskStatus,
+				program: membership ? {
+					mainGoal: membership.mainGoalLabel || null,
+					currentProgress: membership.currentProgress || 0,
+					durationWeeks: membership.durationWeeks || null,
+				} : null,
+				lastAssessmentDate: lastAssessmentDate
+					? new Date(lastAssessmentDate).toISOString().split('T')[0]
+					: null,
+				completedSessions: member.completedSessions,
+				totalSessions: member.totalSessions,
+			};
+		});
+
+		return {
+			summary: {
+				totalMembers: members.length,
+				activeMembers: activeMembers.length,
+				averageProgress: progressCount > 0 ? Math.round(totalProgress / progressCount) : 0,
+				riskCounts,
+				missingMeasurements,
+			},
+			memberList,
+		};
 	}
 }

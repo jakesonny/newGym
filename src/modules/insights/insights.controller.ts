@@ -34,4 +34,14 @@ export class InsightsController {
 		const riskMembers = await this.insightsService.getRiskMembers();
 		return ApiResponseHelper.success(riskMembers, "위험 신호 회원 조회 성공");
 	}
+
+	@Get("center-dashboard")
+	@ApiOperation({
+		summary: "센터 대시보드 조회",
+		description: "센터 전체 통계 및 회원 목록을 조회합니다. (ADMIN, TRAINER만)",
+	})
+	async getCenterDashboard() {
+		const dashboard = await this.insightsService.getCenterDashboard();
+		return ApiResponseHelper.success(dashboard, "센터 대시보드 조회 성공");
+	}
 }

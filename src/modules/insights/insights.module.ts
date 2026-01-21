@@ -6,10 +6,11 @@ import { AbilitySnapshot } from "../../entities/ability-snapshot.entity";
 import { Member } from "../../entities/member.entity";
 import { Assessment } from "../../entities/assessment.entity";
 import { InjuryHistory } from "../../entities/injury-history.entity";
+import { Membership } from "../../entities/membership.entity";
 
 @Module({
 	imports: [
-		TypeOrmModule.forFeature([AbilitySnapshot, Member, Assessment, InjuryHistory]),
+		TypeOrmModule.forFeature([AbilitySnapshot, Member, Assessment, InjuryHistory, Membership]),
 	],
 	controllers: [InsightsController],
 	providers: [InsightsService],

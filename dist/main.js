@@ -45,12 +45,12 @@ const app_controller_1 = __webpack_require__(7);
 const app_service_1 = __webpack_require__(8);
 const auth_module_1 = __webpack_require__(10);
 const members_module_1 = __webpack_require__(48);
-const assessments_module_1 = __webpack_require__(115);
-const analytics_module_1 = __webpack_require__(120);
-const insights_module_1 = __webpack_require__(123);
-const exercises_module_1 = __webpack_require__(126);
-const strength_level_module_1 = __webpack_require__(130);
-const database_config_1 = __webpack_require__(135);
+const assessments_module_1 = __webpack_require__(116);
+const analytics_module_1 = __webpack_require__(121);
+const insights_module_1 = __webpack_require__(124);
+const exercises_module_1 = __webpack_require__(127);
+const strength_level_module_1 = __webpack_require__(131);
+const database_config_1 = __webpack_require__(136);
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -2116,10 +2116,10 @@ const members_service_1 = __webpack_require__(50);
 const workout_records_service_1 = __webpack_require__(66);
 const pt_sessions_service_1 = __webpack_require__(69);
 const workout_routines_service_1 = __webpack_require__(78);
-const injuries_controller_1 = __webpack_require__(96);
-const abilities_controller_1 = __webpack_require__(100);
-const analytics_controller_1 = __webpack_require__(113);
-const workout_routines_controller_1 = __webpack_require__(114);
+const injuries_controller_1 = __webpack_require__(97);
+const abilities_controller_1 = __webpack_require__(101);
+const analytics_controller_1 = __webpack_require__(114);
+const workout_routines_controller_1 = __webpack_require__(115);
 const member_entity_1 = __webpack_require__(51);
 const membership_entity_1 = __webpack_require__(57);
 const pt_usage_entity_1 = __webpack_require__(60);
@@ -2132,7 +2132,7 @@ const workout_routine_entity_1 = __webpack_require__(62);
 const exercise_entity_1 = __webpack_require__(67);
 const strength_standard_entity_1 = __webpack_require__(68);
 const program_milestone_entity_1 = __webpack_require__(58);
-const assessments_module_1 = __webpack_require__(115);
+const assessments_module_1 = __webpack_require__(116);
 const strength_level_evaluator_1 = __webpack_require__(76);
 let MembersModule = class MembersModule {
 };
@@ -2187,7 +2187,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MembersController = void 0;
 const common_1 = __webpack_require__(2);
@@ -2197,21 +2197,22 @@ const workout_records_service_1 = __webpack_require__(66);
 const pt_sessions_service_1 = __webpack_require__(69);
 const workout_routines_service_1 = __webpack_require__(78);
 const create_member_dto_1 = __webpack_require__(79);
-const update_member_dto_1 = __webpack_require__(81);
-const create_membership_dto_1 = __webpack_require__(82);
-const update_membership_dto_1 = __webpack_require__(84);
-const update_pt_usage_dto_1 = __webpack_require__(85);
-const update_goal_dto_1 = __webpack_require__(86);
-const create_goal_dto_1 = __webpack_require__(87);
-const goal_response_dto_1 = __webpack_require__(88);
-const create_workout_record_dto_1 = __webpack_require__(89);
-const update_workout_record_dto_1 = __webpack_require__(90);
+const create_member_full_dto_1 = __webpack_require__(81);
+const update_member_dto_1 = __webpack_require__(83);
+const create_membership_dto_1 = __webpack_require__(84);
+const update_membership_dto_1 = __webpack_require__(85);
+const update_pt_usage_dto_1 = __webpack_require__(86);
+const update_goal_dto_1 = __webpack_require__(87);
+const create_goal_dto_1 = __webpack_require__(88);
+const goal_response_dto_1 = __webpack_require__(89);
+const create_workout_record_dto_1 = __webpack_require__(90);
+const update_workout_record_dto_1 = __webpack_require__(91);
 const workout_volume_query_dto_1 = __webpack_require__(63);
-const create_pt_session_dto_1 = __webpack_require__(91);
-const update_pt_session_dto_1 = __webpack_require__(92);
-const create_workout_routine_dto_1 = __webpack_require__(93);
-const update_workout_routine_dto_1 = __webpack_require__(94);
-const dashboard_response_dto_1 = __webpack_require__(95);
+const create_pt_session_dto_1 = __webpack_require__(92);
+const update_pt_session_dto_1 = __webpack_require__(93);
+const create_workout_routine_dto_1 = __webpack_require__(94);
+const update_workout_routine_dto_1 = __webpack_require__(95);
+const dashboard_response_dto_1 = __webpack_require__(96);
 const guards_1 = __webpack_require__(36);
 const roles_decorator_1 = __webpack_require__(40);
 const enums_1 = __webpack_require__(18);
@@ -2237,6 +2238,10 @@ let MembersController = class MembersController {
     async create(createMemberDto) {
         const member = await this.membersService.create(createMemberDto);
         return api_response_1.ApiResponseHelper.success(member, "회원 등록 성공");
+    }
+    async createFull(createMemberFullDto) {
+        const result = await this.membersService.createFull(createMemberFullDto);
+        return api_response_1.ApiResponseHelper.success(result, '회원 등록 성공');
     }
     async update(id, updateMemberDto) {
         const member = await this.membersService.update(id, updateMemberDto);
@@ -2273,6 +2278,10 @@ let MembersController = class MembersController {
     async deleteMembership(id, membershipId) {
         await this.membersService.deleteMembership(id, membershipId);
         return api_response_1.ApiResponseHelper.success(null, "회원권 삭제 성공");
+    }
+    async getGoalAnalyst(id) {
+        const goalAnalyst = await this.membersService.getGoalAnalyst(id);
+        return api_response_1.ApiResponseHelper.success(goalAnalyst, 'Goal Analyst 조회 성공');
     }
     async getGoal(id) {
         const goal = await this.membersService.getGoal(id);
@@ -2434,11 +2443,29 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
     (0, common_1.UseGuards)(guards_1.JwtRolesGuard),
     (0, roles_decorator_1.Roles)(enums_1.Role.ADMIN, enums_1.Role.TRAINER),
+    (0, swagger_1.ApiOperation)({ summary: '회원 등록 (기본)', description: '기본 정보만으로 회원을 등록합니다.' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [typeof (_e = typeof create_member_dto_1.CreateMemberDto !== "undefined" && create_member_dto_1.CreateMemberDto) === "function" ? _e : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "create", null);
+__decorate([
+    (0, common_1.Post)('full'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    (0, common_1.UseGuards)(guards_1.JwtRolesGuard),
+    (0, roles_decorator_1.Roles)(enums_1.Role.ADMIN, enums_1.Role.TRAINER),
+    (0, swagger_1.ApiOperation)({
+        summary: '회원 등록 (3단계 위저드)',
+        description: '기본 정보 + 회원권/프로그램 + 초기 측정값을 한 번에 등록합니다.',
+    }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: '회원 등록 성공' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: '유효성 검사 실패' }),
+    (0, swagger_1.ApiResponse)({ status: 409, description: '이미 등록된 이메일' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_f = typeof create_member_full_dto_1.CreateMemberFullDto !== "undefined" && create_member_full_dto_1.CreateMemberFullDto) === "function" ? _f : Object]),
+    __metadata("design:returntype", Promise)
+], MembersController.prototype, "createFull", null);
 __decorate([
     (0, common_1.Put)(':id'),
     (0, common_1.UseGuards)(guards_1.JwtRolesGuard),
@@ -2450,7 +2477,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_f = typeof update_member_dto_1.UpdateMemberDto !== "undefined" && update_member_dto_1.UpdateMemberDto) === "function" ? _f : Object]),
+    __metadata("design:paramtypes", [String, typeof (_g = typeof update_member_dto_1.UpdateMemberDto !== "undefined" && update_member_dto_1.UpdateMemberDto) === "function" ? _g : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "update", null);
 __decorate([
@@ -2477,7 +2504,7 @@ __decorate([
     __param(0, (0, common_1.Param)("id")),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_g = typeof create_membership_dto_1.CreateMembershipDto !== "undefined" && create_membership_dto_1.CreateMembershipDto) === "function" ? _g : Object]),
+    __metadata("design:paramtypes", [String, typeof (_h = typeof create_membership_dto_1.CreateMembershipDto !== "undefined" && create_membership_dto_1.CreateMembershipDto) === "function" ? _h : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "createMembership", null);
 __decorate([
@@ -2488,7 +2515,7 @@ __decorate([
     __param(1, (0, common_1.Param)('membershipId')),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, typeof (_h = typeof update_membership_dto_1.UpdateMembershipDto !== "undefined" && update_membership_dto_1.UpdateMembershipDto) === "function" ? _h : Object]),
+    __metadata("design:paramtypes", [String, String, typeof (_j = typeof update_membership_dto_1.UpdateMembershipDto !== "undefined" && update_membership_dto_1.UpdateMembershipDto) === "function" ? _j : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "updateMembership", null);
 __decorate([
@@ -2505,7 +2532,7 @@ __decorate([
     __param(0, (0, common_1.Param)("id")),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_j = typeof update_pt_usage_dto_1.UpdatePTUsageDto !== "undefined" && update_pt_usage_dto_1.UpdatePTUsageDto) === "function" ? _j : Object]),
+    __metadata("design:paramtypes", [String, typeof (_k = typeof update_pt_usage_dto_1.UpdatePTUsageDto !== "undefined" && update_pt_usage_dto_1.UpdatePTUsageDto) === "function" ? _k : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "createOrUpdatePTUsage", null);
 __decorate([
@@ -2515,7 +2542,7 @@ __decorate([
     __param(0, (0, common_1.Param)("id")),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_k = typeof update_pt_usage_dto_1.UpdatePTUsageDto !== "undefined" && update_pt_usage_dto_1.UpdatePTUsageDto) === "function" ? _k : Object]),
+    __metadata("design:paramtypes", [String, typeof (_l = typeof update_pt_usage_dto_1.UpdatePTUsageDto !== "undefined" && update_pt_usage_dto_1.UpdatePTUsageDto) === "function" ? _l : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "updatePTUsage", null);
 __decorate([
@@ -2528,6 +2555,19 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "deleteMembership", null);
+__decorate([
+    (0, common_1.Get)(':id/goal-analyst'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Goal Analyst 조회',
+        description: '회원의 목표 진행 상황, 추세, 다음 목표 등을 분석합니다.',
+    }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Goal Analyst 조회 성공' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: '회원을 찾을 수 없습니다' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], MembersController.prototype, "getGoalAnalyst", null);
 __decorate([
     (0, common_1.Get)(':id/goals'),
     (0, swagger_1.ApiOperation)({
@@ -2565,7 +2605,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_l = typeof create_goal_dto_1.CreateGoalDto !== "undefined" && create_goal_dto_1.CreateGoalDto) === "function" ? _l : Object]),
+    __metadata("design:paramtypes", [String, typeof (_m = typeof create_goal_dto_1.CreateGoalDto !== "undefined" && create_goal_dto_1.CreateGoalDto) === "function" ? _m : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "createGoal", null);
 __decorate([
@@ -2587,7 +2627,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_m = typeof update_goal_dto_1.UpdateGoalDto !== "undefined" && update_goal_dto_1.UpdateGoalDto) === "function" ? _m : Object]),
+    __metadata("design:paramtypes", [String, typeof (_o = typeof update_goal_dto_1.UpdateGoalDto !== "undefined" && update_goal_dto_1.UpdateGoalDto) === "function" ? _o : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "updateGoal", null);
 __decorate([
@@ -2645,7 +2685,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_o = typeof workout_volume_query_dto_1.WorkoutVolumeQueryDto !== "undefined" && workout_volume_query_dto_1.WorkoutVolumeQueryDto) === "function" ? _o : Object]),
+    __metadata("design:paramtypes", [String, typeof (_p = typeof workout_volume_query_dto_1.WorkoutVolumeQueryDto !== "undefined" && workout_volume_query_dto_1.WorkoutVolumeQueryDto) === "function" ? _p : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "getWorkoutVolume", null);
 __decorate([
@@ -2690,7 +2730,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_p = typeof create_workout_record_dto_1.CreateWorkoutRecordDto !== "undefined" && create_workout_record_dto_1.CreateWorkoutRecordDto) === "function" ? _p : Object]),
+    __metadata("design:paramtypes", [String, typeof (_q = typeof create_workout_record_dto_1.CreateWorkoutRecordDto !== "undefined" && create_workout_record_dto_1.CreateWorkoutRecordDto) === "function" ? _q : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "createWorkoutRecord", null);
 __decorate([
@@ -2706,7 +2746,7 @@ __decorate([
     __param(1, (0, common_1.Param)('recordId')),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, typeof (_q = typeof update_workout_record_dto_1.UpdateWorkoutRecordDto !== "undefined" && update_workout_record_dto_1.UpdateWorkoutRecordDto) === "function" ? _q : Object]),
+    __metadata("design:paramtypes", [String, String, typeof (_r = typeof update_workout_record_dto_1.UpdateWorkoutRecordDto !== "undefined" && update_workout_record_dto_1.UpdateWorkoutRecordDto) === "function" ? _r : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "updateWorkoutRecord", null);
 __decorate([
@@ -2872,7 +2912,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_r = typeof create_pt_session_dto_1.CreatePTSessionDto !== "undefined" && create_pt_session_dto_1.CreatePTSessionDto) === "function" ? _r : Object]),
+    __metadata("design:paramtypes", [String, typeof (_s = typeof create_pt_session_dto_1.CreatePTSessionDto !== "undefined" && create_pt_session_dto_1.CreatePTSessionDto) === "function" ? _s : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "createPTSession", null);
 __decorate([
@@ -2888,7 +2928,7 @@ __decorate([
     __param(1, (0, common_1.Param)('sessionId')),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, typeof (_s = typeof update_pt_session_dto_1.UpdatePTSessionDto !== "undefined" && update_pt_session_dto_1.UpdatePTSessionDto) === "function" ? _s : Object]),
+    __metadata("design:paramtypes", [String, String, typeof (_t = typeof update_pt_session_dto_1.UpdatePTSessionDto !== "undefined" && update_pt_session_dto_1.UpdatePTSessionDto) === "function" ? _t : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "updatePTSession", null);
 __decorate([
@@ -2947,7 +2987,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_t = typeof create_workout_routine_dto_1.CreateWorkoutRoutineDto !== "undefined" && create_workout_routine_dto_1.CreateWorkoutRoutineDto) === "function" ? _t : Object]),
+    __metadata("design:paramtypes", [String, typeof (_u = typeof create_workout_routine_dto_1.CreateWorkoutRoutineDto !== "undefined" && create_workout_routine_dto_1.CreateWorkoutRoutineDto) === "function" ? _u : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "createWorkoutRoutine", null);
 __decorate([
@@ -2963,7 +3003,7 @@ __decorate([
     __param(1, (0, common_1.Param)('routineId')),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, typeof (_u = typeof update_workout_routine_dto_1.UpdateWorkoutRoutineDto !== "undefined" && update_workout_routine_dto_1.UpdateWorkoutRoutineDto) === "function" ? _u : Object]),
+    __metadata("design:paramtypes", [String, String, typeof (_v = typeof update_workout_routine_dto_1.UpdateWorkoutRoutineDto !== "undefined" && update_workout_routine_dto_1.UpdateWorkoutRoutineDto) === "function" ? _v : Object]),
     __metadata("design:returntype", Promise)
 ], MembersController.prototype, "updateWorkoutRoutine", null);
 __decorate([
@@ -3037,7 +3077,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var MembersService_1;
-var _a, _b, _c;
+var _a, _b, _c, _d;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MembersService = void 0;
 const common_1 = __webpack_require__(2);
@@ -3053,10 +3093,11 @@ const entity_update_helper_1 = __webpack_require__(29);
 const repository_helper_1 = __webpack_require__(64);
 const member_helper_1 = __webpack_require__(65);
 let MembersService = MembersService_1 = class MembersService {
-    constructor(memberRepository, membershipRepository, ptUsageRepository) {
+    constructor(memberRepository, membershipRepository, ptUsageRepository, dataSource) {
         this.memberRepository = memberRepository;
         this.membershipRepository = membershipRepository;
         this.ptUsageRepository = ptUsageRepository;
+        this.dataSource = dataSource;
         this.logger = new common_1.Logger(MembersService_1.name);
     }
     async findAll(page = 1, pageSize = 10) {
@@ -3098,6 +3139,92 @@ let MembersService = MembersService_1 = class MembersService {
             status: createMemberDto.status || enums_1.MemberStatus.ACTIVE,
         });
         return this.memberRepository.save(member);
+    }
+    async createFull(dto) {
+        const existingMember = await this.memberRepository.findOne({
+            where: { email: dto.email },
+        });
+        if (existingMember) {
+            this.logger.warn(`이미 등록된 이메일입니다. Email: ${dto.email}`);
+            throw exceptions_1.ApiExceptions.memberAlreadyExists();
+        }
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+        try {
+            const birthDate = dto.birthDate ? new Date(dto.birthDate) : undefined;
+            const age = member_helper_1.MemberHelper.calculateAge(birthDate);
+            const memberWeight = dto.initialMeasurement?.weight ?? dto.weight;
+            const member = queryRunner.manager.create(member_entity_1.Member, {
+                name: dto.name,
+                phone: dto.phone,
+                email: dto.email,
+                joinDate: new Date(dto.joinDate),
+                birthDate,
+                age,
+                gender: dto.gender,
+                height: dto.height,
+                weight: memberWeight,
+                status: dto.status || enums_1.MemberStatus.ACTIVE,
+                totalSessions: dto.membership?.ptTotalCount || 0,
+                completedSessions: 0,
+                goalProgress: 0,
+            });
+            const savedMember = await queryRunner.manager.save(member_entity_1.Member, member);
+            let savedMembership;
+            let savedPTUsage;
+            if (dto.membership) {
+                const m = dto.membership;
+                const mainGoalLabel = m.mainGoalLabel ||
+                    (m.mainGoalType ? enums_1.GoalTypeNames[m.mainGoalType] : undefined);
+                const targetUnit = m.targetUnit ||
+                    (m.mainGoalType ? enums_1.GoalTypeUnits[m.mainGoalType] : undefined);
+                const membership = queryRunner.manager.create(membership_entity_1.Membership, {
+                    memberId: savedMember.id,
+                    membershipType: m.membershipType,
+                    purchaseDate: new Date(m.purchaseDate),
+                    expiryDate: new Date(m.expiryDate),
+                    status: m.status || enums_1.MembershipStatus.ACTIVE,
+                    price: m.price,
+                    durationWeeks: m.durationWeeks,
+                    mainGoalType: m.mainGoalType,
+                    mainGoalLabel,
+                    targetValue: m.targetValue,
+                    targetUnit,
+                    startValue: m.startValue ?? dto.initialMeasurement?.weight,
+                    currentValue: dto.initialMeasurement?.weight,
+                    currentProgress: 0,
+                    riskStatus: enums_1.RiskStatus.GREEN,
+                });
+                savedMembership = await queryRunner.manager.save(membership_entity_1.Membership, membership);
+                if (m.ptTotalCount && m.ptTotalCount > 0) {
+                    const ptUsage = queryRunner.manager.create(pt_usage_entity_1.PTUsage, {
+                        memberId: savedMember.id,
+                        totalCount: m.ptTotalCount,
+                        remainingCount: m.ptTotalCount,
+                        usedCount: 0,
+                    });
+                    savedPTUsage = await queryRunner.manager.save(pt_usage_entity_1.PTUsage, ptUsage);
+                }
+            }
+            await queryRunner.commitTransaction();
+            this.logger.log(`회원 등록 완료: ${savedMember.name} (ID: ${savedMember.id})` +
+                (savedMembership ? `, 회원권: ${savedMembership.id}` : '') +
+                (savedPTUsage ? `, PT: ${savedPTUsage.totalCount}회` : ''));
+            return {
+                member: savedMember,
+                membership: savedMembership,
+                ptUsage: savedPTUsage,
+            };
+        }
+        catch (error) {
+            await queryRunner.rollbackTransaction();
+            this.logger.error(`회원 등록 실패: ${error.message}`);
+            throw error;
+        }
+        finally {
+            await queryRunner.release();
+        }
     }
     async update(id, updateMemberDto) {
         const member = await this.memberRepository.findOne({
@@ -3367,6 +3494,104 @@ let MembersService = MembersService_1 = class MembersService {
             totalVolume: Math.round(totalVolume * 100) / 100,
         };
     }
+    async getGoalAnalyst(memberId) {
+        const member = await this.findOne(memberId);
+        const membership = await this.membershipRepository.findOne({
+            where: { memberId, status: 'ACTIVE' },
+            order: { createdAt: 'DESC' },
+        });
+        const program = {
+            mainGoal: membership?.mainGoalLabel || null,
+            mainGoalType: membership?.mainGoalType || null,
+            durationWeeks: membership?.durationWeeks || null,
+            startValue: membership?.startValue || null,
+            currentValue: membership?.currentValue || null,
+            targetValue: membership?.targetValue || null,
+            targetUnit: membership?.targetUnit || null,
+            currentProgress: membership?.currentProgress || 0,
+            riskStatus: membership?.riskStatus || 'GREEN',
+            startDate: membership?.purchaseDate ? new Date(membership.purchaseDate).toISOString().split('T')[0] : null,
+            endDate: membership?.expiryDate ? new Date(membership.expiryDate).toISOString().split('T')[0] : null,
+        };
+        const progressRoadmap = {
+            start: membership?.startValue && membership?.purchaseDate ? {
+                value: membership.startValue,
+                date: new Date(membership.purchaseDate).toISOString().split('T')[0],
+            } : null,
+            current: membership?.currentValue ? {
+                value: membership.currentValue,
+                date: new Date().toISOString().split('T')[0],
+            } : null,
+            goal: membership?.targetValue && membership?.expiryDate ? {
+                value: membership.targetValue,
+                date: new Date(membership.expiryDate).toISOString().split('T')[0],
+            } : null,
+        };
+        const recentMeasurements = await this.memberRepository.manager.query(`
+			SELECT 
+				session_date as "date",
+				measured_weight as "value"
+			FROM pt_sessions
+			WHERE member_id = $1
+				AND measured_weight IS NOT NULL
+			ORDER BY session_date DESC
+			LIMIT 10
+		`, [memberId]);
+        let trend;
+        if (recentMeasurements.length >= 2) {
+            const values = recentMeasurements.map((m) => ({
+                date: m.date,
+                value: parseFloat(m.value),
+            })).reverse();
+            let totalChange = 0;
+            for (let i = 1; i < values.length; i++) {
+                totalChange += values[i].value - values[i - 1].value;
+            }
+            const averageChange = totalChange / (values.length - 1);
+            let direction;
+            if (averageChange > 0.5)
+                direction = 'UP';
+            else if (averageChange < -0.5)
+                direction = 'DOWN';
+            else
+                direction = 'STABLE';
+            trend = { direction, recentValues: values, averageChange: Math.round(averageChange * 100) / 100 };
+        }
+        else {
+            trend = { direction: 'STABLE', recentValues: [], averageChange: 0 };
+        }
+        let nextTarget = { value: null, description: null };
+        if (membership?.currentValue && membership?.targetValue && membership?.targetUnit) {
+            const isReductionGoal = ['WEIGHT_LOSS', 'BODY_FAT_LOSS'].includes(membership.mainGoalType || '');
+            const remaining = isReductionGoal
+                ? membership.currentValue - membership.targetValue
+                : membership.targetValue - membership.currentValue;
+            if (remaining > 0) {
+                const weeksRemaining = membership.durationWeeks
+                    ? Math.max(1, Math.ceil((new Date(membership.expiryDate).getTime() - Date.now()) / (7 * 24 * 60 * 60 * 1000)))
+                    : 4;
+                const weeklyTarget = remaining / weeksRemaining;
+                nextTarget = {
+                    value: Math.round((membership.currentValue + (isReductionGoal ? -weeklyTarget : weeklyTarget)) * 10) / 10,
+                    description: `다음 주 목표: ${Math.round(weeklyTarget * 10) / 10}${membership.targetUnit} ${isReductionGoal ? '감량' : '증가'}`,
+                };
+            }
+        }
+        const sessionProgress = {
+            totalSessions: member.totalSessions,
+            completedSessions: member.completedSessions,
+            progressPercentage: member.totalSessions > 0
+                ? Math.round((member.completedSessions / member.totalSessions) * 100)
+                : 0,
+        };
+        return {
+            program,
+            progressRoadmap,
+            trend,
+            nextTarget,
+            sessionProgress,
+        };
+    }
 };
 exports.MembersService = MembersService;
 exports.MembersService = MembersService = MembersService_1 = __decorate([
@@ -3374,7 +3599,7 @@ exports.MembersService = MembersService = MembersService_1 = __decorate([
     __param(0, (0, typeorm_1.InjectRepository)(member_entity_1.Member)),
     __param(1, (0, typeorm_1.InjectRepository)(membership_entity_1.Membership)),
     __param(2, (0, typeorm_1.InjectRepository)(pt_usage_entity_1.PTUsage)),
-    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, typeof (_b = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _b : Object, typeof (_c = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _c : Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, typeof (_b = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _b : Object, typeof (_c = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _c : Object, typeof (_d = typeof typeorm_2.DataSource !== "undefined" && typeorm_2.DataSource) === "function" ? _d : Object])
 ], MembersService);
 
 
@@ -6509,6 +6734,293 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var _a, _b, _c, _d, _e, _f, _g;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.CreateMemberFullDto = exports.InitialMeasurementDto = exports.MembershipProgramDto = exports.MemberBasicInfoDto = void 0;
+const class_validator_1 = __webpack_require__(31);
+const swagger_1 = __webpack_require__(4);
+const class_transformer_1 = __webpack_require__(82);
+const enums_1 = __webpack_require__(18);
+class MemberBasicInfoDto {
+}
+exports.MemberBasicInfoDto = MemberBasicInfoDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: '회원 이름', example: '홍길동' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(255),
+    __metadata("design:type", String)
+], MemberBasicInfoDto.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: '전화번호', example: '010-1234-5678' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(50),
+    __metadata("design:type", String)
+], MemberBasicInfoDto.prototype, "phone", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: '이메일', example: 'member@example.com' }),
+    (0, class_validator_1.IsEmail)(),
+    (0, class_validator_1.MaxLength)(255),
+    __metadata("design:type", String)
+], MemberBasicInfoDto.prototype, "email", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: '가입일', example: '2024-01-01' }),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], MemberBasicInfoDto.prototype, "joinDate", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '생년월일', example: '1990-01-15' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], MemberBasicInfoDto.prototype, "birthDate", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ enum: enums_1.Gender, description: '성별' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(enums_1.Gender),
+    __metadata("design:type", typeof (_a = typeof enums_1.Gender !== "undefined" && enums_1.Gender) === "function" ? _a : Object)
+], MemberBasicInfoDto.prototype, "gender", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '키 (cm)', example: 175 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(50),
+    (0, class_validator_1.Max)(250),
+    __metadata("design:type", Number)
+], MemberBasicInfoDto.prototype, "height", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '몸무게 (kg)', example: 70 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(20),
+    (0, class_validator_1.Max)(300),
+    __metadata("design:type", Number)
+], MemberBasicInfoDto.prototype, "weight", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ enum: enums_1.MemberStatus, default: enums_1.MemberStatus.ACTIVE }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(enums_1.MemberStatus),
+    __metadata("design:type", typeof (_b = typeof enums_1.MemberStatus !== "undefined" && enums_1.MemberStatus) === "function" ? _b : Object)
+], MemberBasicInfoDto.prototype, "status", void 0);
+class MembershipProgramDto {
+}
+exports.MembershipProgramDto = MembershipProgramDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: enums_1.MembershipType, description: '회원권 타입' }),
+    (0, class_validator_1.IsEnum)(enums_1.MembershipType),
+    __metadata("design:type", typeof (_c = typeof enums_1.MembershipType !== "undefined" && enums_1.MembershipType) === "function" ? _c : Object)
+], MembershipProgramDto.prototype, "membershipType", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: '구매일', example: '2024-01-01' }),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], MembershipProgramDto.prototype, "purchaseDate", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: '만료일', example: '2024-12-31' }),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], MembershipProgramDto.prototype, "expiryDate", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ enum: enums_1.MembershipStatus, default: enums_1.MembershipStatus.ACTIVE }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(enums_1.MembershipStatus),
+    __metadata("design:type", typeof (_d = typeof enums_1.MembershipStatus !== "undefined" && enums_1.MembershipStatus) === "function" ? _d : Object)
+], MembershipProgramDto.prototype, "status", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: '가격', example: 500000 }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], MembershipProgramDto.prototype, "price", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '프로그램 기간 (주)', enum: [4, 8, 12] }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], MembershipProgramDto.prototype, "durationWeeks", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ enum: enums_1.GoalType, description: '메인 목표 유형' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(enums_1.GoalType),
+    __metadata("design:type", typeof (_e = typeof enums_1.GoalType !== "undefined" && enums_1.GoalType) === "function" ? _e : Object)
+], MembershipProgramDto.prototype, "mainGoalType", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '메인 목표 라벨', example: '체중 감량' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], MembershipProgramDto.prototype, "mainGoalLabel", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '목표 수치', example: 10 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], MembershipProgramDto.prototype, "targetValue", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '목표 단위', example: 'kg' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], MembershipProgramDto.prototype, "targetUnit", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '시작 수치', example: 85 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], MembershipProgramDto.prototype, "startValue", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'PT 총 횟수', example: 20 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], MembershipProgramDto.prototype, "ptTotalCount", void 0);
+class InitialMeasurementDto {
+}
+exports.InitialMeasurementDto = InitialMeasurementDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '체중 (kg)', example: 75.5 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(20),
+    (0, class_validator_1.Max)(300),
+    __metadata("design:type", Number)
+], InitialMeasurementDto.prototype, "weight", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '골격근량 (kg)', example: 32.5 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    (0, class_validator_1.Max)(100),
+    __metadata("design:type", Number)
+], InitialMeasurementDto.prototype, "muscleMass", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '체지방률 (%)', example: 18.5 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    (0, class_validator_1.Max)(100),
+    __metadata("design:type", Number)
+], InitialMeasurementDto.prototype, "bodyFat", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '벤치프레스 1RM (kg)', example: 80 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    (0, class_validator_1.Max)(500),
+    __metadata("design:type", Number)
+], InitialMeasurementDto.prototype, "benchPress1RM", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '스쿼트 1RM (kg)', example: 100 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    (0, class_validator_1.Max)(500),
+    __metadata("design:type", Number)
+], InitialMeasurementDto.prototype, "squat1RM", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '데드리프트 1RM (kg)', example: 120 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    (0, class_validator_1.Max)(500),
+    __metadata("design:type", Number)
+], InitialMeasurementDto.prototype, "deadlift1RM", void 0);
+class CreateMemberFullDto {
+}
+exports.CreateMemberFullDto = CreateMemberFullDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: '회원 이름', example: '홍길동' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(255),
+    __metadata("design:type", String)
+], CreateMemberFullDto.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: '전화번호', example: '010-1234-5678' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(50),
+    __metadata("design:type", String)
+], CreateMemberFullDto.prototype, "phone", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: '이메일', example: 'member@example.com' }),
+    (0, class_validator_1.IsEmail)(),
+    (0, class_validator_1.MaxLength)(255),
+    __metadata("design:type", String)
+], CreateMemberFullDto.prototype, "email", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: '가입일', example: '2024-01-01' }),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], CreateMemberFullDto.prototype, "joinDate", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '생년월일', example: '1990-01-15' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], CreateMemberFullDto.prototype, "birthDate", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ enum: enums_1.Gender, description: '성별' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(enums_1.Gender),
+    __metadata("design:type", typeof (_f = typeof enums_1.Gender !== "undefined" && enums_1.Gender) === "function" ? _f : Object)
+], CreateMemberFullDto.prototype, "gender", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '키 (cm)', example: 175 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(50),
+    (0, class_validator_1.Max)(250),
+    __metadata("design:type", Number)
+], CreateMemberFullDto.prototype, "height", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: '몸무게 (kg)', example: 70 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(20),
+    (0, class_validator_1.Max)(300),
+    __metadata("design:type", Number)
+], CreateMemberFullDto.prototype, "weight", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ enum: enums_1.MemberStatus, default: enums_1.MemberStatus.ACTIVE }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(enums_1.MemberStatus),
+    __metadata("design:type", typeof (_g = typeof enums_1.MemberStatus !== "undefined" && enums_1.MemberStatus) === "function" ? _g : Object)
+], CreateMemberFullDto.prototype, "status", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: MembershipProgramDto, description: '회원권 및 프로그램 정보' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => MembershipProgramDto),
+    __metadata("design:type", MembershipProgramDto)
+], CreateMemberFullDto.prototype, "membership", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: InitialMeasurementDto, description: '초기 측정값' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => InitialMeasurementDto),
+    __metadata("design:type", InitialMeasurementDto)
+], CreateMemberFullDto.prototype, "initialMeasurement", void 0);
+
+
+/***/ }),
+/* 82 */
+/***/ ((module) => {
+
+module.exports = require("class-transformer");
+
+/***/ }),
+/* 83 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UpdateMemberDto = void 0;
@@ -6611,7 +7123,7 @@ __decorate([
 
 
 /***/ }),
-/* 82 */
+/* 84 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -6629,7 +7141,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CreateMembershipDto = exports.ProgramInfoDto = void 0;
 const class_validator_1 = __webpack_require__(31);
 const swagger_1 = __webpack_require__(4);
-const class_transformer_1 = __webpack_require__(83);
+const class_transformer_1 = __webpack_require__(82);
 const enums_1 = __webpack_require__(18);
 class ProgramInfoDto {
 }
@@ -6750,13 +7262,7 @@ __decorate([
 
 
 /***/ }),
-/* 83 */
-/***/ ((module) => {
-
-module.exports = require("class-transformer");
-
-/***/ }),
-/* 84 */
+/* 85 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -6830,7 +7336,7 @@ __decorate([
 
 
 /***/ }),
-/* 85 */
+/* 86 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -6886,7 +7392,7 @@ __decorate([
 
 
 /***/ }),
-/* 86 */
+/* 87 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -6967,7 +7473,7 @@ __decorate([
 
 
 /***/ }),
-/* 87 */
+/* 88 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7021,7 +7527,7 @@ __decorate([
 
 
 /***/ }),
-/* 88 */
+/* 89 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7124,7 +7630,7 @@ __decorate([
 
 
 /***/ }),
-/* 89 */
+/* 90 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7254,7 +7760,7 @@ __decorate([
 
 
 /***/ }),
-/* 90 */
+/* 91 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7387,7 +7893,7 @@ __decorate([
 
 
 /***/ }),
-/* 91 */
+/* 92 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7510,7 +8016,7 @@ __decorate([
 
 
 /***/ }),
-/* 92 */
+/* 93 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7563,7 +8069,7 @@ __decorate([
 
 
 /***/ }),
-/* 93 */
+/* 94 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7580,7 +8086,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CreateWorkoutRoutineDto = exports.ExerciseDto = void 0;
 const swagger_1 = __webpack_require__(4);
 const class_validator_1 = __webpack_require__(31);
-const class_transformer_1 = __webpack_require__(83);
+const class_transformer_1 = __webpack_require__(82);
 class ExerciseDto {
 }
 exports.ExerciseDto = ExerciseDto;
@@ -7739,7 +8245,7 @@ __decorate([
 
 
 /***/ }),
-/* 94 */
+/* 95 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -7756,8 +8262,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UpdateWorkoutRoutineDto = void 0;
 const swagger_1 = __webpack_require__(4);
 const class_validator_1 = __webpack_require__(31);
-const class_transformer_1 = __webpack_require__(83);
-const create_workout_routine_dto_1 = __webpack_require__(93);
+const class_transformer_1 = __webpack_require__(82);
+const create_workout_routine_dto_1 = __webpack_require__(94);
 class UpdateWorkoutRoutineDto {
 }
 exports.UpdateWorkoutRoutineDto = UpdateWorkoutRoutineDto;
@@ -7823,7 +8329,7 @@ __decorate([
 
 
 /***/ }),
-/* 95 */
+/* 96 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8044,7 +8550,7 @@ __decorate([
 
 
 /***/ }),
-/* 96 */
+/* 97 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8072,9 +8578,9 @@ const roles_decorator_1 = __webpack_require__(40);
 const enums_1 = __webpack_require__(18);
 const injury_history_entity_1 = __webpack_require__(55);
 const injury_restriction_entity_1 = __webpack_require__(56);
-const create_injury_dto_1 = __webpack_require__(97);
-const update_injury_dto_1 = __webpack_require__(98);
-const create_injury_restriction_dto_1 = __webpack_require__(99);
+const create_injury_dto_1 = __webpack_require__(98);
+const update_injury_dto_1 = __webpack_require__(99);
+const create_injury_restriction_dto_1 = __webpack_require__(100);
 const api_response_1 = __webpack_require__(43);
 const exceptions_1 = __webpack_require__(27);
 const entity_update_helper_1 = __webpack_require__(29);
@@ -8227,7 +8733,7 @@ exports.InjuriesController = InjuriesController = __decorate([
 
 
 /***/ }),
-/* 97 */
+/* 98 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8307,7 +8813,7 @@ __decorate([
 
 
 /***/ }),
-/* 98 */
+/* 99 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8392,7 +8898,7 @@ __decorate([
 
 
 /***/ }),
-/* 99 */
+/* 100 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8426,7 +8932,7 @@ __decorate([
 
 
 /***/ }),
-/* 100 */
+/* 101 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8448,11 +8954,11 @@ exports.AbilitiesController = void 0;
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(4);
 const guards_1 = __webpack_require__(36);
-const assessments_service_1 = __webpack_require__(101);
+const assessments_service_1 = __webpack_require__(102);
 const api_response_1 = __webpack_require__(43);
-const compare_snapshots_query_dto_1 = __webpack_require__(111);
-const snapshot_normalizer_1 = __webpack_require__(103);
-const hexagon_response_dto_1 = __webpack_require__(112);
+const compare_snapshots_query_dto_1 = __webpack_require__(112);
+const snapshot_normalizer_1 = __webpack_require__(104);
+const hexagon_response_dto_1 = __webpack_require__(113);
 let AbilitiesController = class AbilitiesController {
     constructor(assessmentsService) {
         this.assessmentsService = assessmentsService;
@@ -8561,7 +9067,7 @@ exports.AbilitiesController = AbilitiesController = __decorate([
 
 
 /***/ }),
-/* 101 */
+/* 102 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8588,14 +9094,14 @@ const assessment_entity_1 = __webpack_require__(52);
 const assessment_item_entity_1 = __webpack_require__(53);
 const enums_1 = __webpack_require__(18);
 const ability_snapshot_entity_1 = __webpack_require__(54);
-const score_calculator_1 = __webpack_require__(102);
+const score_calculator_1 = __webpack_require__(103);
 const exceptions_1 = __webpack_require__(27);
 const date_helper_1 = __webpack_require__(9);
-const snapshot_normalizer_1 = __webpack_require__(103);
+const snapshot_normalizer_1 = __webpack_require__(104);
 const entity_update_helper_1 = __webpack_require__(29);
 const repository_helper_1 = __webpack_require__(64);
-const grade_score_converter_1 = __webpack_require__(104);
-const analytics_helper_1 = __webpack_require__(110);
+const grade_score_converter_1 = __webpack_require__(105);
+const analytics_helper_1 = __webpack_require__(111);
 const member_entity_1 = __webpack_require__(51);
 let AssessmentsService = AssessmentsService_1 = class AssessmentsService {
     constructor(assessmentRepository, assessmentItemRepository, abilitySnapshotRepository, memberRepository, scoreCalculator, gradeScoreConverter) {
@@ -8932,7 +9438,7 @@ exports.AssessmentsService = AssessmentsService = AssessmentsService_1 = __decor
 
 
 /***/ }),
-/* 102 */
+/* 103 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -9123,7 +9629,7 @@ exports.ScoreCalculator = ScoreCalculator = __decorate([
 
 
 /***/ }),
-/* 103 */
+/* 104 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -9189,7 +9695,7 @@ exports.SnapshotNormalizer = SnapshotNormalizer;
 
 
 /***/ }),
-/* 104 */
+/* 105 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -9212,10 +9718,10 @@ exports.GradeScoreConverter = void 0;
 const common_1 = __webpack_require__(2);
 const typeorm_1 = __webpack_require__(6);
 const typeorm_2 = __webpack_require__(15);
-const assessment_category_score_entity_1 = __webpack_require__(105);
-const flexibility_item_weight_entity_1 = __webpack_require__(107);
-const flexibility_grade_threshold_entity_1 = __webpack_require__(108);
-const body_composition_standard_entity_1 = __webpack_require__(109);
+const assessment_category_score_entity_1 = __webpack_require__(106);
+const flexibility_item_weight_entity_1 = __webpack_require__(108);
+const flexibility_grade_threshold_entity_1 = __webpack_require__(109);
+const body_composition_standard_entity_1 = __webpack_require__(110);
 const enums_1 = __webpack_require__(18);
 let GradeScoreConverter = GradeScoreConverter_1 = class GradeScoreConverter {
     constructor(categoryScoreRepository, flexibilityWeightRepository, flexibilityThresholdRepository, bodyCompositionStandardRepository) {
@@ -9481,7 +9987,7 @@ exports.GradeScoreConverter = GradeScoreConverter = GradeScoreConverter_1 = __de
 
 
 /***/ }),
-/* 105 */
+/* 106 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -9499,7 +10005,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AssessmentCategoryScore = void 0;
 const typeorm_1 = __webpack_require__(15);
 const enums_1 = __webpack_require__(18);
-const assessment_grade_constant_entity_1 = __webpack_require__(106);
+const assessment_grade_constant_entity_1 = __webpack_require__(107);
 let AssessmentCategoryScore = class AssessmentCategoryScore {
 };
 exports.AssessmentCategoryScore = AssessmentCategoryScore;
@@ -9564,7 +10070,7 @@ exports.AssessmentCategoryScore = AssessmentCategoryScore = __decorate([
 
 
 /***/ }),
-/* 106 */
+/* 107 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -9632,7 +10138,7 @@ exports.AssessmentGradeConstant = AssessmentGradeConstant = __decorate([
 
 
 /***/ }),
-/* 107 */
+/* 108 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -9696,7 +10202,7 @@ exports.FlexibilityItemWeight = FlexibilityItemWeight = __decorate([
 
 
 /***/ }),
-/* 108 */
+/* 109 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -9713,7 +10219,7 @@ var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.FlexibilityGradeThreshold = void 0;
 const typeorm_1 = __webpack_require__(15);
-const assessment_grade_constant_entity_1 = __webpack_require__(106);
+const assessment_grade_constant_entity_1 = __webpack_require__(107);
 let FlexibilityGradeThreshold = class FlexibilityGradeThreshold {
 };
 exports.FlexibilityGradeThreshold = FlexibilityGradeThreshold;
@@ -9765,7 +10271,7 @@ exports.FlexibilityGradeThreshold = FlexibilityGradeThreshold = __decorate([
 
 
 /***/ }),
-/* 109 */
+/* 110 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -9837,13 +10343,13 @@ exports.BodyCompositionStandard = BodyCompositionStandard = __decorate([
 
 
 /***/ }),
-/* 110 */
+/* 111 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AnalyticsHelper = exports.HEXAGON_INDICATOR_NAMES = void 0;
-const snapshot_normalizer_1 = __webpack_require__(103);
+const snapshot_normalizer_1 = __webpack_require__(104);
 exports.HEXAGON_INDICATOR_NAMES = {
     strength: '하체 근력',
     cardio: '심폐 지구력',
@@ -9949,7 +10455,7 @@ exports.AnalyticsHelper = AnalyticsHelper;
 
 
 /***/ }),
-/* 111 */
+/* 112 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -9966,7 +10472,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CompareSnapshotsQueryDto = void 0;
 const class_validator_1 = __webpack_require__(31);
 const swagger_1 = __webpack_require__(4);
-const class_transformer_1 = __webpack_require__(83);
+const class_transformer_1 = __webpack_require__(82);
 class CompareSnapshotsQueryDto {
 }
 exports.CompareSnapshotsQueryDto = CompareSnapshotsQueryDto;
@@ -9986,7 +10492,7 @@ __decorate([
 
 
 /***/ }),
-/* 112 */
+/* 113 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10062,7 +10568,7 @@ __decorate([
 
 
 /***/ }),
-/* 113 */
+/* 114 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10088,8 +10594,8 @@ const typeorm_2 = __webpack_require__(15);
 const guards_1 = __webpack_require__(36);
 const ability_snapshot_entity_1 = __webpack_require__(54);
 const api_response_1 = __webpack_require__(43);
-const snapshot_normalizer_1 = __webpack_require__(103);
-const analytics_helper_1 = __webpack_require__(110);
+const snapshot_normalizer_1 = __webpack_require__(104);
+const analytics_helper_1 = __webpack_require__(111);
 let MemberAnalyticsController = class MemberAnalyticsController {
     constructor(abilitySnapshotRepository) {
         this.abilitySnapshotRepository = abilitySnapshotRepository;
@@ -10141,7 +10647,7 @@ exports.MemberAnalyticsController = MemberAnalyticsController = __decorate([
 
 
 /***/ }),
-/* 114 */
+/* 115 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10163,8 +10669,8 @@ exports.WorkoutRoutinesController = void 0;
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(4);
 const workout_routines_service_1 = __webpack_require__(78);
-const create_workout_routine_dto_1 = __webpack_require__(93);
-const update_workout_routine_dto_1 = __webpack_require__(94);
+const create_workout_routine_dto_1 = __webpack_require__(94);
+const update_workout_routine_dto_1 = __webpack_require__(95);
 const guards_1 = __webpack_require__(36);
 const roles_decorator_1 = __webpack_require__(40);
 const enums_1 = __webpack_require__(18);
@@ -10303,7 +10809,7 @@ exports.WorkoutRoutinesController = WorkoutRoutinesController = __decorate([
 
 
 /***/ }),
-/* 115 */
+/* 116 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10317,21 +10823,21 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AssessmentsModule = void 0;
 const common_1 = __webpack_require__(2);
 const typeorm_1 = __webpack_require__(6);
-const assessments_controller_1 = __webpack_require__(116);
-const assessments_service_1 = __webpack_require__(101);
+const assessments_controller_1 = __webpack_require__(117);
+const assessments_service_1 = __webpack_require__(102);
 const assessment_entity_1 = __webpack_require__(52);
 const assessment_item_entity_1 = __webpack_require__(53);
 const ability_snapshot_entity_1 = __webpack_require__(54);
 const injury_restriction_entity_1 = __webpack_require__(56);
 const injury_history_entity_1 = __webpack_require__(55);
-const assessment_grade_constant_entity_1 = __webpack_require__(106);
-const assessment_category_score_entity_1 = __webpack_require__(105);
-const flexibility_item_weight_entity_1 = __webpack_require__(107);
-const flexibility_grade_threshold_entity_1 = __webpack_require__(108);
-const body_composition_standard_entity_1 = __webpack_require__(109);
+const assessment_grade_constant_entity_1 = __webpack_require__(107);
+const assessment_category_score_entity_1 = __webpack_require__(106);
+const flexibility_item_weight_entity_1 = __webpack_require__(108);
+const flexibility_grade_threshold_entity_1 = __webpack_require__(109);
+const body_composition_standard_entity_1 = __webpack_require__(110);
 const member_entity_1 = __webpack_require__(51);
-const score_calculator_1 = __webpack_require__(102);
-const grade_score_converter_1 = __webpack_require__(104);
+const score_calculator_1 = __webpack_require__(103);
+const grade_score_converter_1 = __webpack_require__(105);
 let AssessmentsModule = class AssessmentsModule {
 };
 exports.AssessmentsModule = AssessmentsModule;
@@ -10360,7 +10866,7 @@ exports.AssessmentsModule = AssessmentsModule = __decorate([
 
 
 /***/ }),
-/* 116 */
+/* 117 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10381,9 +10887,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AssessmentsController = void 0;
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(4);
-const assessments_service_1 = __webpack_require__(101);
-const create_assessment_dto_1 = __webpack_require__(117);
-const update_assessment_dto_1 = __webpack_require__(119);
+const assessments_service_1 = __webpack_require__(102);
+const create_assessment_dto_1 = __webpack_require__(118);
+const update_assessment_dto_1 = __webpack_require__(120);
 const guards_1 = __webpack_require__(36);
 const roles_decorator_1 = __webpack_require__(40);
 const enums_1 = __webpack_require__(18);
@@ -10521,7 +11027,7 @@ exports.AssessmentsController = AssessmentsController = __decorate([
 
 
 /***/ }),
-/* 117 */
+/* 118 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10538,10 +11044,10 @@ var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CreateAssessmentDto = void 0;
 const class_validator_1 = __webpack_require__(31);
-const class_transformer_1 = __webpack_require__(83);
+const class_transformer_1 = __webpack_require__(82);
 const swagger_1 = __webpack_require__(4);
 const enums_1 = __webpack_require__(18);
-const create_assessment_item_dto_1 = __webpack_require__(118);
+const create_assessment_item_dto_1 = __webpack_require__(119);
 class CreateAssessmentDto {
 }
 exports.CreateAssessmentDto = CreateAssessmentDto;
@@ -10651,7 +11157,7 @@ __decorate([
 
 
 /***/ }),
-/* 118 */
+/* 119 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10745,7 +11251,7 @@ __decorate([
 
 
 /***/ }),
-/* 119 */
+/* 120 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10762,10 +11268,10 @@ var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UpdateAssessmentDto = void 0;
 const class_validator_1 = __webpack_require__(31);
-const class_transformer_1 = __webpack_require__(83);
+const class_transformer_1 = __webpack_require__(82);
 const swagger_1 = __webpack_require__(4);
 const enums_1 = __webpack_require__(18);
-const create_assessment_item_dto_1 = __webpack_require__(118);
+const create_assessment_item_dto_1 = __webpack_require__(119);
 class UpdateAssessmentDto {
 }
 exports.UpdateAssessmentDto = UpdateAssessmentDto;
@@ -10855,7 +11361,7 @@ __decorate([
 
 
 /***/ }),
-/* 120 */
+/* 121 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10869,8 +11375,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AnalyticsModule = void 0;
 const common_1 = __webpack_require__(2);
 const typeorm_1 = __webpack_require__(6);
-const analytics_controller_1 = __webpack_require__(121);
-const analytics_service_1 = __webpack_require__(122);
+const analytics_controller_1 = __webpack_require__(122);
+const analytics_service_1 = __webpack_require__(123);
 const ability_snapshot_entity_1 = __webpack_require__(54);
 const member_entity_1 = __webpack_require__(51);
 let AnalyticsModule = class AnalyticsModule {
@@ -10887,7 +11393,7 @@ exports.AnalyticsModule = AnalyticsModule = __decorate([
 
 
 /***/ }),
-/* 121 */
+/* 122 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10908,7 +11414,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AnalyticsController = void 0;
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(4);
-const analytics_service_1 = __webpack_require__(122);
+const analytics_service_1 = __webpack_require__(123);
 const guards_1 = __webpack_require__(36);
 const api_response_1 = __webpack_require__(43);
 let AnalyticsController = class AnalyticsController {
@@ -10951,7 +11457,7 @@ exports.AnalyticsController = AnalyticsController = __decorate([
 
 
 /***/ }),
-/* 122 */
+/* 123 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -10977,8 +11483,8 @@ const typeorm_2 = __webpack_require__(15);
 const ability_snapshot_entity_1 = __webpack_require__(54);
 const member_entity_1 = __webpack_require__(51);
 const exceptions_1 = __webpack_require__(27);
-const snapshot_normalizer_1 = __webpack_require__(103);
-const analytics_helper_1 = __webpack_require__(110);
+const snapshot_normalizer_1 = __webpack_require__(104);
+const analytics_helper_1 = __webpack_require__(111);
 let AnalyticsService = AnalyticsService_1 = class AnalyticsService {
     constructor(abilitySnapshotRepository, memberRepository) {
         this.abilitySnapshotRepository = abilitySnapshotRepository;
@@ -11035,7 +11541,7 @@ exports.AnalyticsService = AnalyticsService = AnalyticsService_1 = __decorate([
 
 
 /***/ }),
-/* 123 */
+/* 124 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11049,19 +11555,20 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.InsightsModule = void 0;
 const common_1 = __webpack_require__(2);
 const typeorm_1 = __webpack_require__(6);
-const insights_controller_1 = __webpack_require__(124);
-const insights_service_1 = __webpack_require__(125);
+const insights_controller_1 = __webpack_require__(125);
+const insights_service_1 = __webpack_require__(126);
 const ability_snapshot_entity_1 = __webpack_require__(54);
 const member_entity_1 = __webpack_require__(51);
 const assessment_entity_1 = __webpack_require__(52);
 const injury_history_entity_1 = __webpack_require__(55);
+const membership_entity_1 = __webpack_require__(57);
 let InsightsModule = class InsightsModule {
 };
 exports.InsightsModule = InsightsModule;
 exports.InsightsModule = InsightsModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([ability_snapshot_entity_1.AbilitySnapshot, member_entity_1.Member, assessment_entity_1.Assessment, injury_history_entity_1.InjuryHistory]),
+            typeorm_1.TypeOrmModule.forFeature([ability_snapshot_entity_1.AbilitySnapshot, member_entity_1.Member, assessment_entity_1.Assessment, injury_history_entity_1.InjuryHistory, membership_entity_1.Membership]),
         ],
         controllers: [insights_controller_1.InsightsController],
         providers: [insights_service_1.InsightsService],
@@ -11071,7 +11578,7 @@ exports.InsightsModule = InsightsModule = __decorate([
 
 
 /***/ }),
-/* 124 */
+/* 125 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11089,7 +11596,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.InsightsController = void 0;
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(4);
-const insights_service_1 = __webpack_require__(125);
+const insights_service_1 = __webpack_require__(126);
 const guards_1 = __webpack_require__(36);
 const roles_decorator_1 = __webpack_require__(40);
 const enums_1 = __webpack_require__(18);
@@ -11109,6 +11616,10 @@ let InsightsController = class InsightsController {
     async getRiskMembers() {
         const riskMembers = await this.insightsService.getRiskMembers();
         return api_response_1.ApiResponseHelper.success(riskMembers, "위험 신호 회원 조회 성공");
+    }
+    async getCenterDashboard() {
+        const dashboard = await this.insightsService.getCenterDashboard();
+        return api_response_1.ApiResponseHelper.success(dashboard, "센터 대시보드 조회 성공");
     }
 };
 exports.InsightsController = InsightsController;
@@ -11133,6 +11644,16 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], InsightsController.prototype, "getRiskMembers", null);
+__decorate([
+    (0, common_1.Get)("center-dashboard"),
+    (0, swagger_1.ApiOperation)({
+        summary: "센터 대시보드 조회",
+        description: "센터 전체 통계 및 회원 목록을 조회합니다. (ADMIN, TRAINER만)",
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], InsightsController.prototype, "getCenterDashboard", null);
 exports.InsightsController = InsightsController = __decorate([
     (0, swagger_1.ApiTags)("insights"),
     (0, swagger_1.ApiBearerAuth)("JWT-auth"),
@@ -11144,7 +11665,7 @@ exports.InsightsController = InsightsController = __decorate([
 
 
 /***/ }),
-/* 125 */
+/* 126 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11160,7 +11681,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d;
+var _a, _b, _c, _d, _e;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.InsightsService = void 0;
 const common_1 = __webpack_require__(2);
@@ -11170,16 +11691,18 @@ const ability_snapshot_entity_1 = __webpack_require__(54);
 const member_entity_1 = __webpack_require__(51);
 const assessment_entity_1 = __webpack_require__(52);
 const injury_history_entity_1 = __webpack_require__(55);
+const membership_entity_1 = __webpack_require__(57);
 const enums_1 = __webpack_require__(18);
 const date_helper_1 = __webpack_require__(9);
-const snapshot_normalizer_1 = __webpack_require__(103);
-const analytics_helper_1 = __webpack_require__(110);
+const snapshot_normalizer_1 = __webpack_require__(104);
+const analytics_helper_1 = __webpack_require__(111);
 let InsightsService = class InsightsService {
-    constructor(abilitySnapshotRepository, memberRepository, assessmentRepository, injuryHistoryRepository) {
+    constructor(abilitySnapshotRepository, memberRepository, assessmentRepository, injuryHistoryRepository, membershipRepository) {
         this.abilitySnapshotRepository = abilitySnapshotRepository;
         this.memberRepository = memberRepository;
         this.assessmentRepository = assessmentRepository;
         this.injuryHistoryRepository = injuryHistoryRepository;
+        this.membershipRepository = membershipRepository;
     }
     async getHexagon() {
         const members = await this.memberRepository.find({
@@ -11432,6 +11955,94 @@ let InsightsService = class InsightsService {
         }
         return Array.from(riskMembersMap.values());
     }
+    async getCenterDashboard() {
+        const members = await this.memberRepository.find({
+            select: ['id', 'name', 'phone', 'status', 'totalSessions', 'completedSessions'],
+            order: { createdAt: 'DESC' },
+        });
+        const memberIds = members.map(m => m.id);
+        const [memberships, lastAssessments] = await Promise.all([
+            this.membershipRepository.find({
+                where: { memberId: (0, typeorm_2.In)(memberIds), status: enums_1.MembershipStatus.ACTIVE },
+                select: ['memberId', 'mainGoalLabel', 'currentProgress', 'durationWeeks', 'riskStatus'],
+            }),
+            this.assessmentRepository
+                .createQueryBuilder('assessment')
+                .select(['assessment.memberId', 'assessment.assessedAt'])
+                .where('assessment.memberId IN (:...memberIds)', { memberIds })
+                .andWhere('assessment.deletedAt IS NULL')
+                .orderBy('assessment.memberId', 'ASC')
+                .addOrderBy('assessment.assessedAt', 'DESC')
+                .getMany(),
+        ]);
+        const membershipByMember = new Map();
+        for (const membership of memberships) {
+            if (!membershipByMember.has(membership.memberId)) {
+                membershipByMember.set(membership.memberId, membership);
+            }
+        }
+        const lastAssessmentByMember = new Map();
+        for (const assessment of lastAssessments) {
+            if (!lastAssessmentByMember.has(assessment.memberId)) {
+                lastAssessmentByMember.set(assessment.memberId, assessment.assessedAt);
+            }
+        }
+        const activeMembers = members.filter(m => m.status === enums_1.MemberStatus.ACTIVE);
+        const riskCounts = { green: 0, yellow: 0, red: 0 };
+        let totalProgress = 0;
+        let progressCount = 0;
+        let missingMeasurements = 0;
+        const memberList = members.map(member => {
+            const membership = membershipByMember.get(member.id);
+            const lastAssessmentDate = lastAssessmentByMember.get(member.id);
+            const riskStatus = membership?.riskStatus || enums_1.RiskStatus.GREEN;
+            if (riskStatus === enums_1.RiskStatus.GREEN)
+                riskCounts.green++;
+            else if (riskStatus === enums_1.RiskStatus.YELLOW)
+                riskCounts.yellow++;
+            else if (riskStatus === enums_1.RiskStatus.RED)
+                riskCounts.red++;
+            if (membership?.currentProgress) {
+                totalProgress += membership.currentProgress;
+                progressCount++;
+            }
+            if (!lastAssessmentDate) {
+                missingMeasurements++;
+            }
+            else {
+                const daysSince = (Date.now() - new Date(lastAssessmentDate).getTime()) / (1000 * 60 * 60 * 24);
+                if (daysSince > 30)
+                    missingMeasurements++;
+            }
+            return {
+                id: member.id,
+                name: member.name,
+                phone: member.phone,
+                status: member.status,
+                riskStatus,
+                program: membership ? {
+                    mainGoal: membership.mainGoalLabel || null,
+                    currentProgress: membership.currentProgress || 0,
+                    durationWeeks: membership.durationWeeks || null,
+                } : null,
+                lastAssessmentDate: lastAssessmentDate
+                    ? new Date(lastAssessmentDate).toISOString().split('T')[0]
+                    : null,
+                completedSessions: member.completedSessions,
+                totalSessions: member.totalSessions,
+            };
+        });
+        return {
+            summary: {
+                totalMembers: members.length,
+                activeMembers: activeMembers.length,
+                averageProgress: progressCount > 0 ? Math.round(totalProgress / progressCount) : 0,
+                riskCounts,
+                missingMeasurements,
+            },
+            memberList,
+        };
+    }
 };
 exports.InsightsService = InsightsService;
 exports.InsightsService = InsightsService = __decorate([
@@ -11440,12 +12051,13 @@ exports.InsightsService = InsightsService = __decorate([
     __param(1, (0, typeorm_1.InjectRepository)(member_entity_1.Member)),
     __param(2, (0, typeorm_1.InjectRepository)(assessment_entity_1.Assessment)),
     __param(3, (0, typeorm_1.InjectRepository)(injury_history_entity_1.InjuryHistory)),
-    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, typeof (_b = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _b : Object, typeof (_c = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _c : Object, typeof (_d = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _d : Object])
+    __param(4, (0, typeorm_1.InjectRepository)(membership_entity_1.Membership)),
+    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, typeof (_b = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _b : Object, typeof (_c = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _c : Object, typeof (_d = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _d : Object, typeof (_e = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _e : Object])
 ], InsightsService);
 
 
 /***/ }),
-/* 126 */
+/* 127 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11459,8 +12071,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ExercisesModule = void 0;
 const common_1 = __webpack_require__(2);
 const typeorm_1 = __webpack_require__(6);
-const exercises_controller_1 = __webpack_require__(127);
-const exercises_service_1 = __webpack_require__(128);
+const exercises_controller_1 = __webpack_require__(128);
+const exercises_service_1 = __webpack_require__(129);
 const exercise_entity_1 = __webpack_require__(67);
 const workout_record_entity_1 = __webpack_require__(61);
 let ExercisesModule = class ExercisesModule {
@@ -11477,7 +12089,7 @@ exports.ExercisesModule = ExercisesModule = __decorate([
 
 
 /***/ }),
-/* 127 */
+/* 128 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11498,8 +12110,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ExercisesController = void 0;
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(4);
-const exercises_service_1 = __webpack_require__(128);
-const get_exercises_dto_1 = __webpack_require__(129);
+const exercises_service_1 = __webpack_require__(129);
+const get_exercises_dto_1 = __webpack_require__(130);
 const guards_1 = __webpack_require__(36);
 const api_response_1 = __webpack_require__(43);
 let ExercisesController = class ExercisesController {
@@ -11552,7 +12164,7 @@ exports.ExercisesController = ExercisesController = __decorate([
 
 
 /***/ }),
-/* 128 */
+/* 129 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11680,7 +12292,7 @@ exports.ExercisesService = ExercisesService = ExercisesService_1 = __decorate([
 
 
 /***/ }),
-/* 129 */
+/* 130 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11697,7 +12309,7 @@ var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetExercisesDto = void 0;
 const class_validator_1 = __webpack_require__(31);
-const class_transformer_1 = __webpack_require__(83);
+const class_transformer_1 = __webpack_require__(82);
 const swagger_1 = __webpack_require__(4);
 const exercise_entity_1 = __webpack_require__(67);
 class GetExercisesDto {
@@ -11786,7 +12398,7 @@ __decorate([
 
 
 /***/ }),
-/* 130 */
+/* 131 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11800,8 +12412,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StrengthLevelModule = void 0;
 const common_1 = __webpack_require__(2);
 const typeorm_1 = __webpack_require__(6);
-const strength_level_controller_1 = __webpack_require__(131);
-const strength_level_service_1 = __webpack_require__(132);
+const strength_level_controller_1 = __webpack_require__(132);
+const strength_level_service_1 = __webpack_require__(133);
 const exercise_entity_1 = __webpack_require__(67);
 const strength_standard_entity_1 = __webpack_require__(68);
 let StrengthLevelModule = class StrengthLevelModule {
@@ -11818,7 +12430,7 @@ exports.StrengthLevelModule = StrengthLevelModule = __decorate([
 
 
 /***/ }),
-/* 131 */
+/* 132 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11839,9 +12451,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.StrengthLevelController = void 0;
 const common_1 = __webpack_require__(2);
 const swagger_1 = __webpack_require__(4);
-const strength_level_service_1 = __webpack_require__(132);
-const calculate_strength_level_dto_1 = __webpack_require__(133);
-const strength_level_response_dto_1 = __webpack_require__(134);
+const strength_level_service_1 = __webpack_require__(133);
+const calculate_strength_level_dto_1 = __webpack_require__(134);
+const strength_level_response_dto_1 = __webpack_require__(135);
 let StrengthLevelController = class StrengthLevelController {
     constructor(strengthLevelService) {
         this.strengthLevelService = strengthLevelService;
@@ -11901,7 +12513,7 @@ exports.StrengthLevelController = StrengthLevelController = __decorate([
 
 
 /***/ }),
-/* 132 */
+/* 133 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -11927,8 +12539,8 @@ const typeorm_2 = __webpack_require__(15);
 const exercise_entity_1 = __webpack_require__(67);
 const strength_standard_entity_1 = __webpack_require__(68);
 const enums_1 = __webpack_require__(18);
-const calculate_strength_level_dto_1 = __webpack_require__(133);
-const strength_level_response_dto_1 = __webpack_require__(134);
+const calculate_strength_level_dto_1 = __webpack_require__(134);
+const strength_level_response_dto_1 = __webpack_require__(135);
 let StrengthLevelService = StrengthLevelService_1 = class StrengthLevelService {
     constructor(exerciseRepository, strengthStandardRepository) {
         this.exerciseRepository = exerciseRepository;
@@ -12098,7 +12710,7 @@ exports.StrengthLevelService = StrengthLevelService = StrengthLevelService_1 = _
 
 
 /***/ }),
-/* 133 */
+/* 134 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12194,7 +12806,7 @@ __decorate([
 
 
 /***/ }),
-/* 134 */
+/* 135 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12400,7 +13012,7 @@ exports.StrengthLevelFriendlyNames = {
 
 
 /***/ }),
-/* 135 */
+/* 136 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -12418,11 +13030,11 @@ const injury_restriction_entity_1 = __webpack_require__(56);
 const workout_record_entity_1 = __webpack_require__(61);
 const pt_session_entity_1 = __webpack_require__(59);
 const workout_routine_entity_1 = __webpack_require__(62);
-const assessment_grade_constant_entity_1 = __webpack_require__(106);
-const assessment_category_score_entity_1 = __webpack_require__(105);
-const flexibility_item_weight_entity_1 = __webpack_require__(107);
-const flexibility_grade_threshold_entity_1 = __webpack_require__(108);
-const body_composition_standard_entity_1 = __webpack_require__(109);
+const assessment_grade_constant_entity_1 = __webpack_require__(107);
+const assessment_category_score_entity_1 = __webpack_require__(106);
+const flexibility_item_weight_entity_1 = __webpack_require__(108);
+const flexibility_grade_threshold_entity_1 = __webpack_require__(109);
+const body_composition_standard_entity_1 = __webpack_require__(110);
 const exercise_entity_1 = __webpack_require__(67);
 const strength_standard_entity_1 = __webpack_require__(68);
 const program_milestone_entity_1 = __webpack_require__(58);
@@ -12486,7 +13098,7 @@ exports.getDatabaseConfig = getDatabaseConfig;
 
 
 /***/ }),
-/* 136 */
+/* 137 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -12523,7 +13135,7 @@ exports.getCorsConfig = getCorsConfig;
 
 
 /***/ }),
-/* 137 */
+/* 138 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12538,7 +13150,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.HttpExceptionFilter = void 0;
 const common_1 = __webpack_require__(2);
 const api_response_1 = __webpack_require__(43);
-const error_codes_1 = __webpack_require__(138);
+const error_codes_1 = __webpack_require__(139);
 const date_helper_1 = __webpack_require__(9);
 const api_exception_1 = __webpack_require__(28);
 let HttpExceptionFilter = HttpExceptionFilter_1 = class HttpExceptionFilter {
@@ -12649,7 +13261,7 @@ exports.HttpExceptionFilter = HttpExceptionFilter = HttpExceptionFilter_1 = __de
 
 
 /***/ }),
-/* 138 */
+/* 139 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -12675,7 +13287,7 @@ exports.ErrorCodes = {
 
 
 /***/ }),
-/* 139 */
+/* 140 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12694,13 +13306,13 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-__exportStar(__webpack_require__(140), exports);
-__exportStar(__webpack_require__(142), exports);
+__exportStar(__webpack_require__(141), exports);
 __exportStar(__webpack_require__(143), exports);
+__exportStar(__webpack_require__(144), exports);
 
 
 /***/ }),
-/* 140 */
+/* 141 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12714,7 +13326,7 @@ var LoggingInterceptor_1;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LoggingInterceptor = void 0;
 const common_1 = __webpack_require__(2);
-const operators_1 = __webpack_require__(141);
+const operators_1 = __webpack_require__(142);
 let LoggingInterceptor = LoggingInterceptor_1 = class LoggingInterceptor {
     constructor() {
         this.logger = new common_1.Logger(LoggingInterceptor_1.name);
@@ -12746,13 +13358,13 @@ exports.LoggingInterceptor = LoggingInterceptor = LoggingInterceptor_1 = __decor
 
 
 /***/ }),
-/* 141 */
+/* 142 */
 /***/ ((module) => {
 
 module.exports = require("rxjs/operators");
 
 /***/ }),
-/* 142 */
+/* 143 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12765,7 +13377,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TransformInterceptor = void 0;
 const common_1 = __webpack_require__(2);
-const operators_1 = __webpack_require__(141);
+const operators_1 = __webpack_require__(142);
 let TransformInterceptor = class TransformInterceptor {
     intercept(context, next) {
         return next.handle().pipe((0, operators_1.map)((data) => {
@@ -12786,7 +13398,7 @@ exports.TransformInterceptor = TransformInterceptor = __decorate([
 
 
 /***/ }),
-/* 143 */
+/* 144 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -12802,8 +13414,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TimeoutInterceptor = void 0;
 const common_1 = __webpack_require__(2);
-const rxjs_1 = __webpack_require__(144);
-const operators_1 = __webpack_require__(141);
+const rxjs_1 = __webpack_require__(145);
+const operators_1 = __webpack_require__(142);
 let TimeoutInterceptor = class TimeoutInterceptor {
     constructor(timeoutMs = 30000) {
         this.timeoutMs = timeoutMs;
@@ -12825,7 +13437,7 @@ exports.TimeoutInterceptor = TimeoutInterceptor = __decorate([
 
 
 /***/ }),
-/* 144 */
+/* 145 */
 /***/ ((module) => {
 
 module.exports = require("rxjs");
@@ -12869,9 +13481,9 @@ const common_1 = __webpack_require__(2);
 const config_1 = __webpack_require__(3);
 const swagger_1 = __webpack_require__(4);
 const app_module_1 = __webpack_require__(5);
-const cors_config_1 = __webpack_require__(136);
-const http_exception_filter_1 = __webpack_require__(137);
-const interceptors_1 = __webpack_require__(139);
+const cors_config_1 = __webpack_require__(137);
+const http_exception_filter_1 = __webpack_require__(138);
+const interceptors_1 = __webpack_require__(140);
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     const configService = app.get(config_1.ConfigService);
