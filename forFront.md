@@ -375,6 +375,50 @@ progress = (currentValue - startValue) / (targetValue - startValue) * 100
 
 ---
 
+## 코드 리팩토링 완료 (배포 준비)
+
+### 1차 리팩토링 (2026-01-19)
+
+| 항목 | 변경 내용 |
+|------|----------|
+| 삭제 | `src/entities-generated/` 폴더 (미사용 9개 파일) |
+| 추출 | `WorkoutHelper.aggregateByBodyPart()` - 볼륨 집계 로직 |
+| 추출 | `WorkoutHelper.volumeMapToResults()` - 결과 변환 로직 |
+| 추출 | `GoalResponseDto.fromMember()` - DTO 팩토리 메서드 |
+| 정리 | `assessments.service.ts` - 미사용 import/코드 제거 |
+
+### 2차 리팩토링 (2026-01-19)
+
+| 항목 | 변경 내용 |
+|------|----------|
+| 신규 | `WorkoutRecordHelper` - 1RM 기록 처리 유틸리티 |
+| 확장 | `DateRangeHelper.toDateString()` - 날짜 포맷팅 통합 |
+| 확장 | `AnalyticsHelper.toHexagonIndicators()` - 헥사곤 데이터 생성 |
+| 리팩토링 | `workout-records.service.ts` - 1065줄 → 890줄 (-175줄) |
+
+### 새로운 유틸리티 함수
+
+```typescript
+// WorkoutRecordHelper - 1RM 기록 처리
+WorkoutRecordHelper.filterRecordsWithOneRM(records)   // 1RM 기록 필터링
+WorkoutRecordHelper.buildHistory(records)              // 히스토리 배열 생성
+WorkoutRecordHelper.getLatestRecord(records)           // 최근 기록
+WorkoutRecordHelper.getBestRecord(records)             // 최고 기록
+WorkoutRecordHelper.groupByDateWithMaxOneRM(records)   // 날짜별 최고 1RM
+WorkoutRecordHelper.groupByDateWithVolume(records)     // 날짜별 볼륨 합계
+
+// DateRangeHelper - 날짜 처리
+DateRangeHelper.toDateString(date)     // Date/string → "YYYY-MM-DD"
+DateRangeHelper.getDaysAgoRange(days)  // N일 전 범위
+
+// AnalyticsHelper - 헥사곤 데이터
+AnalyticsHelper.toHexagonIndicators(snapshot)          // 스냅샷 → 헥사곤 지표
+AnalyticsHelper.averagesToHexagonIndicators(averages)  // 평균 → 헥사곤 지표
+AnalyticsHelper.emptyHexagonIndicators()               // 빈 헥사곤 지표
+```
+
+---
+
 ## Phase 3: 회원 등록 API 확장 (예정)
 
 > 개발 예정 - 3단계 위저드 지원을 위한 API 확장
@@ -402,4 +446,4 @@ Phase 4 개발 전에 다음 사항들의 결정이 필요합니다:
 ---
 
 *마지막 업데이트: 2026-01-19*
-*Phase 1 완료, Phase 2 엔티티 완료*
+*Phase 1 완료, Phase 2 엔티티 완료, 코드 리팩토링 완료 (배포 준비 완료)*
