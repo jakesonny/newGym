@@ -41,7 +41,6 @@ export class ProgressCalculator {
 	 * @param startValue 시작 수치
 	 * @param currentValue 현재 수치
 	 * @param targetValue 목표 수치
-	 * @param goalDirection CUSTOM 목표용 방향 (선택)
 	 * @returns 진행률 (0-100)
 	 */
 	static calculateProgress(
@@ -49,7 +48,6 @@ export class ProgressCalculator {
 		startValue: number,
 		currentValue: number,
 		targetValue: number,
-		goalDirection?: GoalDirection,
 	): number {
 		// 유효성 검사
 		if (startValue === targetValue) {
@@ -57,9 +55,7 @@ export class ProgressCalculator {
 		}
 
 		// 방향 결정
-		const direction = goalType === GoalType.CUSTOM && goalDirection
-			? goalDirection
-			: GoalTypeDirections[goalType];
+		const direction = GoalTypeDirections[goalType];
 
 		let progress: number;
 
@@ -83,13 +79,11 @@ export class ProgressCalculator {
 	 * 추세 기반 위험 상태 판정 (Phase 2 핵심)
 	 * @param measurements 측정값 배열 (오래된 순 → 최근 순)
 	 * @param goalType 목표 유형
-	 * @param goalDirection CUSTOM 목표용 방향 (선택)
 	 * @returns 추세 분석 결과 (status + flags)
 	 */
 	static calculateRiskStatusByTrend(
 		measurements: number[],
 		goalType: GoalType,
-		goalDirection?: GoalDirection,
 	): TrendAnalysisResult {
 		const flags: string[] = [];
 
@@ -99,9 +93,7 @@ export class ProgressCalculator {
 		}
 
 		// 2. 방향 결정
-		const direction = goalType === GoalType.CUSTOM && goalDirection
-			? goalDirection
-			: GoalTypeDirections[goalType];
+		const direction = GoalTypeDirections[goalType];
 
 		// 3. 최근 변화량 계산 (단기 추세)
 		const recent = measurements.slice(-2);
@@ -319,10 +311,6 @@ export class ProgressCalculator {
 			case GoalType.WEIGHT_LOSS:
 			case GoalType.MAINTENANCE:
 				return measurements.weight ?? null;
-			case GoalType.MUSCLE_GAIN:
-				return measurements.muscleMass ?? null;
-			case GoalType.BODY_FAT_LOSS:
-				return measurements.bodyFat ?? null;
 			case GoalType.STRENGTH_UP:
 				// 빅3 합계 또는 개별 값
 				const big3 = [
@@ -341,16 +329,9 @@ export class ProgressCalculator {
 	/**
 	 * 목표 방향 조회
 	 * @param goalType 목표 유형
-	 * @param goalDirection CUSTOM 목표용 방향 (선택)
 	 * @returns 방향 (INCREASE/DECREASE)
 	 */
-	static getGoalDirection(
-		goalType: GoalType,
-		goalDirection?: GoalDirection,
-	): GoalDirection {
-		if (goalType === GoalType.CUSTOM && goalDirection) {
-			return goalDirection;
-		}
+	static getGoalDirection(goalType: GoalType): GoalDirection {
 		return GoalTypeDirections[goalType];
 	}
 }

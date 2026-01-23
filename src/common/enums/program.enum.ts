@@ -3,12 +3,9 @@
  */
 export enum GoalType {
 	WEIGHT_LOSS = 'WEIGHT_LOSS', // 체중 감량
-	MUSCLE_GAIN = 'MUSCLE_GAIN', // 근육량 증가
 	STRENGTH_UP = 'STRENGTH_UP', // 근력 상승
 	ENDURANCE = 'ENDURANCE', // 체력 증진 (stepTestTime 기준)
-	BODY_FAT_LOSS = 'BODY_FAT_LOSS', // 체지방 감량
 	MAINTENANCE = 'MAINTENANCE', // 유지 (변화 없음 = 정상)
-	CUSTOM = 'CUSTOM', // 기타
 }
 
 /**
@@ -16,12 +13,9 @@ export enum GoalType {
  */
 export const GoalTypeNames: Record<GoalType, string> = {
 	[GoalType.WEIGHT_LOSS]: '체중 감량',
-	[GoalType.MUSCLE_GAIN]: '근육량 증가',
 	[GoalType.STRENGTH_UP]: '근력 상승',
 	[GoalType.ENDURANCE]: '체력 증진',
-	[GoalType.BODY_FAT_LOSS]: '체지방 감량',
-	[GoalType.MAINTENANCE]: '건강 유지',
-	[GoalType.CUSTOM]: '기타',
+	[GoalType.MAINTENANCE]: '유지',
 };
 
 /**
@@ -29,12 +23,9 @@ export const GoalTypeNames: Record<GoalType, string> = {
  */
 export const GoalTypeUnits: Record<GoalType, string> = {
 	[GoalType.WEIGHT_LOSS]: 'kg',
-	[GoalType.MUSCLE_GAIN]: 'kg',
 	[GoalType.STRENGTH_UP]: 'kg',
 	[GoalType.ENDURANCE]: '초', // stepTestTime (초 단위)
-	[GoalType.BODY_FAT_LOSS]: '%',
 	[GoalType.MAINTENANCE]: 'kg',
-	[GoalType.CUSTOM]: '',
 };
 
 /**
@@ -46,16 +37,13 @@ export enum GoalDirection {
 }
 
 /**
- * 목표 유형별 방향 (CUSTOM은 goalDirection 필드로 오버라이드)
+ * 목표 유형별 방향
  */
 export const GoalTypeDirections: Record<GoalType, GoalDirection> = {
 	[GoalType.WEIGHT_LOSS]: GoalDirection.DECREASE,
-	[GoalType.BODY_FAT_LOSS]: GoalDirection.DECREASE,
 	[GoalType.ENDURANCE]: GoalDirection.DECREASE, // stepTestTime 낮을수록 좋음
-	[GoalType.MUSCLE_GAIN]: GoalDirection.INCREASE,
 	[GoalType.STRENGTH_UP]: GoalDirection.INCREASE,
 	[GoalType.MAINTENANCE]: GoalDirection.INCREASE, // 기본값 (실제론 변화 없음이 정상)
-	[GoalType.CUSTOM]: GoalDirection.INCREASE, // 기본값, goalDirection으로 오버라이드
 };
 
 /**
@@ -125,12 +113,9 @@ export const MEASUREMENT_OVERDUE_DAYS = 14;
  */
 export const FLAT_THRESHOLDS: Record<GoalType, number> = {
 	[GoalType.WEIGHT_LOSS]: 0.5, // kg
-	[GoalType.BODY_FAT_LOSS]: 0.3, // %
-	[GoalType.MUSCLE_GAIN]: 0.1, // kg
 	[GoalType.STRENGTH_UP]: 2.5, // kg
 	[GoalType.ENDURANCE]: 5, // 초
 	[GoalType.MAINTENANCE]: 0.5, // kg (체중 기준)
-	[GoalType.CUSTOM]: 0, // 사용 안 함
 };
 
 /**
@@ -139,10 +124,7 @@ export const FLAT_THRESHOLDS: Record<GoalType, number> = {
  */
 export const RAPID_THRESHOLDS: Record<GoalType, number> = {
 	[GoalType.WEIGHT_LOSS]: 1.5, // kg/주
-	[GoalType.BODY_FAT_LOSS]: 1.0, // %/주
-	[GoalType.MUSCLE_GAIN]: 0.3, // kg/주
 	[GoalType.STRENGTH_UP]: 7.5, // kg/주
 	[GoalType.ENDURANCE]: 20, // 초/주
 	[GoalType.MAINTENANCE]: 1.0, // kg/주
-	[GoalType.CUSTOM]: 0, // 사용 안 함
 };

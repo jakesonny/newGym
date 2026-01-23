@@ -775,7 +775,7 @@ export class MembersService {
 		let nextTarget: { value: number | null; description: string | null } = { value: null, description: null };
 
 		if (membership?.currentValue && membership?.targetValue && membership?.targetUnit) {
-			const isReductionGoal = ['WEIGHT_LOSS', 'BODY_FAT_LOSS'].includes(membership.mainGoalType || '');
+			const isReductionGoal = membership.mainGoalType === 'WEIGHT_LOSS';
 			const remaining = isReductionGoal
 				? membership.currentValue - membership.targetValue
 				: membership.targetValue - membership.currentValue;

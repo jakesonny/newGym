@@ -1003,6 +1003,27 @@ Phase 5 개발 전에 다음 사항들의 결정이 필요합니다:
 
 ---
 
+## GoalType 간소화 (2026-01-22)
+
+### 변경 사항
+- **GoalType을 7개에서 4개로 간소화**
+  - **유지**: `WEIGHT_LOSS` (체중 감량), `STRENGTH_UP` (근력 상승), `ENDURANCE` (체력 증진), `MAINTENANCE` (유지)
+  - **제거**: `MUSCLE_GAIN` (근육량 증가), `BODY_FAT_LOSS` (체지방 감량), `CUSTOM` (기타)
+
+### 프론트엔드 영향
+- **NewMemberPage**: 목표 유형 선택 옵션 변경
+  - 이전: 6개 옵션 (WEIGHT_LOSS, MUSCLE_GAIN, STRENGTH_UP, ENDURANCE, BODY_FAT_LOSS, CUSTOM)
+  - 이후: 4개 옵션 (WEIGHT_LOSS, STRENGTH_UP, ENDURANCE, MAINTENANCE)
+- **타입 정의**: `CreateMemberFullDto.mainGoalType` 타입 업데이트 필요
+
+### 마이그레이션
+- 기존 데이터 자동 마이그레이션:
+  - `MUSCLE_GAIN`, `BODY_FAT_LOSS` → `WEIGHT_LOSS`로 통합
+  - `CUSTOM` → `MAINTENANCE`로 통합
+- 마이그레이션 실행: `npm run migration:run`
+
+---
+
 ## 백엔드 내부 변경사항 (프론트엔드 영향 없음)
 
 ### 2026-01-22 변경사항

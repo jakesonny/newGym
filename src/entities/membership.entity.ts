@@ -102,9 +102,9 @@ export class Membership {
     enum: GoalDirection,
     name: 'goal_direction',
     nullable: true,
-    comment: 'CUSTOM 목표용 방향 (INCREASE/DECREASE)',
+    comment: '목표 방향 (INCREASE/DECREASE) - GoalType에 따라 자동 결정되므로 사용 안 함',
   })
-  goalDirection?: GoalDirection;
+  goalDirection?: GoalDirection; // 레거시 필드 (호환성 유지, 실제 사용 안 함)
 
   @Column({ type: 'boolean', name: 'is_rapid_progress', default: false, comment: '급변 플래그 (빠른 순방향 변화)' })
   isRapidProgress: boolean;

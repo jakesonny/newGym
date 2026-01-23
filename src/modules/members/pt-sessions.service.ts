@@ -232,7 +232,6 @@ export class PTSessionsService {
 		const { status, flags } = ProgressCalculator.calculateRiskStatusByTrend(
 			measurements,
 			membership.mainGoalType,
-			membership.goalDirection,
 		);
 
 		// 진행률 계산 (목표가 설정된 경우)
@@ -243,7 +242,6 @@ export class PTSessionsService {
 				membership.startValue,
 				currentValue,
 				membership.targetValue,
-				membership.goalDirection,
 			);
 		}
 
@@ -372,7 +370,6 @@ export class PTSessionsService {
 				membership.startValue,
 				measuredValue,
 				membership.targetValue,
-				membership.goalDirection,
 			);
 		}
 
