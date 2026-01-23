@@ -7,14 +7,16 @@ import {
 } from 'class-validator';
 
 /**
- * 이메일 형식 검증 또는 'test' 허용
- * test 계정은 예외로 허용하고, 나머지는 이메일 형식 검증
+ * 이메일 형식 검증 또는 개발용 계정 허용
+ * 개발 편의를 위해 'test', 'qwer' 등 간단한 문자열 허용
+ * 나머지는 이메일 형식 검증
  */
 @ValidatorConstraint({ name: 'isEmailOrTest', async: false })
 export class IsEmailOrTestConstraint implements ValidatorConstraintInterface {
 	validate(value: any, args: ValidationArguments) {
-		// test 계정은 허용
-		if (value === 'test') {
+		// 개발용 계정 허용 (test, qwer 등)
+		const devAccounts = ['test', 'qwer'];
+		if (devAccounts.includes(value)) {
 			return true;
 		}
 
@@ -24,12 +26,12 @@ export class IsEmailOrTestConstraint implements ValidatorConstraintInterface {
 	}
 
 	defaultMessage(args: ValidationArguments) {
-		return `${args.property}는 유효한 이메일 형식이어야 합니다. (test 계정은 예외)`;
+		return `${args.property}는 유효한 이메일 형식이어야 합니다. (test, qwer 계정은 예외)`;
 	}
 }
 
 /**
- * 이메일 형식 검증 또는 'test' 허용 데코레이터
+ * 이메일 형식 검증 또는 개발용 계정 허용 데코레이터
  * @param validationOptions 검증 옵션
  */
 export function IsEmailOrTest(validationOptions?: ValidationOptions) {
@@ -43,4 +45,3 @@ export function IsEmailOrTest(validationOptions?: ValidationOptions) {
 		});
 	};
 }
-

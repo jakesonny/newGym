@@ -11,6 +11,13 @@ async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 	const configService = app.get(ConfigService);
 
+	// API 응답 캐시 비활성화 (304 Not Modified 방지 → 프론트 로딩 정상화)
+	const httpAdapter = app.getHttpAdapter();
+	const instance = httpAdapter.getInstance();
+	if (typeof instance.set === "function") {
+		instance.set("etag", false);
+	}
+
 	// CORS 설정
 	app.enableCors(getCorsConfig(configService));
 

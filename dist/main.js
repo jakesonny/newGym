@@ -230,14 +230,15 @@ exports.IsEmailOrTest = IsEmailOrTest;
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
 let IsEmailOrTestConstraint = class IsEmailOrTestConstraint {
     validate(value, args) {
-        if (value === 'test') {
+        const devAccounts = ['test', 'qwer'];
+        if (devAccounts.includes(value)) {
             return true;
         }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return typeof value === 'string' && emailRegex.test(value);
     }
     defaultMessage(args) {
-        return `${args.property}는 유효한 이메일 형식이어야 합니다. (test 계정은 예외)`;
+        return `${args.property}는 유효한 이메일 형식이어야 합니다. (test, qwer 계정은 예외)`;
     }
 };
 exports.IsEmailOrTestConstraint = IsEmailOrTestConstraint;
@@ -499,6 +500,7 @@ var MembershipType;
     MembershipType["QUARTERLY"] = "QUARTERLY";
     MembershipType["YEARLY"] = "YEARLY";
     MembershipType["LIFETIME"] = "LIFETIME";
+    MembershipType["PT_PACKAGE"] = "PT_PACKAGE";
 })(MembershipType || (exports.MembershipType = MembershipType = {}));
 var MembershipStatus;
 (function (MembershipStatus) {
@@ -522,30 +524,21 @@ exports.RAPID_THRESHOLDS = exports.FLAT_THRESHOLDS = exports.MEASUREMENT_OVERDUE
 var GoalType;
 (function (GoalType) {
     GoalType["WEIGHT_LOSS"] = "WEIGHT_LOSS";
-    GoalType["MUSCLE_GAIN"] = "MUSCLE_GAIN";
     GoalType["STRENGTH_UP"] = "STRENGTH_UP";
     GoalType["ENDURANCE"] = "ENDURANCE";
-    GoalType["BODY_FAT_LOSS"] = "BODY_FAT_LOSS";
     GoalType["MAINTENANCE"] = "MAINTENANCE";
-    GoalType["CUSTOM"] = "CUSTOM";
 })(GoalType || (exports.GoalType = GoalType = {}));
 exports.GoalTypeNames = {
     [GoalType.WEIGHT_LOSS]: '체중 감량',
-    [GoalType.MUSCLE_GAIN]: '근육량 증가',
     [GoalType.STRENGTH_UP]: '근력 상승',
     [GoalType.ENDURANCE]: '체력 증진',
-    [GoalType.BODY_FAT_LOSS]: '체지방 감량',
-    [GoalType.MAINTENANCE]: '건강 유지',
-    [GoalType.CUSTOM]: '기타',
+    [GoalType.MAINTENANCE]: '유지',
 };
 exports.GoalTypeUnits = {
     [GoalType.WEIGHT_LOSS]: 'kg',
-    [GoalType.MUSCLE_GAIN]: 'kg',
     [GoalType.STRENGTH_UP]: 'kg',
     [GoalType.ENDURANCE]: '초',
-    [GoalType.BODY_FAT_LOSS]: '%',
     [GoalType.MAINTENANCE]: 'kg',
-    [GoalType.CUSTOM]: '',
 };
 var GoalDirection;
 (function (GoalDirection) {
@@ -554,12 +547,9 @@ var GoalDirection;
 })(GoalDirection || (exports.GoalDirection = GoalDirection = {}));
 exports.GoalTypeDirections = {
     [GoalType.WEIGHT_LOSS]: GoalDirection.DECREASE,
-    [GoalType.BODY_FAT_LOSS]: GoalDirection.DECREASE,
     [GoalType.ENDURANCE]: GoalDirection.DECREASE,
-    [GoalType.MUSCLE_GAIN]: GoalDirection.INCREASE,
     [GoalType.STRENGTH_UP]: GoalDirection.INCREASE,
     [GoalType.MAINTENANCE]: GoalDirection.INCREASE,
-    [GoalType.CUSTOM]: GoalDirection.INCREASE,
 };
 var RiskStatus;
 (function (RiskStatus) {
@@ -595,21 +585,15 @@ exports.MIN_MEASUREMENTS_FOR_TREND = 2;
 exports.MEASUREMENT_OVERDUE_DAYS = 14;
 exports.FLAT_THRESHOLDS = {
     [GoalType.WEIGHT_LOSS]: 0.5,
-    [GoalType.BODY_FAT_LOSS]: 0.3,
-    [GoalType.MUSCLE_GAIN]: 0.1,
     [GoalType.STRENGTH_UP]: 2.5,
     [GoalType.ENDURANCE]: 5,
     [GoalType.MAINTENANCE]: 0.5,
-    [GoalType.CUSTOM]: 0,
 };
 exports.RAPID_THRESHOLDS = {
     [GoalType.WEIGHT_LOSS]: 1.5,
-    [GoalType.BODY_FAT_LOSS]: 1.0,
-    [GoalType.MUSCLE_GAIN]: 0.3,
     [GoalType.STRENGTH_UP]: 7.5,
     [GoalType.ENDURANCE]: 20,
     [GoalType.MAINTENANCE]: 1.0,
-    [GoalType.CUSTOM]: 0,
 };
 
 
@@ -1252,6 +1236,8 @@ const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const operators_1 = __webpack_require__(/*! rxjs/operators */ "rxjs/operators");
 let TransformInterceptor = class TransformInterceptor {
     intercept(context, next) {
+        const res = context.switchToHttp().getResponse();
+        res.setHeader("Cache-Control", "no-store");
         return next.handle().pipe((0, operators_1.map)((data) => {
             if (data && typeof data === "object" && "success" in data) {
                 return data;
@@ -2047,13 +2033,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ProgressCalculator = void 0;
 const enums_1 = __webpack_require__(/*! ../enums */ "./src/common/enums/index.ts");
 class ProgressCalculator {
-    static calculateProgress(goalType, startValue, currentValue, targetValue, goalDirection) {
+    static calculateProgress(goalType, startValue, currentValue, targetValue) {
         if (startValue === targetValue) {
             return currentValue === targetValue ? 100 : 0;
         }
-        const direction = goalType === enums_1.GoalType.CUSTOM && goalDirection
-            ? goalDirection
-            : enums_1.GoalTypeDirections[goalType];
+        const direction = enums_1.GoalTypeDirections[goalType];
         let progress;
         if (direction === enums_1.GoalDirection.DECREASE) {
             const decrease = startValue - currentValue;
@@ -2067,14 +2051,12 @@ class ProgressCalculator {
         }
         return Math.min(100, Math.max(0, Math.round(progress * 10) / 10));
     }
-    static calculateRiskStatusByTrend(measurements, goalType, goalDirection) {
+    static calculateRiskStatusByTrend(measurements, goalType) {
         const flags = [];
         if (measurements.length < enums_1.MIN_MEASUREMENTS_FOR_TREND) {
             return { status: enums_1.RiskStatus.FOUNDATION, flags };
         }
-        const direction = goalType === enums_1.GoalType.CUSTOM && goalDirection
-            ? goalDirection
-            : enums_1.GoalTypeDirections[goalType];
+        const direction = enums_1.GoalTypeDirections[goalType];
         const recent = measurements.slice(-2);
         const shortTermDelta = recent[1] - recent[0];
         const absShortTermDelta = Math.abs(shortTermDelta);
@@ -2201,10 +2183,6 @@ class ProgressCalculator {
             case enums_1.GoalType.WEIGHT_LOSS:
             case enums_1.GoalType.MAINTENANCE:
                 return measurements.weight ?? null;
-            case enums_1.GoalType.MUSCLE_GAIN:
-                return measurements.muscleMass ?? null;
-            case enums_1.GoalType.BODY_FAT_LOSS:
-                return measurements.bodyFat ?? null;
             case enums_1.GoalType.STRENGTH_UP:
                 const big3 = [
                     measurements.benchPress1RM,
@@ -2218,10 +2196,7 @@ class ProgressCalculator {
                 return null;
         }
     }
-    static getGoalDirection(goalType, goalDirection) {
-        if (goalType === enums_1.GoalType.CUSTOM && goalDirection) {
-            return goalDirection;
-        }
+    static getGoalDirection(goalType) {
         return enums_1.GoalTypeDirections[goalType];
     }
 }
@@ -4360,7 +4335,7 @@ __decorate([
         enum: enums_1.GoalDirection,
         name: 'goal_direction',
         nullable: true,
-        comment: 'CUSTOM 목표용 방향 (INCREASE/DECREASE)',
+        comment: '목표 방향 (INCREASE/DECREASE) - GoalType에 따라 자동 결정되므로 사용 안 함',
     }),
     __metadata("design:type", typeof (_h = typeof enums_1.GoalDirection !== "undefined" && enums_1.GoalDirection) === "function" ? _h : Object)
 ], Membership.prototype, "goalDirection", void 0);
@@ -12191,7 +12166,7 @@ let MembersService = MembersService_1 = class MembersService {
         }
         let nextTarget = { value: null, description: null };
         if (membership?.currentValue && membership?.targetValue && membership?.targetUnit) {
-            const isReductionGoal = ['WEIGHT_LOSS', 'BODY_FAT_LOSS'].includes(membership.mainGoalType || '');
+            const isReductionGoal = membership.mainGoalType === 'WEIGHT_LOSS';
             const remaining = isReductionGoal
                 ? membership.currentValue - membership.targetValue
                 : membership.targetValue - membership.currentValue;
@@ -12725,10 +12700,10 @@ let PTSessionsService = PTSessionsService_1 = class PTSessionsService {
             }
         }
         measurements.push(currentValue);
-        const { status, flags } = progress_calculator_1.ProgressCalculator.calculateRiskStatusByTrend(measurements, membership.mainGoalType, membership.goalDirection);
+        const { status, flags } = progress_calculator_1.ProgressCalculator.calculateRiskStatusByTrend(measurements, membership.mainGoalType);
         let progress = membership.currentProgress;
         if (membership.startValue != null && membership.targetValue != null) {
-            progress = progress_calculator_1.ProgressCalculator.calculateProgress(membership.mainGoalType, membership.startValue, currentValue, membership.targetValue, membership.goalDirection);
+            progress = progress_calculator_1.ProgressCalculator.calculateProgress(membership.mainGoalType, membership.startValue, currentValue, membership.targetValue);
         }
         await queryRunner.manager.update(membership_entity_1.Membership, membershipId, {
             currentValue,
@@ -12804,7 +12779,7 @@ let PTSessionsService = PTSessionsService_1 = class PTSessionsService {
         }
         let progressAtMilestone = null;
         if (membership.startValue != null && membership.targetValue != null && measuredValue != null) {
-            progressAtMilestone = progress_calculator_1.ProgressCalculator.calculateProgress(membership.mainGoalType, membership.startValue, measuredValue, membership.targetValue, membership.goalDirection);
+            progressAtMilestone = progress_calculator_1.ProgressCalculator.calculateProgress(membership.mainGoalType, membership.startValue, measuredValue, membership.targetValue);
         }
         if (existingMilestone) {
             await queryRunner.manager.update(program_milestone_entity_1.ProgramMilestone, existingMilestone.id, {
@@ -14931,6 +14906,11 @@ const interceptors_1 = __webpack_require__(/*! ./common/interceptors */ "./src/c
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     const configService = app.get(config_1.ConfigService);
+    const httpAdapter = app.getHttpAdapter();
+    const instance = httpAdapter.getInstance();
+    if (typeof instance.set === "function") {
+        instance.set("etag", false);
+    }
     app.enableCors((0, cors_config_1.getCorsConfig)(configService));
     app.useGlobalFilters(new http_exception_filter_1.HttpExceptionFilter());
     app.useGlobalInterceptors(new interceptors_1.LoggingInterceptor(), new interceptors_1.TransformInterceptor(), new interceptors_1.TimeoutInterceptor(configService.get("REQUEST_TIMEOUT") || 30000));

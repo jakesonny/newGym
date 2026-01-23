@@ -10,6 +10,9 @@ import { map } from "rxjs/operators";
 @Injectable()
 export class TransformInterceptor implements NestInterceptor {
 	intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+		const res = context.switchToHttp().getResponse<{ setHeader: (k: string, v: string) => void }>();
+		res.setHeader("Cache-Control", "no-store");
+
 		return next.handle().pipe(
 			map((data) => {
 				// 이미 ApiResponse 형식이면 그대로 반환
