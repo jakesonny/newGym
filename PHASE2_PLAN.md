@@ -360,31 +360,31 @@ async createPTSession(dto: CreatePTSessionDto) {
 
 ## 8. 구현 순서
 
-### Step 1: Enum/상수 추가
-- [ ] `RiskStatus`에 `FOUNDATION` 추가
-- [ ] `GoalDirection` enum 생성
-- [ ] `GoalType`에 `MAINTENANCE` 추가
-- [ ] `BlockPurpose` enum 생성
-- [ ] `GoalTypeDirections`, `FLAT_THRESHOLDS`, `RAPID_THRESHOLDS` 상수 추가
+### Step 1: Enum/상수 추가 ✅
+- [x] `RiskStatus`에 `FOUNDATION` 추가
+- [x] `GoalDirection` enum 생성
+- [x] `GoalType`에 `MAINTENANCE` 추가
+- [x] `BlockPurpose` enum 생성
+- [x] `GoalTypeDirections`, `FLAT_THRESHOLDS`, `RAPID_THRESHOLDS` 상수 추가
 
-### Step 2: 엔티티 수정
-- [ ] `Membership`에 `goalDirection`, `isRapidProgress`, `isMeasurementOverdue` 추가
-- [ ] `PTSession`에 `stepTestTime` 추가
-- [ ] `ProgramMilestone`에 `blockNumber`, `blockPurpose` 추가
+### Step 2: 엔티티 수정 ✅
+- [x] `Membership`에 `goalDirection`, `isRapidProgress`, `isMeasurementOverdue` 추가
+- [x] `PTSession`에 `stepTestTime` 추가
+- [x] `ProgramMilestone`에 `blockNumber`, `blockPurpose` 추가
 
-### Step 3: ProgressCalculator 리팩토링
-- [ ] `calculateProgress()` - 방향 기반으로 수정
-- [ ] `calculateRiskStatus()` - 추세 기반으로 완전 교체
-- [ ] `generateMilestoneBlocks()` - 4주 블록으로 변경
+### Step 3: ProgressCalculator 리팩토링 ✅
+- [x] `calculateProgress()` - 방향 기반으로 수정
+- [x] `calculateRiskStatus()` - 추세 기반으로 완전 교체
+- [x] `generateMilestoneBlocks()` - 4주 블록으로 변경
 
-### Step 4: 서비스 로직 수정
-- [ ] `PTSessionsService.create()` - 자동 업데이트 트리거 추가
-- [ ] `MembersService.createFull()` - FOUNDATION 상태로 시작
-- [ ] `InsightsService.getCenterDashboard()` - FOUNDATION 카운트 추가
+### Step 4: 서비스 로직 수정 ✅
+- [x] `PTSessionsService.create()` - 자동 업데이트 트리거 추가
+- [x] `MembersService.createFull()` - FOUNDATION 상태로 시작
+- [x] `InsightsService.getCenterDashboard()` - FOUNDATION 카운트 추가
 
-### Step 5: API 응답 수정
-- [ ] Goal Analyst API - flags 반환 추가
-- [ ] Center Dashboard - FOUNDATION 회원 수 추가
+### Step 5: API 응답 수정 ✅
+- [x] Goal Analyst API - flags 반환 추가 (`isRapidProgress`, `isMeasurementOverdue`, `lastMeasurementAt`)
+- [x] Center Dashboard - FOUNDATION 회원 수 추가
 
 ---
 

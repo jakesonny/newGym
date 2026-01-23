@@ -665,6 +665,10 @@ export class MembersService {
 			riskStatus: string;
 			startDate: string | null;
 			endDate: string | null;
+			// Phase 2: 추세 기반 플래그
+			isRapidProgress: boolean;
+			isMeasurementOverdue: boolean;
+			lastMeasurementAt: string | null;
 		};
 		progressRoadmap: {
 			start: { value: number; date: string } | null;
@@ -704,9 +708,13 @@ export class MembersService {
 			targetValue: membership?.targetValue || null,
 			targetUnit: membership?.targetUnit || null,
 			currentProgress: membership?.currentProgress || 0,
-			riskStatus: membership?.riskStatus || 'GREEN',
+			riskStatus: membership?.riskStatus || 'FOUNDATION', // Phase 2: 기본값 FOUNDATION
 			startDate: membership?.purchaseDate ? new Date(membership.purchaseDate).toISOString().split('T')[0] : null,
 			endDate: membership?.expiryDate ? new Date(membership.expiryDate).toISOString().split('T')[0] : null,
+			// Phase 2: 추세 기반 플래그
+			isRapidProgress: membership?.isRapidProgress || false,
+			isMeasurementOverdue: membership?.isMeasurementOverdue || false,
+			lastMeasurementAt: membership?.lastMeasurementAt ? new Date(membership.lastMeasurementAt).toISOString() : null,
 		};
 
 		// Progress Roadmap

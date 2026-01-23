@@ -57,18 +57,18 @@ export class InjuriesController {
     return ApiResponseHelper.success({ injuries, total: injuries.length });
   }
 
-	@Get(":id")
+	@Get(":injuryId")
 	@ApiOperation({ summary: '부상 이력 상세 조회', description: '특정 부상 이력의 상세 정보를 조회합니다.' })
 	@ApiParam({ name: 'memberId', description: '회원 ID (UUID)', type: 'string' })
-	@ApiParam({ name: 'id', description: '부상 이력 ID (UUID)', type: 'string' })
+	@ApiParam({ name: 'injuryId', description: '부상 이력 ID (UUID)', type: 'string' })
 	@ApiResponse({ status: 200, description: '부상 이력 조회 성공' })
 	@ApiResponse({ status: 404, description: '부상 이력을 찾을 수 없습니다.' })
 	async findOne(
 		@Param("memberId") memberId: string,
-		@Param("id") id: string,
+		@Param("injuryId") injuryId: string,
 	) {
 		const injury = await this.injuryRepository.findOne({
-			where: { id, memberId },
+			where: { id: injuryId, memberId },
 			relations: ["restrictions"],
 		});
 
@@ -109,23 +109,23 @@ export class InjuriesController {
 		return ApiResponseHelper.success(savedInjury, "부상 이력 등록 성공");
 	}
 
-	@Put(":id")
+	@Put(":injuryId")
 	@UseGuards(JwtRolesGuard)
 	@Roles(Role.ADMIN, Role.TRAINER)
 	@ApiOperation({ summary: '부상 이력 수정', description: '기존 부상 이력을 수정합니다. (ADMIN, TRAINER 권한 필요)' })
 	@ApiParam({ name: 'memberId', description: '회원 ID (UUID)', type: 'string' })
-	@ApiParam({ name: 'id', description: '부상 이력 ID (UUID)', type: 'string' })
+	@ApiParam({ name: 'injuryId', description: '부상 이력 ID (UUID)', type: 'string' })
 	@ApiBody({ type: UpdateInjuryDto })
 	@ApiResponse({ status: 200, description: '부상 이력 수정 성공' })
 	@ApiResponse({ status: 404, description: '부상 이력을 찾을 수 없습니다.' })
 	@ApiResponse({ status: 403, description: '권한 없음' })
 	async update(
 		@Param("memberId") memberId: string,
-		@Param("id") id: string,
+		@Param("injuryId") injuryId: string,
 		@Body() updateData: UpdateInjuryDto,
 	) {
 		const injury = await this.injuryRepository.findOne({
-			where: { id, memberId },
+			where: { id: injuryId, memberId },
 		});
 
 		if (!injury) {
@@ -138,24 +138,24 @@ export class InjuriesController {
 		return ApiResponseHelper.success(savedInjury, "부상 이력 수정 성공");
 	}
 
-	@Post(":id/restrictions")
+	@Post(":injuryId/restrictions")
 	@HttpCode(HttpStatus.CREATED)
 	@UseGuards(JwtRolesGuard)
 	@Roles(Role.ADMIN, Role.TRAINER)
 	@ApiOperation({ summary: '평가 제한 설정', description: '부상에 대한 평가 제한을 설정합니다. (ADMIN, TRAINER 권한 필요)' })
 	@ApiParam({ name: 'memberId', description: '회원 ID (UUID)', type: 'string' })
-	@ApiParam({ name: 'id', description: '부상 이력 ID (UUID)', type: 'string' })
+	@ApiParam({ name: 'injuryId', description: '부상 이력 ID (UUID)', type: 'string' })
 	@ApiBody({ type: CreateInjuryRestrictionDto })
 	@ApiResponse({ status: 201, description: '평가 제한 설정 성공' })
 	@ApiResponse({ status: 404, description: '부상 이력을 찾을 수 없습니다.' })
 	@ApiResponse({ status: 403, description: '권한 없음' })
 	async createRestriction(
 		@Param("memberId") memberId: string,
-		@Param("id") id: string,
+		@Param("injuryId") injuryId: string,
 		@Body() createRestrictionDto: CreateInjuryRestrictionDto,
 	) {
 		const injury = await this.injuryRepository.findOne({
-			where: { id, memberId },
+			where: { id: injuryId, memberId },
 		});
 
 		if (!injury) {
@@ -163,7 +163,7 @@ export class InjuriesController {
 		}
 
 		const restriction = this.restrictionRepository.create({
-			injuryId: id,
+			injuryId: injuryId,
 			restrictedCategory: createRestrictionDto.restrictedCategory,
 		});
 

@@ -802,12 +802,12 @@ export class WorkoutRecordsService {
 	 */
 	async getTrends(
 		memberId: string,
-		type: 'one_rm' | 'volume',
+		type: 'oneRm' | 'volume',
 		exerciseName?: string,
 		startDate?: string,
 		endDate?: string,
 	): Promise<{
-		type: 'one_rm' | 'volume';
+		type: 'oneRm' | 'volume';
 		exerciseName?: string;
 		data: Array<{ date: string; value: number; strengthLevel?: string | null }>;
 	}> {
@@ -825,7 +825,7 @@ export class WorkoutRecordsService {
 
 		let data: Array<{ date: string; value: number; strengthLevel?: string | null }>;
 
-		if (type === 'one_rm') {
+		if (type === 'oneRm') {
 			const dateMap = WorkoutRecordHelper.groupByDateWithMaxOneRM(records);
 			data = Array.from(dateMap.entries()).map(([date, info]) => ({
 				date,

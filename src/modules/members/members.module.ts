@@ -7,8 +7,12 @@ import { PTSessionsService } from "./pt-sessions.service";
 import { WorkoutRoutinesService } from "./workout-routines.service";
 import { InjuriesController } from "./injuries.controller";
 import { AbilitiesController } from "./abilities.controller";
-import { MemberAnalyticsController } from "./analytics.controller";
 import { WorkoutRoutinesController } from "./workout-routines.controller";
+import { WorkoutRecordsController } from "./workout-records.controller";
+import { PTSessionsController } from "./pt-sessions.controller";
+import { GoalsController } from "./goals.controller";
+import { MembershipsController } from "./memberships.controller";
+import { MemberWorkoutRoutinesController } from "./member-workout-routines.controller";
 import { Member } from "../../entities/member.entity";
 import { Membership } from "../../entities/membership.entity";
 import { PTUsage } from "../../entities/pt-usage.entity";
@@ -47,8 +51,12 @@ import { StrengthLevelEvaluator } from "../../common/utils/strength-level-evalua
 		MembersController,
 		InjuriesController,
 		AbilitiesController,
-		MemberAnalyticsController,
 		WorkoutRoutinesController,
+		WorkoutRecordsController,
+		PTSessionsController,
+		GoalsController,
+		MembershipsController,
+		MemberWorkoutRoutinesController,
 	],
 	providers: [MembersService, WorkoutRecordsService, PTSessionsService, WorkoutRoutinesService, StrengthLevelEvaluator],
 	exports: [MembersService, WorkoutRecordsService, PTSessionsService, WorkoutRoutinesService],

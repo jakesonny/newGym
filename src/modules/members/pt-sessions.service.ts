@@ -4,6 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { PTSession } from '../../entities/pt-session.entity';
 import { Member } from '../../entities/member.entity';
 import { Membership } from '../../entities/membership.entity';
+import { ProgramMilestone } from '../../entities/program-milestone.entity';
 import { CreatePTSessionDto } from './dto/create-pt-session.dto';
 import { UpdatePTSessionDto } from './dto/update-pt-session.dto';
 import { ApiExceptions } from '../../common/exceptions';
@@ -125,6 +126,17 @@ export class PTSessionsService {
 			// ========== Phase 2: 측정값이 있고 Membership이 연결된 경우 추세 업데이트 ==========
 			if (createDto.membershipId && this.hasMeasurement(createDto)) {
 				await this.updateMembershipTrend(queryRunner, createDto.membershipId, createDto);
+			}
+
+			// ========== Phase 2: 마일스톤 자동 생성 (블록 마지막 주차인 경우) ==========
+			if (createDto.membershipId) {
+				await this.createOrUpdateMilestone(
+					queryRunner,
+					createDto.membershipId,
+					savedSession.id,
+					new Date(createDto.sessionDate),
+					createDto,
+				);
 			}
 
 			await queryRunner.commitTransaction();
@@ -281,6 +293,124 @@ export class PTSessionsService {
 			}
 
 			await this.memberRepository.save(member);
+		}
+	}
+
+	/**
+	 * Phase 2: 마일스톤 자동 생성/업데이트
+	 * 블록의 마지막 주차(4, 8, 12주)인 경우 마일스톤 생성
+	 */
+	private async createOrUpdateMilestone(
+		queryRunner: any,
+		membershipId: string,
+		ptSessionId: string,
+		sessionDate: Date,
+		dto: CreatePTSessionDto,
+	): Promise<void> {
+		const membership = await queryRunner.manager.findOne(Membership, {
+			where: { id: membershipId },
+		});
+
+		if (!membership || !membership.durationWeeks || !membership.purchaseDate) {
+			return;
+		}
+
+		// 프로그램 시작일부터 현재 세션까지의 주차 계산
+		const startDate = new Date(membership.purchaseDate);
+		const diffTime = sessionDate.getTime() - startDate.getTime();
+		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+		const currentWeek = Math.ceil(diffDays / 7);
+
+		// 블록 마지막 주차인지 확인 (4, 8, 12주)
+		const isBlockEndWeek = currentWeek === 4 || currentWeek === 8 || currentWeek === membership.durationWeeks;
+		if (!isBlockEndWeek) {
+			return;
+		}
+
+		// 블록 정보 계산
+		const blockNumber = Math.ceil(currentWeek / 4);
+		const blockStartWeek = (blockNumber - 1) * 4 + 1;
+		const blockEndWeek = blockNumber * 4;
+
+		// 블록 목적 결정
+		const blocks = ProgressCalculator.generateMilestoneBlocks(startDate, membership.durationWeeks as 4 | 8 | 12);
+		const currentBlock = blocks.find(b => b.blockNumber === blockNumber);
+		if (!currentBlock) {
+			return;
+		}
+
+		// 기존 마일스톤 조회 (같은 블록)
+		const existingMilestone = await queryRunner.manager.findOne(ProgramMilestone, {
+			where: {
+				membershipId,
+				blockNumber,
+			},
+		});
+
+		// 측정값 추출 (목표 유형에 맞는 값)
+		let measuredValue: number | null = null;
+		if (membership.mainGoalType) {
+			measuredValue = ProgressCalculator.extractMeasurementValue(
+				membership.mainGoalType,
+				{
+					weight: dto.measuredWeight,
+					muscleMass: dto.measuredMuscleMass,
+					bodyFat: dto.measuredBodyFat,
+					benchPress1RM: dto.benchPress1RM,
+					squat1RM: dto.squat1RM,
+					deadlift1RM: dto.deadlift1RM,
+					stepTestTime: dto.stepTestTime,
+				},
+			);
+		}
+
+		// 진행률 계산
+		let progressAtMilestone: number | null = null;
+		if (membership.startValue != null && membership.targetValue != null && measuredValue != null) {
+			progressAtMilestone = ProgressCalculator.calculateProgress(
+				membership.mainGoalType!,
+				membership.startValue,
+				measuredValue,
+				membership.targetValue,
+				membership.goalDirection,
+			);
+		}
+
+		if (existingMilestone) {
+			// 기존 마일스톤 업데이트
+			await queryRunner.manager.update(ProgramMilestone, existingMilestone.id, {
+				ptSessionId,
+				weekNumber: currentWeek,
+				measuredWeight: dto.measuredWeight,
+				measuredMuscleMass: dto.measuredMuscleMass,
+				measuredBodyFat: dto.measuredBodyFat,
+				measuredValue,
+				progressAtMilestone,
+				isAchieved: progressAtMilestone != null && progressAtMilestone >= 100,
+				achievedAt: progressAtMilestone != null && progressAtMilestone >= 100 ? new Date() : null,
+			});
+			this.logger.log(`마일스톤 업데이트: Membership ${membershipId}, Block ${blockNumber}, Week ${currentWeek}`);
+		} else {
+			// 새 마일스톤 생성
+			const milestone = queryRunner.manager.create(ProgramMilestone, {
+				membershipId,
+				ptSessionId,
+				weekNumber: currentWeek,
+				blockNumber,
+				blockPurpose: currentBlock.purpose,
+				blockStartWeek,
+				blockEndWeek,
+				targetDate: currentBlock.targetDate,
+				measuredWeight: dto.measuredWeight,
+				measuredMuscleMass: dto.measuredMuscleMass,
+				measuredBodyFat: dto.measuredBodyFat,
+				measuredValue,
+				progressAtMilestone,
+				isAchieved: progressAtMilestone != null && progressAtMilestone >= 100,
+				achievedAt: progressAtMilestone != null && progressAtMilestone >= 100 ? new Date() : null,
+			});
+			await queryRunner.manager.save(ProgramMilestone, milestone);
+			this.logger.log(`마일스톤 생성: Membership ${membershipId}, Block ${blockNumber}, Week ${currentWeek}`);
 		}
 	}
 }

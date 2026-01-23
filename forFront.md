@@ -383,6 +383,11 @@ interface CreatePTSessionRequest {
 - `membershipId`와 측정값이 함께 입력되면 해당 Membership의 추세가 자동 업데이트됩니다.
 - 업데이트 항목: `currentValue`, `currentProgress`, `riskStatus`, `isRapidProgress`, `lastMeasurementAt`
 
+**마일스톤 자동 생성**:
+- PT 세션 생성 시 블록의 마지막 주차(4, 8, 12주)인 경우 자동으로 마일스톤이 생성/업데이트됩니다.
+- 측정값이 있으면 마일스톤에 자동 기록되며, 진행률과 달성 여부도 자동 계산됩니다.
+- 프론트엔드에서 별도 API 호출 없이 자동으로 처리됩니다.
+
 ### 마일스톤 구조 (4주 블록 기반)
 
 ```typescript
@@ -443,6 +448,183 @@ progress = Math.min(100, Math.max(0, progress))
 |--------|------|
 | `isRapidProgress` | 목표 방향으로 급격한 변화 (과훈련/식단 주의) |
 | `isMeasurementOverdue` | 마지막 측정 후 14일 경과 |
+
+---
+
+## API 구조 개선 완료 (2026-01-21)
+
+### 주요 변경 사항
+
+#### 1. 컨트롤러 분리
+- **members.controller.ts** (775줄 → 약 200줄) - 핵심 회원 관리만 유지
+- **workout-records.controller.ts** - 운동 기록 관련 모든 엔드포인트 분리
+- **pt-sessions.controller.ts** - PT 세션 관련 엔드포인트 분리
+- **goals.controller.ts** - 목표 관리 엔드포인트 분리
+- **memberships.controller.ts** - 회원권 및 PT 횟수 관리 엔드포인트 분리
+- **member-workout-routines.controller.ts** - 회원별 운동 루틴 엔드포인트 분리
+
+#### 2. API 경로 통일
+- 모든 회원 관련 경로에서 `:memberId`로 통일 (기존 `:id` 제거)
+- 예: `GET /api/members/:memberId/workout-records`
+
+#### 3. 중복 엔드포인트 통합
+- **1RM 조회**: `GET /api/members/:memberId/workout-records/one-rep-max?type=major|estimate`
+  - 기존: `/one-rep-max/major`, `/one-rep-max-estimate` → 통합
+- **볼륨 조회**: `GET /api/members/:memberId/workout-records/volume?type=basic|analysis`
+  - 기존: `/volume`, `/volume-analysis` → 통합
+
+#### 4. Analytics 모듈 구조 개선
+- 회원별 analytics를 analytics 모듈로 이동
+- 전역 analytics: `GET /api/analytics/*`
+- 회원별 analytics: `GET /api/members/:memberId/analytics/*`
+
+### 변경된 API 엔드포인트 목록
+
+#### 회원 관리
+- `GET /api/members` - 회원 목록 조회
+- `GET /api/members/:memberId` - 회원 정보 조회
+- `POST /api/members` - 회원 등록 (기본)
+- `POST /api/members/full` - 회원 등록 (3단계 위저드)
+- `PUT /api/members/:memberId` - 회원 정보 수정
+- `DELETE /api/members/:memberId` - 회원 삭제
+- `GET /api/members/:memberId/goal-analyst` - Goal Analyst 조회
+- `GET /api/members/:memberId/dashboard` - 대시보드 조회
+
+#### 회원권 관리
+- `GET /api/members/:memberId/memberships` - 회원권 조회
+- `POST /api/members/:memberId/memberships` - 회원권 등록
+- `PUT /api/members/:memberId/memberships/:membershipId` - 회원권 수정
+- `DELETE /api/members/:memberId/memberships/:membershipId` - 회원권 삭제
+- `GET /api/members/:memberId/memberships/pt-count` - PT 횟수 조회
+- `POST /api/members/:memberId/memberships/pt-count` - PT 횟수 생성/업데이트
+- `PUT /api/members/:memberId/memberships/pt-count` - PT 횟수 수정
+
+#### 목표 관리
+- `GET /api/members/:memberId/goals` - 목표 조회
+- `POST /api/members/:memberId/goals` - 목표 생성
+- `PUT /api/members/:memberId/goals` - 목표 수정
+- `DELETE /api/members/:memberId/goals` - 목표 삭제
+
+#### 운동 기록
+- `GET /api/members/:memberId/workout-records` - 운동 기록 목록
+- `GET /api/members/:memberId/workout-records/:recordId` - 운동 기록 상세
+- `POST /api/members/:memberId/workout-records` - 운동 기록 생성
+- `PUT /api/members/:memberId/workout-records/:recordId` - 운동 기록 수정
+- `DELETE /api/members/:memberId/workout-records/:recordId` - 운동 기록 삭제
+- `GET /api/members/:memberId/workout-records/calendar` - 운동 캘린더 조회
+- `GET /api/members/:memberId/workout-records/volume?type=basic|analysis` - 볼륨 조회/분석
+- `GET /api/members/:memberId/workout-records/one-rep-max?type=major|estimate` - 1RM 조회
+- `GET /api/members/:memberId/workout-records/one-rep-max-trend` - 1RM 추세
+- `GET /api/members/:memberId/workout-records/volume-trend` - 볼륨 추세
+- `GET /api/members/:memberId/workout-records/trends?type=oneRm|volume` - 추세 데이터 (통합)
+  - **쿼리 파라미터**:
+    - `type` (필수): `"oneRm"` 또는 `"volume"` - 추세 타입
+    - `exerciseName` (선택): 운동명 필터링
+    - `startDate` (선택): 시작 날짜 (YYYY-MM-DD)
+    - `endDate` (선택): 종료 날짜 (YYYY-MM-DD)
+  - **응답**:
+    ```typescript
+    {
+      success: true;
+      data: {
+        type: "oneRm" | "volume";
+        exerciseName?: string;
+        data: Array<{
+          date: string;
+          value: number;
+          strengthLevel?: string | null;  // type="oneRm"일 때만
+        }>;
+      };
+    }
+    ```
+- `GET /api/members/:memberId/workout-records/strength-progress` - Strength Level 변화 추적
+- `GET /api/members/:memberId/workout-records/suggest-weight` - 무게 제안
+
+#### PT 세션
+- `GET /api/members/:memberId/pt-sessions` - PT 세션 목록
+- `GET /api/members/:memberId/pt-sessions/:sessionId` - PT 세션 상세
+- `POST /api/members/:memberId/pt-sessions` - PT 세션 생성
+- `PUT /api/members/:memberId/pt-sessions/:sessionId` - PT 세션 수정
+- `DELETE /api/members/:memberId/pt-sessions/:sessionId` - PT 세션 삭제
+
+#### 회원별 운동 루틴
+- `GET /api/members/:memberId/workout-routines` - 운동 루틴 목록
+- `GET /api/members/:memberId/workout-routines/today` - 오늘의 운동 루틴
+- `POST /api/members/:memberId/workout-routines` - 운동 루틴 생성
+- `PUT /api/members/:memberId/workout-routines/:routineId` - 운동 루틴 수정
+- `PUT /api/members/:memberId/workout-routines/:routineId/complete` - 운동 루틴 완료 처리
+- `DELETE /api/members/:memberId/workout-routines/:routineId` - 운동 루틴 삭제
+
+#### Analytics
+- `GET /api/analytics/averages` - 전체 평균 데이터
+- `GET /api/analytics/comparison/:memberId` - 개별 vs 평균 비교
+- `GET /api/members/:memberId/analytics` - 회원 능력치 데이터
+
+#### 부상 이력 관리
+- `GET /api/members/:memberId/injuries` - 부상 이력 목록 조회
+- `GET /api/members/:memberId/injuries/:injuryId` - 부상 이력 상세 조회
+- `POST /api/members/:memberId/injuries` - 부상 이력 등록
+- `PUT /api/members/:memberId/injuries/:injuryId` - 부상 이력 수정
+- `POST /api/members/:memberId/injuries/:injuryId/restrictions` - 평가 제한 설정
+
+#### 기타
+- `GET /api/members/:memberId/abilities/*` - 능력치 관련 (기존 유지)
+- `GET /api/members/:memberId/assessments/*` - 평가 관련 (기존 유지)
+- `GET /api/workout-routines/*` - 공통 운동 루틴 (기존 유지)
+
+---
+
+## 코드 리팩토링 완료 (2026-01-21)
+
+### 최근 리팩토링 (2026-01-21)
+
+#### 코드 간소화 및 중복 제거
+- **공통 데코레이터 생성**: 반복되는 코드 패턴을 데코레이터로 추출
+  - `@MemberIdParam()` - 회원 ID 파라미터 자동 추가
+  - `@AdminTrainerRoles()` - ADMIN, TRAINER 권한 체크
+  - `@AdminOnly()` - ADMIN 권한만 체크
+- **페이지네이션 헬퍼 함수**: `parsePagination()` - 페이지네이션 파싱 로직 통합
+- **코드 중복 제거**: 약 200줄 이상의 중복 코드 제거
+
+#### 프론트엔드 영향도
+- ✅ **API 엔드포인트 경로 변경 없음** - 모든 API 경로는 기존과 동일
+- ✅ **요청/응답 형식 변경 없음** - 기존 API와 완전 호환
+- ⚠️ **Swagger 문서 업데이트**: 파라미터 이름이 더 명확해짐 (예: `:id` → `:injuryId`)
+  - 실제 URL은 동일하므로 프론트엔드 코드 변경 불필요
+  - Swagger UI에서만 파라미터 이름이 더 명확하게 표시됨
+
+#### 개선 효과
+- 코드 가독성 향상
+- 유지보수성 향상 (권한 관련 변경 시 한 곳만 수정)
+- 일관된 코드 패턴
+
+---
+
+## 네이밍 컨벤션 통일 완료 (2026-01-21)
+
+### 카멜케이스 통일 작업
+
+#### 변경 사항
+- **쿼리 파라미터 통일**: `one_rm` → `oneRm`으로 변경
+  - 모든 API 쿼리 파라미터가 카멜케이스로 통일됨
+  - 백엔드 컨트롤러, 서비스, 프론트엔드 타입 및 서비스 모두 업데이트
+
+#### 영향받는 API
+- `GET /api/members/:memberId/workout-records/trends?type=oneRm|volume`
+  - 기존: `type=one_rm` → 변경: `type=oneRm`
+  - `type=volume`은 변경 없음 (이미 카멜케이스)
+
+#### 프론트엔드 영향도
+- ⚠️ **API 쿼리 파라미터 변경**: `one_rm` → `oneRm`
+  - 프론트엔드에서 `getTrends()` 호출 시 타입 파라미터를 `'oneRm'`으로 변경 필요
+  - 예: `workoutRecordsService.getTrends(memberId, 'oneRm', ...)`
+
+#### 네이밍 컨벤션 원칙
+- **변수/함수명**: `camelCase` (예: `memberId`, `joinDate`)
+- **클래스/인터페이스명**: `PascalCase` (예: `MemberService`, `ApiResponse`)
+- **상수**: `UPPER_SNAKE_CASE` (예: `API_BASE_URL`)
+- **쿼리 파라미터**: `camelCase` (예: `type=oneRm`, `exerciseName=벤치프레스`)
+- **데이터베이스 컬럼명**: `snake_case` (DB 표준, 엔티티 속성명은 `camelCase`)
 
 ---
 
@@ -646,7 +828,7 @@ const response = await fetch('/api/members/full', {
 
 | Method | Endpoint | 설명 |
 |--------|----------|------|
-| GET | `/api/members/:id/goal-analyst` | Goal Analyst 데이터 |
+| GET | `/api/members/:memberId/goal-analyst` | Goal Analyst 데이터 |
 | GET | `/api/insights/center-dashboard` | 센터 대시보드 |
 
 ---
@@ -654,7 +836,7 @@ const response = await fetch('/api/members/full', {
 ### Goal Analyst API
 
 ```
-GET /api/members/:id/goal-analyst
+GET /api/members/:memberId/goal-analyst
 Authorization: Bearer {token}
 ```
 
@@ -674,9 +856,13 @@ interface GoalAnalystResponse {
       targetValue: number | null;     // 75
       targetUnit: string | null;      // "kg"
       currentProgress: number;        // 50 (%)
-      riskStatus: string;             // "GREEN" | "YELLOW" | "RED"
+      riskStatus: string;             // "FOUNDATION" | "GREEN" | "YELLOW" | "RED"
       startDate: string | null;       // "2024-01-15"
       endDate: string | null;         // "2024-04-15"
+      // Phase 2: 추세 기반 플래그
+      isRapidProgress: boolean;       // 급변 플래그
+      isMeasurementOverdue: boolean;  // 측정 미실시 플래그
+      lastMeasurementAt: string | null; // 마지막 측정 일시
     };
     
     // Progress Roadmap (시작 → 현재 → 목표)
@@ -767,7 +953,7 @@ interface CenterDashboardResponse {
       name: string;
       phone: string;
       status: string;             // "ACTIVE" | "INACTIVE" | "SUSPENDED"
-      riskStatus: string;         // "GREEN" | "YELLOW" | "RED"
+      riskStatus: string;         // "FOUNDATION" | "GREEN" | "YELLOW" | "RED"
       program: {
         mainGoal: string | null;
         currentProgress: number;
@@ -812,5 +998,73 @@ Phase 5 개발 전에 다음 사항들의 결정이 필요합니다:
 
 ---
 
-*마지막 업데이트: 2026-01-21*
-*Phase 1 완료, Phase 2 추세 기반 시스템 완료, Phase 3 완료, Phase 4 완료, 코드 리팩토링 완료*
+*마지막 업데이트: 2026-01-22*
+*Phase 1 완료, Phase 2 추세 기반 시스템 완료 (마일스톤 자동 생성 포함), Phase 3 완료, Phase 4 완료, 코드 리팩토링 완료*
+
+---
+
+## 백엔드 내부 변경사항 (프론트엔드 영향 없음)
+
+### 2026-01-22 변경사항
+
+#### 1. Public 데코레이터 Export 추가
+- **파일**: `src/common/decorators/index.ts`
+- **변경**: `Public` 데코레이터를 export 목록에 추가
+- **이유**: Auth 컨트롤러에서 사용하는 Public 데코레이터가 export되지 않아 발생한 에러 수정
+- **영향**: 프론트엔드 영향 없음 (백엔드 내부 구조 개선)
+
+#### 2. WorkoutVolumeQueryDto 타입 변환 수정
+- **파일**: `src/modules/members/workout-records.controller.ts`
+- **변경**: `VolumePeriod` enum (`'week' | 'month'`)을 `'WEEKLY' | 'MONTHLY'`로 변환하는 로직 추가
+- **이유**: 서비스 메서드 시그니처와 DTO 타입 불일치 해결
+- **영향**: 프론트엔드 영향 없음 (API 동작 동일)
+
+#### 3. TypeORM Synchronize 비활성화
+- **파일**: 
+  - `src/config/database.config.ts`
+  - `src/common/data-source.ts`
+- **변경**: `synchronize: false`로 설정
+- **이유**: 
+  - PostgreSQL enum 타입 변경 시 마이그레이션 에러 발생 방지
+  - 프로덕션 환경에서 데이터 손실 방지
+  - 스키마 변경은 마이그레이션 파일로 관리
+- **영향**: 
+  - 프론트엔드 영향 없음
+  - 백엔드 개발자는 마이그레이션 파일을 사용하여 스키마 변경 필요
+  - 개발 환경에서도 `npm run migration:run` 명령어로 마이그레이션 적용
+
+#### 4. 주의사항
+- **Enum 타입 변경 시**: 
+  - TypeORM의 `synchronize: true`는 enum 타입 변경을 안전하게 처리하지 못함
+  - PostgreSQL에서 enum 타입은 다른 테이블이 사용 중이면 삭제할 수 없음
+  - 모든 enum 타입 변경은 마이그레이션 파일로 작성 필요
+  - 영향받는 enum: `Category`, `MemberStatus`, `Gender`, `MembershipType`, `GoalType`, `RiskStatus`, `AssessmentType`, `EvaluationType`, `Condition` 등
+
+#### 5. 마이그레이션 사용 방법
+```bash
+# 마이그레이션 생성
+npm run migration:generate -- -n MigrationName
+
+# 마이그레이션 실행
+npm run migration:run
+
+# 마이그레이션 되돌리기
+npm run migration:revert
+```
+
+---
+
+## Phase 2 완료 항목 (2026-01-21)
+
+### ✅ 완료된 기능
+- 추세 기반 riskStatus 판정 (FOUNDATION/GREEN/YELLOW/RED)
+- PT 세션 생성 시 Membership 자동 업데이트
+- **마일스톤 자동 생성** (블록 마지막 주차: 4, 8, 12주)
+- Goal Analyst API에 flags 필드 추가
+- Center Dashboard에 FOUNDATION 카운트 추가
+
+### 🔄 자동 처리 흐름
+1. **PT 세션 생성** (`POST /api/members/:memberId/pt-sessions`)
+   - 측정값 입력 → Membership 추세 자동 업데이트
+   - 블록 마지막 주차 → 마일스톤 자동 생성/업데이트
+2. **프론트엔드**: 별도 API 호출 불필요, 자동으로 처리됨

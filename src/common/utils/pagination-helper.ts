@@ -1,49 +1,28 @@
 /**
- * 페이지네이션 헬퍼 유틸리티
+ * 페이지네이션 관련 유틸리티 함수
  */
-export class PaginationHelper {
-	/**
-	 * 페이지네이션 파라미터 계산
-	 */
-	static calculateSkip(page: number, pageSize: number): number {
-		return (page - 1) * pageSize;
-	}
 
-	/**
-	 * 페이지네이션 결과 생성
-	 */
-	static createResult<T>(
-		items: T[],
-		total: number,
-		page: number,
-		pageSize: number,
-	): {
-		items: T[];
-		total: number;
-		page: number;
-		pageSize: number;
-		totalPages: number;
-	} {
-		return {
-			items,
-			total,
-			page,
-			pageSize,
-			totalPages: Math.ceil(total / pageSize),
-		};
-	}
-
-	/**
-	 * 페이지네이션 쿼리 파라미터 파싱
-	 */
-	static parseQueryParams(
-		page?: string | number,
-		pageSize?: string | number,
-	): { page: number; pageSize: number } {
-		return {
-			page: page ? Number(page) : 1,
-			pageSize: pageSize ? Number(pageSize) : 10,
-		};
-	}
+export interface PaginationParams {
+	page: number;
+	pageSize: number;
 }
 
+/**
+ * 쿼리 파라미터에서 페이지네이션 정보를 파싱
+ * @param page - 페이지 번호 (문자열, 선택)
+ * @param pageSize - 페이지 크기 (문자열, 선택)
+ * @param defaultPageSize - 기본 페이지 크기 (기본값: 10)
+ * @returns 파싱된 페이지네이션 파라미터
+ */
+export function parsePagination(
+	page?: string,
+	pageSize?: string,
+	defaultPageSize: number = 10,
+): PaginationParams {
+	const pageNum = page ? parseInt(page, 10) : 1;
+	const pageSizeNum = pageSize ? parseInt(pageSize, 10) : defaultPageSize;
+	return {
+		page: pageNum > 0 ? pageNum : 1,
+		pageSize: pageSizeNum > 0 ? pageSizeNum : defaultPageSize,
+	};
+}

@@ -51,7 +51,10 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
 			ProgramMilestone,
 		],
 		migrations: [__dirname + '/../migrations/*{.ts,.js}'],
-		synchronize: configService.get<string>('DB_SYNCHRONIZE') === 'true',
+		// synchronize는 프로덕션에서 절대 사용하지 않음
+		// enum 타입 변경 시 데이터베이스 마이그레이션 에러 발생 가능
+		// 개발 환경에서도 마이그레이션 사용 권장
+		synchronize: false, // configService.get<string>('DB_SYNCHRONIZE') === 'true',
 		logging: configService.get<string>('DB_LOGGING') === 'true' || isDevelopment,
 	};
 

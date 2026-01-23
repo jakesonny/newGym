@@ -45,7 +45,10 @@ export const dataSourceOptions: DataSourceOptions = {
 	...getDatabaseConfig(),
 	entities: [User, Member, Membership, PTUsage, Assessment, AssessmentItem, AbilitySnapshot, InjuryHistory, InjuryRestriction, WorkoutRecord, PTSession, WorkoutRoutine, AssessmentGradeConstant, AssessmentCategoryScore, FlexibilityItemWeight, FlexibilityGradeThreshold, BodyCompositionStandard],
 	migrations: [__dirname + "/../migrations/*{.ts,.js}"],
-	synchronize: process.env.DB_SYNCHRONIZE === "true" || process.env.NODE_ENV === "development",
+	// synchronize는 프로덕션에서 절대 사용하지 않음
+	// enum 타입 변경 시 데이터베이스 마이그레이션 에러 발생 가능
+	// 개발 환경에서도 마이그레이션 사용 권장
+	synchronize: false, // process.env.DB_SYNCHRONIZE === "true" || process.env.NODE_ENV === "development",
 	logging: process.env.DB_LOGGING === "true" || process.env.NODE_ENV === "development",
 	ssl: process.env.DB_HOST?.includes("render.com") || process.env.DB_HOST?.includes("amazonaws.com") ? { rejectUnauthorized: false } : false,
 };
