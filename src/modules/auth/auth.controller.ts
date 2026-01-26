@@ -10,7 +10,9 @@ import {
 	Request,
 	Query,
 	Logger,
+	Res,
 } from "@nestjs/common";
+import { Response } from 'express';
 import {
 	ApiTags,
 	ApiOperation,
@@ -122,10 +124,10 @@ export class AuthController {
 	@Get('kakao/callback')
 	@Public()
 	@UseGuards(AuthGuard('kakao'))
-	@ApiOperation({ summary: '카카오 로그인 콜백', description: '카카오 인증 후 콜백을 처리하고 JWT 토큰을 반환합니다.' })
-	@ApiResponse({ status: 200, description: '카카오 로그인 성공' })
+	@ApiOperation({ summary: '카카오 로그인 콜백', description: '카카오 인증 후 콜백을 처리하고 JWT 토큰을 실어서 앱의 딥링크로 리다이렉트합니다.' })
+	@ApiResponse({ status: 302, description: '카카오 로그인 성공 - 앱 딥링크로 리다이렉트' })
 	@ApiResponse({ status: 401, description: '인증 실패' })
-	async kakaoCallback(@Request() req, @Query() query: any) {
+	async kakaoCallback(@Request() req, @Res() res: Response, @Query() query: any) {
 		try {
 			// req.user에 validateOrCreateSocialUser에서 반환한 값이 들어있음
 			if (!req.user) {
@@ -134,11 +136,25 @@ export class AuthController {
 				throw new Error('카카오 인증 정보를 찾을 수 없습니다.');
 			}
 
+			const { accessToken } = req.user;
+			if (!accessToken) {
+				this.logger.error('카카오 콜백: accessToken이 없습니다.');
+				this.logger.error(`req.user 구조: ${JSON.stringify(Object.keys(req.user))}`);
+				throw new Error('액세스 토큰을 생성할 수 없습니다.');
+			}
+
 			this.logger.log(`카카오 로그인 성공: 사용자 ${req.user.user?.email || req.user.user?.id}`);
-			return ApiResponseHelper.success(req.user, '카카오 로그인 성공');
+			
+			// 앱의 딥링크 주소로 토큰을 실어서 보냅니다.
+			// 예: strongsalon://login-success?token=...
+			const redirectUrl = `strongsalon://login-success?token=${accessToken}`;
+			this.logger.debug(`딥링크 리다이렉트: ${redirectUrl.replace(accessToken, '***')}`);
+			
+			return res.redirect(redirectUrl);
 		} catch (error) {
 			this.logger.error('카카오 콜백 처리 중 오류:', error);
-			this.logger.error(`요청 정보: ${JSON.stringify({ query, user: req.user })}`);
+			this.logger.error(`요청 정보: ${JSON.stringify({ query, user: req.user ? Object.keys(req.user) : null })}`);
+			// 에러는 기존 HttpExceptionFilter에서 처리
 			throw error;
 		}
 	}
