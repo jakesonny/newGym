@@ -8,6 +8,8 @@ import {
 	Param,
 	UseGuards,
 	Request,
+	Query,
+	Logger,
 } from "@nestjs/common";
 import {
 	ApiTags,
@@ -32,6 +34,8 @@ import { AuthGuard } from '@nestjs/passport';
 @ApiTags("auth")
 @Controller('api/auth')
 export class AuthController {
+	private readonly logger = new Logger(AuthController.name);
+
   constructor(private readonly authService: AuthService) {}
 
 	@Post('login')
@@ -106,7 +110,9 @@ export class AuthController {
 	@UseGuards(AuthGuard('kakao'))
 	@ApiOperation({ summary: '카카오 로그인 시작', description: '카카오 로그인 페이지로 리다이렉트합니다.' })
 	@ApiResponse({ status: 302, description: '카카오 로그인 페이지로 리다이렉트' })
-	async kakaoLogin() {
+	async kakaoLogin(@Request() req) {
+		this.logger.log('카카오 로그인 시작 요청');
+		this.logger.debug(`요청 IP: ${req.ip}, User-Agent: ${req.headers['user-agent']}`);
 		// Passport가 자동으로 카카오 로그인 페이지로 리다이렉트
 	}
 
@@ -119,9 +125,22 @@ export class AuthController {
 	@ApiOperation({ summary: '카카오 로그인 콜백', description: '카카오 인증 후 콜백을 처리하고 JWT 토큰을 반환합니다.' })
 	@ApiResponse({ status: 200, description: '카카오 로그인 성공' })
 	@ApiResponse({ status: 401, description: '인증 실패' })
-	async kakaoCallback(@Request() req) {
-		// req.user에 validateOrCreateSocialUser에서 반환한 값이 들어있음
-		return ApiResponseHelper.success(req.user, '카카오 로그인 성공');
+	async kakaoCallback(@Request() req, @Query() query: any) {
+		try {
+			// req.user에 validateOrCreateSocialUser에서 반환한 값이 들어있음
+			if (!req.user) {
+				this.logger.error('카카오 콜백: req.user가 없습니다.');
+				this.logger.error(`쿼리 파라미터: ${JSON.stringify(query)}`);
+				throw new Error('카카오 인증 정보를 찾을 수 없습니다.');
+			}
+
+			this.logger.log(`카카오 로그인 성공: 사용자 ${req.user.user?.email || req.user.user?.id}`);
+			return ApiResponseHelper.success(req.user, '카카오 로그인 성공');
+		} catch (error) {
+			this.logger.error('카카오 콜백 처리 중 오류:', error);
+			this.logger.error(`요청 정보: ${JSON.stringify({ query, user: req.user })}`);
+			throw error;
+		}
 	}
 
 	/**
