@@ -27,10 +27,12 @@ export class CreateMemberDto {
 		description: "이메일 주소",
 		example: "member@example.com",
 		maxLength: 255,
+		required: false,
 	})
+	@IsOptional()
 	@IsEmail({}, { message: "올바른 이메일 형식이 아닙니다." })
 	@MaxLength(255, { message: "이메일은 255자 이하여야 합니다." })
-	email: string;
+	email?: string;
 
 	@ApiProperty({
 		description: "가입일 (YYYY-MM-DD 형식)",

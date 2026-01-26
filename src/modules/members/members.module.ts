@@ -8,12 +8,13 @@ import { WorkoutRoutinesService } from "./workout-routines.service";
 import { InjuriesController } from "./injuries.controller";
 import { AbilitiesController } from "./abilities.controller";
 import { WorkoutRoutinesController } from "./workout-routines.controller";
-import { WorkoutRecordsController } from "./workout-records.controller";
+import { WorkoutRecordsController, UserWorkoutRecordsController } from "./workout-records.controller";
 import { PTSessionsController } from "./pt-sessions.controller";
 import { GoalsController } from "./goals.controller";
 import { MembershipsController } from "./memberships.controller";
 import { MemberWorkoutRoutinesController } from "./member-workout-routines.controller";
 import { Member } from "../../entities/member.entity";
+import { User } from "../../entities/user.entity";
 import { Membership } from "../../entities/membership.entity";
 import { PTUsage } from "../../entities/pt-usage.entity";
 import { InjuryHistory } from "../../entities/injury-history.entity";
@@ -32,6 +33,7 @@ import { StrengthLevelEvaluator } from "../../common/utils/strength-level-evalua
 	imports: [
 		TypeOrmModule.forFeature([
 			Member,
+			User,
 			Membership,
 			PTUsage,
 			InjuryHistory,
@@ -53,6 +55,7 @@ import { StrengthLevelEvaluator } from "../../common/utils/strength-level-evalua
 		AbilitiesController,
 		WorkoutRoutinesController,
 		WorkoutRecordsController,
+		UserWorkoutRecordsController,
 		PTSessionsController,
 		GoalsController,
 		MembershipsController,

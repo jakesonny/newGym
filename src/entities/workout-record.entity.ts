@@ -9,6 +9,7 @@ import {
 	Index,
 } from 'typeorm';
 import { Member } from './member.entity';
+import { User } from './user.entity';
 import { StrengthLevel } from '../common/enums';
 
 export enum WorkoutType {
@@ -16,6 +17,7 @@ export enum WorkoutType {
 	PERSONAL = 'PERSONAL', // 개인 운동
 }
 
+@Index('idx_workout_records_user_id', ['userId'])
 @Index('idx_workout_records_member_id', ['memberId'])
 @Index('idx_workout_records_workout_date', ['workoutDate'])
 @Index('idx_workout_records_workout_type', ['workoutType'])
@@ -24,14 +26,24 @@ export class WorkoutRecord {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
 
-	@Column({ name: 'member_id' })
-	memberId: string;
+	@Column({ name: 'user_id' })
+	userId: string;
+
+	@ManyToOne(() => User, (user) => user.workoutRecords, {
+		onDelete: 'CASCADE',
+	})
+	@JoinColumn({ name: 'user_id' })
+	user: User;
+
+	@Column({ name: 'member_id', nullable: true })
+	memberId?: string;
 
 	@ManyToOne(() => Member, (member) => member.workoutRecords, {
 		onDelete: 'CASCADE',
+		nullable: true,
 	})
 	@JoinColumn({ name: 'member_id' })
-	member: Member;
+	member?: Member;
 
 	@Column({ type: 'date', name: 'workout_date' })
 	workoutDate: Date;

@@ -8,10 +8,11 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { KakaoStrategy } from './strategies/kakao.strategy';
 import { User } from '../../entities/user.entity';
+import { Member } from '../../entities/member.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Member]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

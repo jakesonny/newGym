@@ -8,6 +8,33 @@ import { ApiExceptions } from '../exceptions';
  */
 export class RepositoryHelper {
 	/**
+	 * userId로 엔티티 찾기 (없으면 에러)
+	 */
+	static async findOneOrFailByUserId<T>(
+		repository: Repository<T>,
+		id: string,
+		userId: string,
+		logger: Logger,
+		entityName: string,
+		where?: FindOptionsWhere<T>,
+	): Promise<T> {
+		const entity = await repository.findOne({
+			where: {
+				id,
+				userId,
+				...where,
+			} as FindOptionsWhere<T>,
+		});
+
+		if (!entity) {
+			logger.warn(`${entityName}을 찾을 수 없습니다. ID: ${id}, UserId: ${userId}`);
+			throw ApiExceptions.memberNotFound(`${entityName}을 찾을 수 없습니다.`);
+		}
+
+		return entity;
+	}
+
+	/**
 	 * memberId로 엔티티 찾기 (없으면 에러)
 	 */
 	static async findOneOrFailByMemberId<T>(

@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { Exercise } from '../../entities/exercise.entity';
 import { StrengthStandard } from '../../entities/strength-standard.entity';
 import { StrengthLevel, StrengthLevelOrder } from '../../common/enums';
@@ -36,15 +36,70 @@ export class StrengthLevelService {
 	async calculate(dto: CalculateStrengthLevelDto): Promise<StrengthLevelResponse> {
 		const { exerciseType, age, bodyWeight, gender, currentWeight } = dto;
 
-		// 1. 운동 정보 조회
+		// 1. 운동 정보 조회 - 부분 매칭으로 검색 (DB의 name_en이 "Bench Press - Powerlifting" 형태일 수 있음)
 		const exerciseNameEn = ExerciseTypeEnglishNames[exerciseType];
-		const exercise = await this.exerciseRepository.findOne({
+		const exerciseNameKo = ExerciseTypeNames[exerciseType];
+		
+		// 먼저 정확한 매칭 시도
+		let exercise = await this.exerciseRepository.findOne({
 			where: { nameEn: exerciseNameEn },
 		});
 
+		// 정확한 매칭이 없으면 부분 매칭 시도 (LIKE 검색)
 		if (!exercise) {
-			throw new NotFoundException(`운동을 찾을 수 없습니다: ${exerciseNameEn}`);
+			this.logger.debug(`정확한 매칭 실패: ${exerciseNameEn}, 부분 매칭 시도`);
+			
+			// 영문명으로 부분 매칭 시도
+			const exercisesByEn = await this.exerciseRepository.find({
+				where: { nameEn: Like(`%${exerciseNameEn}%`) },
+			});
+
+			// 한글명으로도 검색 시도
+			const exercisesByKo = exerciseNameKo 
+				? await this.exerciseRepository.find({
+						where: { name: Like(`%${exerciseNameKo}%`) },
+					})
+				: [];
+
+			// 모든 후보 수집
+			const allCandidates = [...exercisesByEn, ...exercisesByKo];
+			
+			// 중복 제거 (id 기준)
+			const uniqueExercises = Array.from(
+				new Map(allCandidates.map(ex => [ex.id, ex])).values()
+			);
+
+			// 가장 적합한 운동 선택
+			// 1순위: 영문명에 정확한 키워드가 포함되고, 변형 운동이 아닌 것
+			exercise = uniqueExercises.find(
+				(ex) => {
+					const nameEnLower = ex.nameEn?.toLowerCase() || '';
+					const nameKoLower = ex.name?.toLowerCase() || '';
+					const searchKeyLower = exerciseNameEn.toLowerCase();
+					
+					return (
+						nameEnLower.includes(searchKeyLower) || 
+						nameKoLower.includes(exerciseNameKo.toLowerCase())
+					) && 
+					!nameEnLower.includes('romanian') &&
+					!nameEnLower.includes('sumo') &&
+					!nameEnLower.includes('split') &&
+					!nameEnLower.includes('leg press') &&
+					!nameKoLower.includes('루마니안') &&
+					!nameKoLower.includes('스모') &&
+					!nameKoLower.includes('스플릿') &&
+					!nameKoLower.includes('레그프레스');
+				}
+			) || uniqueExercises[0];
 		}
+
+		if (!exercise) {
+			throw new NotFoundException(
+				`운동을 찾을 수 없습니다: ${exerciseNameEn} (${exerciseNameKo}). DB에 해당 운동이 등록되어 있는지 확인해주세요.`
+			);
+		}
+
+		this.logger.debug(`운동 조회 성공: ${exercise.nameEn || exercise.name} (id: ${exercise.id})`);
 
 		// 2. 해당 운동의 strength_standards 조회 (체중 기준)
 		const standards = await this.strengthStandardRepository
@@ -94,7 +149,7 @@ export class StrengthLevelService {
 				exercise: {
 					type: exerciseType,
 					nameKorean: ExerciseTypeNames[exerciseType],
-					nameEnglish: exerciseNameEn,
+					nameEnglish: exercise.nameEn || exercise.name || exerciseNameEn,
 				},
 				input: {
 					age,
@@ -116,43 +171,11 @@ export class StrengthLevelService {
 		gender: string,
 		bodyWeight: number,
 	): Promise<StrengthStandard[]> {
-		// 모든 체중 범위 조회
-		const allRanges = await this.strengthStandardRepository
-			.createQueryBuilder('ss')
-			.select('DISTINCT ss.bodyweight_min', 'bodyweightMin')
-			.addSelect('ss.bodyweight_max', 'bodyweightMax')
-			.where('ss.exercise_id = :exerciseId', { exerciseId })
-			.andWhere('ss.gender = :gender', { gender })
-			.andWhere('ss.standard_type = :standardType', { standardType: 'BODYWEIGHT' })
-			.getRawMany();
-
-		if (allRanges.length === 0) {
-			return [];
-		}
-
-		// 가장 가까운 범위 찾기
-		let closestRange = allRanges[0];
-		let minDistance = Math.abs(
-			bodyWeight - (closestRange.bodyweightMin + closestRange.bodyweightMax) / 2,
-		);
-
-		for (const range of allRanges) {
-			const midPoint = (range.bodyweightMin + range.bodyweightMax) / 2;
-			const distance = Math.abs(bodyWeight - midPoint);
-			if (distance < minDistance) {
-				minDistance = distance;
-				closestRange = range;
-			}
-		}
-
-		// 해당 범위의 데이터 조회
-		return this.strengthStandardRepository
+		const allStandards = await this.strengthStandardRepository
 			.createQueryBuilder('ss')
 			.where('ss.exercise_id = :exerciseId', { exerciseId })
 			.andWhere('ss.gender = :gender', { gender })
 			.andWhere('ss.standard_type = :standardType', { standardType: 'BODYWEIGHT' })
-			.andWhere('ss.bodyweight_min = :min', { min: closestRange.bodyweightMin })
-			.andWhere('ss.bodyweight_max = :max', { max: closestRange.bodyweightMax })
 			.orderBy(
 				`CASE ss.level 
 					WHEN 'BEGINNER' THEN 1 
@@ -164,6 +187,35 @@ export class StrengthLevelService {
 				'ASC',
 			)
 			.getMany();
+
+		if (allStandards.length === 0) {
+			return [];
+		}
+
+		// 체중이 범위 내에 있는 기준 찾기
+		const matchingStandards = allStandards.filter(
+			(s) => s.bodyweightMin <= bodyWeight && s.bodyweightMax >= bodyWeight,
+		);
+
+		if (matchingStandards.length > 0) {
+			return matchingStandards;
+		}
+
+		// 범위 내에 없으면 가장 가까운 범위 선택
+		const closestStandards = allStandards.reduce((closest, current) => {
+			const currentDistance = Math.min(
+				Math.abs(current.bodyweightMin - bodyWeight),
+				Math.abs(current.bodyweightMax - bodyWeight),
+			);
+			const closestDistance = Math.min(
+				Math.abs(closest[0]?.bodyweightMin - bodyWeight || Infinity),
+				Math.abs(closest[0]?.bodyweightMax - bodyWeight || Infinity),
+			);
+
+			return currentDistance < closestDistance ? [current] : closest;
+		}, [allStandards[0]]);
+
+		return closestStandards;
 	}
 
 	/**
@@ -215,38 +267,27 @@ export class StrengthLevelService {
 		allLevels: LevelInfo[],
 		currentWeight: number,
 	): CurrentLevelInfo {
-		// 현재 레벨 찾기 (가장 높은 달성 레벨)
-		let currentLevelIndex = -1;
-		for (let i = allLevels.length - 1; i >= 0; i--) {
-			if (currentWeight >= allLevels[i].weight) {
-				currentLevelIndex = i;
-				break;
-			}
-		}
+		const currentLevel = allLevels.find((level) => level.isCurrent);
+		const nextLevel = allLevels.find((level) => level.isNext);
 
-		// 아직 BEGINNER도 달성하지 못한 경우
-		if (currentLevelIndex === -1) {
-			const beginnerLevel = allLevels[0];
+		if (!currentLevel) {
+			// 현재 레벨이 없으면 가장 낮은 레벨을 다음 목표로 설정
+			const firstLevel = allLevels[0];
 			return {
-				level: StrengthLevel.BEGINNER,
-				levelKorean: '미달성',
+				level: firstLevel.level,
+				levelKorean: firstLevel.levelKorean,
 				weight: currentWeight,
-				weightToNextLevel: Math.round((beginnerLevel.weight - currentWeight) * 10) / 10,
-				nextLevel: StrengthLevel.BEGINNER,
-				nextLevelKorean: StrengthLevelFriendlyNames[StrengthLevel.BEGINNER],
+				weightToNextLevel: firstLevel.weight - currentWeight,
+				nextLevel: firstLevel.level,
+				nextLevelKorean: firstLevel.levelKorean,
 			};
 		}
-
-		const currentLevel = allLevels[currentLevelIndex];
-		const nextLevel = allLevels[currentLevelIndex + 1];
 
 		return {
 			level: currentLevel.level,
 			levelKorean: currentLevel.levelKorean,
 			weight: currentWeight,
-			weightToNextLevel: nextLevel
-				? Math.round((nextLevel.weight - currentWeight) * 10) / 10
-				: 0,
+			weightToNextLevel: nextLevel ? nextLevel.weight - currentWeight : 0,
 			nextLevel: nextLevel?.level,
 			nextLevelKorean: nextLevel?.levelKorean,
 		};

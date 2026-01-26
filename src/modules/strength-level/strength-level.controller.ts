@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { StrengthLevelService } from './strength-level.service';
 import { CalculateStrengthLevelDto } from './dto/calculate-strength-level.dto';
 import { StrengthLevelResponse } from './dto/strength-level-response.dto';
+import { Public } from '../../common/decorators';
 
 /**
  * Strength Level 측정기 컨트롤러
@@ -19,6 +20,7 @@ export class StrengthLevelController {
 	 * 현재 무게 입력시 현재 레벨 판정
 	 */
 	@Post('calculate')
+	@Public()
 	@HttpCode(HttpStatus.OK)
 	@ApiOperation({
 		summary: '빅3 Strength Level 계산',

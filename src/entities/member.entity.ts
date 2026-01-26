@@ -6,6 +6,8 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
   Index,
 } from 'typeorm';
 import { Assessment } from './assessment.entity';
@@ -16,6 +18,7 @@ import { AbilitySnapshot } from './ability-snapshot.entity';
 import { WorkoutRecord } from './workout-record.entity';
 import { PTSession } from './pt-session.entity';
 import { WorkoutRoutine } from './workout-routine.entity';
+import { User } from './user.entity';
 import { MemberStatus, Gender } from '../common/enums';
 
 @Index('idx_members_email', ['email'])
@@ -32,8 +35,15 @@ export class Member {
   @Column({ length: 50 })
   phone: string;
 
-  @Column({ length: 255 })
-  email: string;
+  @Column({ length: 255, nullable: true })
+  email?: string;
+
+  @Column({ name: 'user_id', nullable: true })
+  userId?: string;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'user_id' })
+  user?: User;
 
   @Column({ type: 'date', name: 'join_date' })
   joinDate: Date;

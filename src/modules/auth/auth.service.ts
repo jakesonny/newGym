@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { User } from '../../entities/user.entity';
+import { Member } from '../../entities/member.entity';
 import { Role } from '../../common/enums';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -22,6 +23,8 @@ export class AuthService {
 	constructor(
 		@InjectRepository(User)
 		private userRepository: Repository<User>,
+		@InjectRepository(Member)
+		private memberRepository: Repository<Member>,
 		private jwtService: JwtService,
 		private configService: ConfigService,
 	) {}
@@ -140,6 +143,25 @@ export class AuthService {
       }
 
       this.logger.log(`회원가입 완료: ${savedUser.email} (ID: ${savedUser.id})`);
+
+      // 1차피드백: 회원가입 시 email로 Member 찾아서 userId 연결
+      try {
+        const existingMember = await this.memberRepository.findOne({
+          where: { email: savedUser.email },
+        });
+
+        if (existingMember && !existingMember.userId) {
+          existingMember.userId = savedUser.id;
+          await this.memberRepository.save(existingMember);
+          this.logger.log(
+            `기존 Member와 User 연결 완료: Email: ${savedUser.email}, MemberID: ${existingMember.id}`,
+          );
+        }
+      } catch (memberConnectError) {
+        this.logger.warn(
+          `Member 연결 중 오류 발생 (무시하고 계속): ${memberConnectError.message}`,
+        );
+      }
 
       return {
         id: savedUser.id,

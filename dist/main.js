@@ -811,7 +811,7 @@ let HttpExceptionFilter = HttpExceptionFilter_1 = class HttpExceptionFilter {
                 errorCode = error_codes_1.ErrorCodes.FORBIDDEN;
             }
             else if (status === common_1.HttpStatus.NOT_FOUND) {
-                errorCode = error_codes_1.ErrorCodes.MEMBER_NOT_FOUND;
+                errorCode = error_codes_1.ErrorCodes.RESOURCE_NOT_FOUND;
             }
             if (typeof exceptionResponse === "string") {
                 message = exceptionResponse;
@@ -1475,6 +1475,24 @@ class DateRangeHelper {
         end.setHours(23, 59, 59, 999);
         return { start, end };
     }
+    static getRangeFromPeriod(period) {
+        const range = period === 'month' ? this.getMonthRange() : this.getWeekRange();
+        return {
+            startDate: this.formatDateString(range.start),
+            endDate: this.formatDateString(range.end),
+        };
+    }
+    static getPreviousRange(startDate, endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const diff = end.getTime() - start.getTime() + (24 * 60 * 60 * 1000);
+        const prevStart = new Date(start.getTime() - diff);
+        const prevEnd = new Date(end.getTime() - diff);
+        return {
+            startDate: this.formatDateString(prevStart),
+            endDate: this.formatDateString(prevEnd),
+        };
+    }
     static getDaysAgoRange(days, date = new Date()) {
         const start = new Date(date);
         start.setDate(date.getDate() - days);
@@ -1524,6 +1542,9 @@ class EntityUpdateHelper {
         });
         return entity;
     }
+    static updateEntity(entity, updateDto, dateFields = []) {
+        return this.updateFieldsWithDateConversion(entity, updateDto, dateFields);
+    }
     static updateFieldsWithDateConversion(entity, updateDto, dateFields = []) {
         const fieldMappers = {};
         dateFields.forEach((field) => {
@@ -1565,6 +1586,7 @@ exports.ErrorCodes = void 0;
 exports.ErrorCodes = {
     UNAUTHORIZED: 'UNAUTHORIZED',
     FORBIDDEN: 'FORBIDDEN',
+    RESOURCE_NOT_FOUND: 'RESOURCE_NOT_FOUND',
     MEMBER_NOT_FOUND: 'MEMBER_NOT_FOUND',
     MEMBER_ALREADY_EXISTS: 'MEMBER_ALREADY_EXISTS',
     ASSESSMENT_NOT_FOUND: 'ASSESSMENT_NOT_FOUND',
@@ -2291,41 +2313,6 @@ exports.QueryBuilderHelper = QueryBuilderHelper;
 
 /***/ }),
 
-/***/ "./src/common/utils/relative-strength-calculator.ts":
-/*!**********************************************************!*\
-  !*** ./src/common/utils/relative-strength-calculator.ts ***!
-  \**********************************************************/
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.RelativeStrengthCalculator = void 0;
-class RelativeStrengthCalculator {
-    static calculate(oneRepMax, bodyWeight) {
-        if (bodyWeight <= 0) {
-            throw new Error('체중은 0보다 커야 합니다.');
-        }
-        if (oneRepMax < 0) {
-            throw new Error('1RM은 0 이상이어야 합니다.');
-        }
-        const relativeStrength = (oneRepMax / bodyWeight) * 100;
-        return {
-            relativeStrength: Math.round(relativeStrength * 100) / 100,
-            oneRepMax,
-            bodyWeight,
-        };
-    }
-    static calculateFromWeightAndReps(weight, reps, bodyWeight, formula) {
-        const { OneRepMaxCalculator, OneRepMaxFormula } = __webpack_require__(/*! ./one-rep-max-calculator */ "./src/common/utils/one-rep-max-calculator.ts");
-        const oneRepMaxResult = OneRepMaxCalculator.calculate(weight, reps, formula || OneRepMaxFormula.EPLEY);
-        return this.calculate(oneRepMaxResult.oneRepMax, bodyWeight);
-    }
-}
-exports.RelativeStrengthCalculator = RelativeStrengthCalculator;
-
-
-/***/ }),
-
 /***/ "./src/common/utils/repository-helper.ts":
 /*!***********************************************!*\
   !*** ./src/common/utils/repository-helper.ts ***!
@@ -2337,6 +2324,20 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RepositoryHelper = void 0;
 const exceptions_1 = __webpack_require__(/*! ../exceptions */ "./src/common/exceptions/index.ts");
 class RepositoryHelper {
+    static async findOneOrFailByUserId(repository, id, userId, logger, entityName, where) {
+        const entity = await repository.findOne({
+            where: {
+                id,
+                userId,
+                ...where,
+            },
+        });
+        if (!entity) {
+            logger.warn(`${entityName}을 찾을 수 없습니다. ID: ${id}, UserId: ${userId}`);
+            throw exceptions_1.ApiExceptions.memberNotFound(`${entityName}을 찾을 수 없습니다.`);
+        }
+        return entity;
+    }
     static async findOneOrFailByMemberId(repository, id, memberId, logger, entityName, where) {
         const entity = await repository.findOne({
             where: {
@@ -4058,7 +4059,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a, _b, _c, _d, _e, _f, _g;
+var _a, _b, _c, _d, _e, _f, _g, _h;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Member = void 0;
 const typeorm_1 = __webpack_require__(/*! typeorm */ "typeorm");
@@ -4070,6 +4071,7 @@ const ability_snapshot_entity_1 = __webpack_require__(/*! ./ability-snapshot.ent
 const workout_record_entity_1 = __webpack_require__(/*! ./workout-record.entity */ "./src/entities/workout-record.entity.ts");
 const pt_session_entity_1 = __webpack_require__(/*! ./pt-session.entity */ "./src/entities/pt-session.entity.ts");
 const workout_routine_entity_1 = __webpack_require__(/*! ./workout-routine.entity */ "./src/entities/workout-routine.entity.ts");
+const user_entity_1 = __webpack_require__(/*! ./user.entity */ "./src/entities/user.entity.ts");
 const enums_1 = __webpack_require__(/*! ../common/enums */ "./src/common/enums/index.ts");
 let Member = class Member {
 };
@@ -4087,12 +4089,21 @@ __decorate([
     __metadata("design:type", String)
 ], Member.prototype, "phone", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ length: 255 }),
+    (0, typeorm_1.Column)({ length: 255, nullable: true }),
     __metadata("design:type", String)
 ], Member.prototype, "email", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'user_id', nullable: true }),
+    __metadata("design:type", String)
+], Member.prototype, "userId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.User, { nullable: true }),
+    (0, typeorm_1.JoinColumn)({ name: 'user_id' }),
+    __metadata("design:type", typeof (_a = typeof user_entity_1.User !== "undefined" && user_entity_1.User) === "function" ? _a : Object)
+], Member.prototype, "user", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'date', name: 'join_date' }),
-    __metadata("design:type", typeof (_a = typeof Date !== "undefined" && Date) === "function" ? _a : Object)
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
 ], Member.prototype, "joinDate", void 0);
 __decorate([
     (0, typeorm_1.Column)({
@@ -4100,7 +4111,7 @@ __decorate([
         enum: enums_1.MemberStatus,
         default: enums_1.MemberStatus.ACTIVE,
     }),
-    __metadata("design:type", typeof (_b = typeof enums_1.MemberStatus !== "undefined" && enums_1.MemberStatus) === "function" ? _b : Object)
+    __metadata("design:type", typeof (_c = typeof enums_1.MemberStatus !== "undefined" && enums_1.MemberStatus) === "function" ? _c : Object)
 ], Member.prototype, "status", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'float', name: 'height', nullable: true, comment: '키 (cm)' }),
@@ -4117,7 +4128,7 @@ __decorate([
         nullable: true,
         comment: '생년월일',
     }),
-    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+    __metadata("design:type", typeof (_d = typeof Date !== "undefined" && Date) === "function" ? _d : Object)
 ], Member.prototype, "birthDate", void 0);
 __decorate([
     (0, typeorm_1.Column)({
@@ -4136,7 +4147,7 @@ __decorate([
         nullable: true,
         comment: '성별',
     }),
-    __metadata("design:type", typeof (_d = typeof enums_1.Gender !== "undefined" && enums_1.Gender) === "function" ? _d : Object)
+    __metadata("design:type", typeof (_e = typeof enums_1.Gender !== "undefined" && enums_1.Gender) === "function" ? _e : Object)
 ], Member.prototype, "gender", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'text', nullable: true }),
@@ -4192,15 +4203,15 @@ __decorate([
 ], Member.prototype, "workoutRoutines", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
-    __metadata("design:type", typeof (_e = typeof Date !== "undefined" && Date) === "function" ? _e : Object)
+    __metadata("design:type", typeof (_f = typeof Date !== "undefined" && Date) === "function" ? _f : Object)
 ], Member.prototype, "createdAt", void 0);
 __decorate([
     (0, typeorm_1.UpdateDateColumn)({ name: 'updated_at' }),
-    __metadata("design:type", typeof (_f = typeof Date !== "undefined" && Date) === "function" ? _f : Object)
+    __metadata("design:type", typeof (_g = typeof Date !== "undefined" && Date) === "function" ? _g : Object)
 ], Member.prototype, "updatedAt", void 0);
 __decorate([
     (0, typeorm_1.DeleteDateColumn)({ name: 'deleted_at', nullable: true }),
-    __metadata("design:type", typeof (_g = typeof Date !== "undefined" && Date) === "function" ? _g : Object)
+    __metadata("design:type", typeof (_h = typeof Date !== "undefined" && Date) === "function" ? _h : Object)
 ], Member.prototype, "deletedAt", void 0);
 exports.Member = Member = __decorate([
     (0, typeorm_1.Index)('idx_members_email', ['email']),
@@ -4812,6 +4823,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.User = void 0;
 const typeorm_1 = __webpack_require__(/*! typeorm */ "typeorm");
 const enums_1 = __webpack_require__(/*! ../common/enums */ "./src/common/enums/index.ts");
+const workout_record_entity_1 = __webpack_require__(/*! ./workout-record.entity */ "./src/entities/workout-record.entity.ts");
 let User = class User {
 };
 exports.User = User;
@@ -4856,6 +4868,10 @@ __decorate([
     __metadata("design:type", Boolean)
 ], User.prototype, "isApproved", void 0);
 __decorate([
+    (0, typeorm_1.OneToMany)(() => workout_record_entity_1.WorkoutRecord, (workoutRecord) => workoutRecord.user),
+    __metadata("design:type", Array)
+], User.prototype, "workoutRecords", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
 ], User.prototype, "createdAt", void 0);
@@ -4893,11 +4909,12 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a, _b, _c, _d, _e;
+var _a, _b, _c, _d, _e, _f;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.WorkoutRecord = exports.WorkoutType = void 0;
 const typeorm_1 = __webpack_require__(/*! typeorm */ "typeorm");
 const member_entity_1 = __webpack_require__(/*! ./member.entity */ "./src/entities/member.entity.ts");
+const user_entity_1 = __webpack_require__(/*! ./user.entity */ "./src/entities/user.entity.ts");
 const enums_1 = __webpack_require__(/*! ../common/enums */ "./src/common/enums/index.ts");
 var WorkoutType;
 (function (WorkoutType) {
@@ -4912,19 +4929,31 @@ __decorate([
     __metadata("design:type", String)
 ], WorkoutRecord.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'member_id' }),
+    (0, typeorm_1.Column)({ name: 'user_id' }),
+    __metadata("design:type", String)
+], WorkoutRecord.prototype, "userId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.User, (user) => user.workoutRecords, {
+        onDelete: 'CASCADE',
+    }),
+    (0, typeorm_1.JoinColumn)({ name: 'user_id' }),
+    __metadata("design:type", typeof (_a = typeof user_entity_1.User !== "undefined" && user_entity_1.User) === "function" ? _a : Object)
+], WorkoutRecord.prototype, "user", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'member_id', nullable: true }),
     __metadata("design:type", String)
 ], WorkoutRecord.prototype, "memberId", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => member_entity_1.Member, (member) => member.workoutRecords, {
         onDelete: 'CASCADE',
+        nullable: true,
     }),
     (0, typeorm_1.JoinColumn)({ name: 'member_id' }),
-    __metadata("design:type", typeof (_a = typeof member_entity_1.Member !== "undefined" && member_entity_1.Member) === "function" ? _a : Object)
+    __metadata("design:type", typeof (_b = typeof member_entity_1.Member !== "undefined" && member_entity_1.Member) === "function" ? _b : Object)
 ], WorkoutRecord.prototype, "member", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'date', name: 'workout_date' }),
-    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
 ], WorkoutRecord.prototype, "workoutDate", void 0);
 __decorate([
     (0, typeorm_1.Column)({ length: 50, name: 'body_part' }),
@@ -4986,17 +5015,18 @@ __decorate([
         name: 'strength_level',
         nullable: true,
     }),
-    __metadata("design:type", typeof (_c = typeof enums_1.StrengthLevel !== "undefined" && enums_1.StrengthLevel) === "function" ? _c : Object)
+    __metadata("design:type", typeof (_d = typeof enums_1.StrengthLevel !== "undefined" && enums_1.StrengthLevel) === "function" ? _d : Object)
 ], WorkoutRecord.prototype, "strengthLevel", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
-    __metadata("design:type", typeof (_d = typeof Date !== "undefined" && Date) === "function" ? _d : Object)
+    __metadata("design:type", typeof (_e = typeof Date !== "undefined" && Date) === "function" ? _e : Object)
 ], WorkoutRecord.prototype, "createdAt", void 0);
 __decorate([
     (0, typeorm_1.UpdateDateColumn)({ name: 'updated_at' }),
-    __metadata("design:type", typeof (_e = typeof Date !== "undefined" && Date) === "function" ? _e : Object)
+    __metadata("design:type", typeof (_f = typeof Date !== "undefined" && Date) === "function" ? _f : Object)
 ], WorkoutRecord.prototype, "updatedAt", void 0);
 exports.WorkoutRecord = WorkoutRecord = __decorate([
+    (0, typeorm_1.Index)('idx_workout_records_user_id', ['userId']),
     (0, typeorm_1.Index)('idx_workout_records_member_id', ['memberId']),
     (0, typeorm_1.Index)('idx_workout_records_workout_date', ['workoutDate']),
     (0, typeorm_1.Index)('idx_workout_records_workout_type', ['workoutType']),
@@ -6630,13 +6660,14 @@ const auth_service_1 = __webpack_require__(/*! ./auth.service */ "./src/modules/
 const jwt_strategy_1 = __webpack_require__(/*! ./strategies/jwt.strategy */ "./src/modules/auth/strategies/jwt.strategy.ts");
 const kakao_strategy_1 = __webpack_require__(/*! ./strategies/kakao.strategy */ "./src/modules/auth/strategies/kakao.strategy.ts");
 const user_entity_1 = __webpack_require__(/*! ../../entities/user.entity */ "./src/entities/user.entity.ts");
+const member_entity_1 = __webpack_require__(/*! ../../entities/member.entity */ "./src/entities/member.entity.ts");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User]),
+            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User, member_entity_1.Member]),
             passport_1.PassportModule,
             jwt_1.JwtModule.registerAsync({
                 imports: [config_1.ConfigModule],
@@ -6681,7 +6712,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var AuthService_1;
-var _a, _b, _c;
+var _a, _b, _c, _d;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthService = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -6691,12 +6722,14 @@ const typeorm_2 = __webpack_require__(/*! typeorm */ "typeorm");
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
 const bcrypt = __webpack_require__(/*! bcrypt */ "bcrypt");
 const user_entity_1 = __webpack_require__(/*! ../../entities/user.entity */ "./src/entities/user.entity.ts");
+const member_entity_1 = __webpack_require__(/*! ../../entities/member.entity */ "./src/entities/member.entity.ts");
 const enums_1 = __webpack_require__(/*! ../../common/enums */ "./src/common/enums/index.ts");
 const exceptions_1 = __webpack_require__(/*! ../../common/exceptions */ "./src/common/exceptions/index.ts");
 const entity_update_helper_1 = __webpack_require__(/*! ../../common/utils/entity-update-helper */ "./src/common/utils/entity-update-helper.ts");
 let AuthService = AuthService_1 = class AuthService {
-    constructor(userRepository, jwtService, configService) {
+    constructor(userRepository, memberRepository, jwtService, configService) {
         this.userRepository = userRepository;
+        this.memberRepository = memberRepository;
         this.jwtService = jwtService;
         this.configService = configService;
         this.logger = new common_1.Logger(AuthService_1.name);
@@ -6770,6 +6803,19 @@ let AuthService = AuthService_1 = class AuthService {
                 this.logger.log(`TRAINER 회원가입 완료 (승인 대기): ${savedUser.email} - ADMIN 승인 필요`);
             }
             this.logger.log(`회원가입 완료: ${savedUser.email} (ID: ${savedUser.id})`);
+            try {
+                const existingMember = await this.memberRepository.findOne({
+                    where: { email: savedUser.email },
+                });
+                if (existingMember && !existingMember.userId) {
+                    existingMember.userId = savedUser.id;
+                    await this.memberRepository.save(existingMember);
+                    this.logger.log(`기존 Member와 User 연결 완료: Email: ${savedUser.email}, MemberID: ${existingMember.id}`);
+                }
+            }
+            catch (memberConnectError) {
+                this.logger.warn(`Member 연결 중 오류 발생 (무시하고 계속): ${memberConnectError.message}`);
+            }
             return {
                 id: savedUser.id,
                 email: savedUser.email,
@@ -7037,7 +7083,8 @@ exports.AuthService = AuthService;
 exports.AuthService = AuthService = AuthService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
-    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, typeof (_b = typeof jwt_1.JwtService !== "undefined" && jwt_1.JwtService) === "function" ? _b : Object, typeof (_c = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _c : Object])
+    __param(1, (0, typeorm_1.InjectRepository)(member_entity_1.Member)),
+    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, typeof (_b = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _b : Object, typeof (_c = typeof jwt_1.JwtService !== "undefined" && jwt_1.JwtService) === "function" ? _c : Object, typeof (_d = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _d : Object])
 ], AuthService);
 
 
@@ -8692,7 +8739,8 @@ __decorate([
     __metadata("design:type", String)
 ], MemberBasicInfoDto.prototype, "phone", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: '이메일', example: 'member@example.com' }),
+    (0, swagger_1.ApiProperty)({ description: '이메일', example: 'member@example.com', required: false }),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEmail)(),
     (0, class_validator_1.MaxLength)(255),
     __metadata("design:type", String)
@@ -8876,7 +8924,8 @@ __decorate([
     __metadata("design:type", String)
 ], CreateMemberFullDto.prototype, "phone", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: '이메일', example: 'member@example.com' }),
+    (0, swagger_1.ApiProperty)({ description: '이메일', example: 'member@example.com', required: false }),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEmail)(),
     (0, class_validator_1.MaxLength)(255),
     __metadata("design:type", String)
@@ -8990,7 +9039,9 @@ __decorate([
         description: "이메일 주소",
         example: "member@example.com",
         maxLength: 255,
+        required: false,
     }),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEmail)({}, { message: "올바른 이메일 형식이 아닙니다." }),
     (0, class_validator_1.MaxLength)(255, { message: "이메일은 255자 이하여야 합니다." }),
     __metadata("design:type", String)
@@ -9472,6 +9523,16 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateWorkoutRecordDto.prototype, "trainerComment", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: '사용자 ID (선택적, 미입력시 현재 로그인 유저)',
+        example: 'uuid',
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateWorkoutRecordDto.prototype, "userId", void 0);
 
 
 /***/ }),
@@ -11603,6 +11664,7 @@ const goals_controller_1 = __webpack_require__(/*! ./goals.controller */ "./src/
 const memberships_controller_1 = __webpack_require__(/*! ./memberships.controller */ "./src/modules/members/memberships.controller.ts");
 const member_workout_routines_controller_1 = __webpack_require__(/*! ./member-workout-routines.controller */ "./src/modules/members/member-workout-routines.controller.ts");
 const member_entity_1 = __webpack_require__(/*! ../../entities/member.entity */ "./src/entities/member.entity.ts");
+const user_entity_1 = __webpack_require__(/*! ../../entities/user.entity */ "./src/entities/user.entity.ts");
 const membership_entity_1 = __webpack_require__(/*! ../../entities/membership.entity */ "./src/entities/membership.entity.ts");
 const pt_usage_entity_1 = __webpack_require__(/*! ../../entities/pt-usage.entity */ "./src/entities/pt-usage.entity.ts");
 const injury_history_entity_1 = __webpack_require__(/*! ../../entities/injury-history.entity */ "./src/entities/injury-history.entity.ts");
@@ -11624,6 +11686,7 @@ exports.MembersModule = MembersModule = __decorate([
         imports: [
             typeorm_1.TypeOrmModule.forFeature([
                 member_entity_1.Member,
+                user_entity_1.User,
                 membership_entity_1.Membership,
                 pt_usage_entity_1.PTUsage,
                 injury_history_entity_1.InjuryHistory,
@@ -11645,6 +11708,7 @@ exports.MembersModule = MembersModule = __decorate([
             abilities_controller_1.AbilitiesController,
             workout_routines_controller_1.WorkoutRoutinesController,
             workout_records_controller_1.WorkoutRecordsController,
+            workout_records_controller_1.UserWorkoutRecordsController,
             pt_sessions_controller_1.PTSessionsController,
             goals_controller_1.GoalsController,
             memberships_controller_1.MembershipsController,
@@ -11702,14 +11766,35 @@ let MembersService = MembersService_1 = class MembersService {
         this.logger = new common_1.Logger(MembersService_1.name);
     }
     async findAll(page = 1, pageSize = 10) {
-        const skip = (page - 1) * pageSize;
-        const [members, total] = await this.memberRepository.findAndCount({
-            relations: ['memberships', 'ptUsages'],
-            order: { createdAt: 'DESC' },
-            skip,
-            take: pageSize,
-        });
-        return { members, total, page, pageSize };
+        try {
+            const skip = (page - 1) * pageSize;
+            const [members, total] = await this.memberRepository.findAndCount({
+                relations: ['memberships', 'ptUsages'],
+                order: { createdAt: 'DESC' },
+                skip,
+                take: pageSize,
+                withDeleted: false,
+            });
+            return { members, total, page, pageSize };
+        }
+        catch (error) {
+            this.logger.error(`회원 목록 조회 실패: ${error.message}`, error.stack);
+            try {
+                this.logger.warn('Relations 로드 실패, relations 없이 재시도...');
+                const skip = (page - 1) * pageSize;
+                const [members, total] = await this.memberRepository.findAndCount({
+                    order: { createdAt: 'DESC' },
+                    skip,
+                    take: pageSize,
+                    withDeleted: false,
+                });
+                return { members, total, page, pageSize };
+            }
+            catch (retryError) {
+                this.logger.error(`회원 목록 조회 재시도 실패: ${retryError.message}`, retryError.stack);
+                throw exceptions_1.ApiExceptions.internalServerError('회원 목록을 불러오는 중 오류가 발생했습니다.');
+            }
+        }
     }
     async findOne(id) {
         const member = await repository_helper_1.RepositoryHelper.findOneOrFail(this.memberRepository, {
@@ -11723,12 +11808,14 @@ let MembersService = MembersService_1 = class MembersService {
         return member;
     }
     async create(createMemberDto) {
-        const existingMember = await this.memberRepository.findOne({
-            where: { email: createMemberDto.email },
-        });
-        if (existingMember) {
-            this.logger.warn(`이미 등록된 이메일입니다. Email: ${createMemberDto.email}`);
-            throw exceptions_1.ApiExceptions.memberAlreadyExists();
+        if (createMemberDto.email) {
+            const existingMember = await this.memberRepository.findOne({
+                where: { email: createMemberDto.email },
+            });
+            if (existingMember) {
+                this.logger.warn(`이미 등록된 이메일입니다. Email: ${createMemberDto.email}`);
+                throw exceptions_1.ApiExceptions.memberAlreadyExists();
+            }
         }
         const birthDate = createMemberDto.birthDate ? new Date(createMemberDto.birthDate) : undefined;
         const age = member_helper_1.MemberHelper.calculateAge(birthDate);
@@ -11742,12 +11829,14 @@ let MembersService = MembersService_1 = class MembersService {
         return this.memberRepository.save(member);
     }
     async createFull(dto) {
-        const existingMember = await this.memberRepository.findOne({
-            where: { email: dto.email },
-        });
-        if (existingMember) {
-            this.logger.warn(`이미 등록된 이메일입니다. Email: ${dto.email}`);
-            throw exceptions_1.ApiExceptions.memberAlreadyExists();
+        if (dto.email) {
+            const existingMember = await this.memberRepository.findOne({
+                where: { email: dto.email },
+            });
+            if (existingMember) {
+                this.logger.warn(`이미 등록된 이메일입니다. Email: ${dto.email}`);
+                throw exceptions_1.ApiExceptions.memberAlreadyExists();
+            }
         }
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
@@ -12849,9 +12938,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e;
+var _a, _b, _c, _d, _e, _f, _g;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.WorkoutRecordsController = void 0;
+exports.UserWorkoutRecordsController = exports.WorkoutRecordsController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 const workout_records_service_1 = __webpack_require__(/*! ./workout-records.service */ "./src/modules/members/workout-records.service.ts");
@@ -12861,7 +12950,6 @@ const update_workout_record_dto_1 = __webpack_require__(/*! ./dto/update-workout
 const workout_volume_query_dto_1 = __webpack_require__(/*! ./dto/workout-volume-query.dto */ "./src/modules/members/dto/workout-volume-query.dto.ts");
 const guards_1 = __webpack_require__(/*! ../../common/guards */ "./src/common/guards/index.ts");
 const api_response_1 = __webpack_require__(/*! ../../common/utils/api-response */ "./src/common/utils/api-response.ts");
-const exceptions_1 = __webpack_require__(/*! ../../common/exceptions */ "./src/common/exceptions/index.ts");
 const decorators_1 = __webpack_require__(/*! ../../common/decorators */ "./src/common/decorators/index.ts");
 const pagination_helper_1 = __webpack_require__(/*! ../../common/utils/pagination-helper */ "./src/common/utils/pagination-helper.ts");
 let WorkoutRecordsController = class WorkoutRecordsController {
@@ -12896,23 +12984,24 @@ let WorkoutRecordsController = class WorkoutRecordsController {
     }
     async getWorkoutRecords(memberId, page, pageSize, startDate, endDate) {
         const { page: pageNum, pageSize: pageSizeNum } = (0, pagination_helper_1.parsePagination)(page, pageSize);
-        const result = await this.workoutRecordsService.findAll(memberId, pageNum, pageSizeNum, startDate, endDate);
+        const result = await this.workoutRecordsService.findAll({ memberId }, pageNum, pageSizeNum, startDate, endDate);
         return api_response_1.ApiResponseHelper.success(result, "운동 기록 목록 조회 성공");
     }
-    async getWorkoutRecord(memberId, recordId) {
-        const record = await this.workoutRecordsService.findOne(recordId, memberId);
-        return api_response_1.ApiResponseHelper.success(record, "운동 기록 상세 조회 성공");
+    async getWorkoutRecord(memberId, id) {
+        const record = await this.workoutRecordsService.findOne(id, { memberId });
+        return api_response_1.ApiResponseHelper.success(record, "운동 기록 조회 성공");
     }
-    async createWorkoutRecord(memberId, createDto) {
-        const record = await this.workoutRecordsService.create(memberId, createDto);
-        return api_response_1.ApiResponseHelper.success(record, "운동 기록 생성 성공");
+    async createWorkoutRecord(memberId, createWorkoutRecordDto, req) {
+        const userId = createWorkoutRecordDto.userId || req.user.id;
+        const record = await this.workoutRecordsService.create({ memberId, userId }, createWorkoutRecordDto);
+        return api_response_1.ApiResponseHelper.success(record, "운동 기록 등록 성공");
     }
-    async updateWorkoutRecord(memberId, recordId, updateDto) {
-        const record = await this.workoutRecordsService.update(recordId, memberId, updateDto);
+    async updateWorkoutRecord(memberId, id, updateWorkoutRecordDto) {
+        const record = await this.workoutRecordsService.update(id, { memberId }, updateWorkoutRecordDto);
         return api_response_1.ApiResponseHelper.success(record, "운동 기록 수정 성공");
     }
-    async deleteWorkoutRecord(memberId, recordId) {
-        await this.workoutRecordsService.remove(recordId, memberId);
+    async removeWorkoutRecord(memberId, id) {
+        await this.workoutRecordsService.remove(id, { memberId });
         return api_response_1.ApiResponseHelper.success(null, "운동 기록 삭제 성공");
     }
     async getOneRepMax(memberId, type) {
@@ -12924,16 +13013,8 @@ let WorkoutRecordsController = class WorkoutRecordsController {
         return api_response_1.ApiResponseHelper.success(result, "1RM 추정 조회 성공");
     }
     async getStrengthProgress(memberId, exerciseName) {
-        const progress = await this.workoutRecordsService.getStrengthProgress(memberId, exerciseName);
-        return api_response_1.ApiResponseHelper.success(progress, "Strength Level 변화 추적 조회 성공");
-    }
-    async suggestWeight(memberId, exerciseName, reps) {
-        const repsNum = parseInt(reps, 10);
-        if (isNaN(repsNum) || repsNum <= 0) {
-            throw exceptions_1.ApiExceptions.badRequest("유효한 반복 횟수를 입력해주세요.");
-        }
-        const result = await this.workoutRoutinesService.suggestWeightForExercise(memberId, exerciseName, repsNum);
-        return api_response_1.ApiResponseHelper.success(result, "무게 제안 조회 성공");
+        const result = await this.workoutRecordsService.getStrengthProgress(memberId, exerciseName);
+        return api_response_1.ApiResponseHelper.success(result, "근력 발달 과정 조회 성공");
     }
 };
 exports.WorkoutRecordsController = WorkoutRecordsController;
@@ -13045,16 +13126,14 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], WorkoutRecordsController.prototype, "getWorkoutRecords", null);
 __decorate([
-    (0, common_1.Get)(":recordId"),
+    (0, common_1.Get)(":id"),
     (0, decorators_1.MemberIdParam)(),
-    (0, swagger_1.ApiOperation)({
-        summary: "운동 기록 상세 조회",
-        description: "특정 운동 기록의 상세 정보를 조회합니다.",
-    }),
-    (0, swagger_1.ApiParam)({ name: "recordId", description: "운동 기록 ID (UUID)" }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: "운동 기록 상세 조회 성공" }),
+    (0, swagger_1.ApiParam)({ name: "id", description: "운동 기록 ID (UUID)" }),
+    (0, swagger_1.ApiOperation)({ summary: "운동 기록 상세 조회", description: "특정 운동 기록의 상세 정보를 조회합니다." }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: "운동 기록 조회 성공" }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: "운동 기록을 찾을 수 없습니다" }),
     __param(0, (0, common_1.Param)("memberId")),
-    __param(1, (0, common_1.Param)("recordId")),
+    __param(1, (0, common_1.Param)("id")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
@@ -13062,52 +13141,44 @@ __decorate([
 __decorate([
     (0, common_1.Post)(),
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
-    (0, decorators_1.MemberIdParam)(),
     (0, decorators_1.AdminTrainerRoles)(),
-    (0, swagger_1.ApiOperation)({
-        summary: "운동 기록 생성",
-        description: "새로운 운동 기록을 생성합니다. 볼륨은 자동 계산됩니다. (ADMIN, TRAINER 권한 필요)",
-    }),
-    (0, swagger_1.ApiResponse)({ status: 201, description: "운동 기록 생성 성공" }),
+    (0, decorators_1.MemberIdParam)(),
+    (0, swagger_1.ApiOperation)({ summary: "운동 기록 등록", description: "회원의 새로운 운동 기록을 등록합니다." }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: "운동 기록 등록 성공" }),
     __param(0, (0, common_1.Param)("memberId")),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_d = typeof create_workout_record_dto_1.CreateWorkoutRecordDto !== "undefined" && create_workout_record_dto_1.CreateWorkoutRecordDto) === "function" ? _d : Object]),
+    __metadata("design:paramtypes", [String, typeof (_d = typeof create_workout_record_dto_1.CreateWorkoutRecordDto !== "undefined" && create_workout_record_dto_1.CreateWorkoutRecordDto) === "function" ? _d : Object, Object]),
     __metadata("design:returntype", Promise)
 ], WorkoutRecordsController.prototype, "createWorkoutRecord", null);
 __decorate([
-    (0, common_1.Put)(":recordId"),
-    (0, decorators_1.MemberIdParam)(),
+    (0, common_1.Put)(":id"),
     (0, decorators_1.AdminTrainerRoles)(),
-    (0, swagger_1.ApiOperation)({
-        summary: "운동 기록 수정",
-        description: "기존 운동 기록을 수정합니다. 볼륨은 자동 재계산됩니다. (ADMIN, TRAINER 권한 필요)",
-    }),
-    (0, swagger_1.ApiParam)({ name: "recordId", description: "운동 기록 ID (UUID)" }),
+    (0, decorators_1.MemberIdParam)(),
+    (0, swagger_1.ApiParam)({ name: "id", description: "운동 기록 ID (UUID)" }),
+    (0, swagger_1.ApiOperation)({ summary: "운동 기록 수정", description: "기존 운동 기록을 수정합니다." }),
     (0, swagger_1.ApiResponse)({ status: 200, description: "운동 기록 수정 성공" }),
     __param(0, (0, common_1.Param)("memberId")),
-    __param(1, (0, common_1.Param)("recordId")),
+    __param(1, (0, common_1.Param)("id")),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String, typeof (_e = typeof update_workout_record_dto_1.UpdateWorkoutRecordDto !== "undefined" && update_workout_record_dto_1.UpdateWorkoutRecordDto) === "function" ? _e : Object]),
     __metadata("design:returntype", Promise)
 ], WorkoutRecordsController.prototype, "updateWorkoutRecord", null);
 __decorate([
-    (0, common_1.Delete)(":recordId"),
-    (0, decorators_1.MemberIdParam)(),
+    (0, common_1.Delete)(":id"),
     (0, decorators_1.AdminTrainerRoles)(),
-    (0, swagger_1.ApiOperation)({
-        summary: "운동 기록 삭제",
-        description: "운동 기록을 삭제합니다. (ADMIN, TRAINER 권한 필요)",
-    }),
-    (0, swagger_1.ApiParam)({ name: "recordId", description: "운동 기록 ID (UUID)" }),
+    (0, decorators_1.MemberIdParam)(),
+    (0, swagger_1.ApiParam)({ name: "id", description: "운동 기록 ID (UUID)" }),
+    (0, swagger_1.ApiOperation)({ summary: "운동 기록 삭제", description: "특정 운동 기록을 삭제합니다." }),
     (0, swagger_1.ApiResponse)({ status: 200, description: "운동 기록 삭제 성공" }),
     __param(0, (0, common_1.Param)("memberId")),
-    __param(1, (0, common_1.Param)("recordId")),
+    __param(1, (0, common_1.Param)("id")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
-], WorkoutRecordsController.prototype, "deleteWorkoutRecord", null);
+], WorkoutRecordsController.prototype, "removeWorkoutRecord", null);
 __decorate([
     (0, common_1.Get)("one-rep-max"),
     (0, decorators_1.MemberIdParam)(),
@@ -13127,34 +13198,17 @@ __decorate([
     (0, common_1.Get)("strength-progress"),
     (0, decorators_1.MemberIdParam)(),
     (0, swagger_1.ApiOperation)({
-        summary: "회원의 운동별 Strength Level 변화 추적",
-        description: "회원의 운동별 Strength Level 변화를 조회합니다.",
+        summary: "근력 발달 과정 조회",
+        description: "특정 운동의 근력 발달 과정을 날짜순으로 조회합니다.",
     }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: "Strength Level 변화 추적 조회 성공" }),
-    (0, swagger_1.ApiQuery)({ name: "exerciseName", required: false, description: "운동명 (선택적)" }),
+    (0, swagger_1.ApiQuery)({ name: "exerciseName", required: false, description: "조회할 운동명 (미지정시 전체)" }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: "근력 발달 과정 조회 성공" }),
     __param(0, (0, common_1.Param)("memberId")),
     __param(1, (0, common_1.Query)("exerciseName")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], WorkoutRecordsController.prototype, "getStrengthProgress", null);
-__decorate([
-    (0, common_1.Get)("suggest-weight"),
-    (0, decorators_1.MemberIdParam)(),
-    (0, swagger_1.ApiOperation)({
-        summary: "운동별 무게 제안",
-        description: "Strength Level 기반으로 운동별 권장 무게를 제안합니다.",
-    }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: "무게 제안 조회 성공" }),
-    (0, swagger_1.ApiQuery)({ name: "exerciseName", required: true, description: "운동명" }),
-    (0, swagger_1.ApiQuery)({ name: "reps", required: true, description: "반복 횟수" }),
-    __param(0, (0, common_1.Param)("memberId")),
-    __param(1, (0, common_1.Query)("exerciseName")),
-    __param(2, (0, common_1.Query)("reps")),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String]),
-    __metadata("design:returntype", Promise)
-], WorkoutRecordsController.prototype, "suggestWeight", null);
 exports.WorkoutRecordsController = WorkoutRecordsController = __decorate([
     (0, swagger_1.ApiTags)("workout-records"),
     (0, swagger_1.ApiBearerAuth)("JWT-auth"),
@@ -13162,6 +13216,54 @@ exports.WorkoutRecordsController = WorkoutRecordsController = __decorate([
     (0, common_1.UseGuards)(guards_1.JwtAuthGuard),
     __metadata("design:paramtypes", [typeof (_a = typeof workout_records_service_1.WorkoutRecordsService !== "undefined" && workout_records_service_1.WorkoutRecordsService) === "function" ? _a : Object, typeof (_b = typeof workout_routines_service_1.WorkoutRoutinesService !== "undefined" && workout_routines_service_1.WorkoutRoutinesService) === "function" ? _b : Object])
 ], WorkoutRecordsController);
+let UserWorkoutRecordsController = class UserWorkoutRecordsController {
+    constructor(workoutRecordsService) {
+        this.workoutRecordsService = workoutRecordsService;
+    }
+    async createMyWorkoutRecord(req, createWorkoutRecordDto) {
+        const userId = req.user.id;
+        const record = await this.workoutRecordsService.create({ userId }, createWorkoutRecordDto);
+        return api_response_1.ApiResponseHelper.success(record, "운동 기록 등록 성공");
+    }
+    async getMyWorkoutRecords(req, page, pageSize, startDate, endDate) {
+        const userId = req.user.id;
+        const { page: pageNum, pageSize: pageSizeNum } = (0, pagination_helper_1.parsePagination)(page, pageSize);
+        const result = await this.workoutRecordsService.findAll({ userId }, pageNum, pageSizeNum, startDate, endDate);
+        return api_response_1.ApiResponseHelper.success(result, "운동 기록 목록 조회 성공");
+    }
+};
+exports.UserWorkoutRecordsController = UserWorkoutRecordsController;
+__decorate([
+    (0, common_1.Post)(),
+    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    (0, swagger_1.ApiOperation)({ summary: "내 운동 기록 등록", description: "현재 로그인한 사용자의 새로운 운동 기록을 등록합니다." }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: "운동 기록 등록 성공" }),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, typeof (_g = typeof create_workout_record_dto_1.CreateWorkoutRecordDto !== "undefined" && create_workout_record_dto_1.CreateWorkoutRecordDto) === "function" ? _g : Object]),
+    __metadata("design:returntype", Promise)
+], UserWorkoutRecordsController.prototype, "createMyWorkoutRecord", null);
+__decorate([
+    (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: "내 운동 기록 목록 조회", description: "현재 로그인한 사용자의 운동 기록을 조회합니다." }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: "운동 기록 목록 조회 성공" }),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Query)("page")),
+    __param(2, (0, common_1.Query)("pageSize")),
+    __param(3, (0, common_1.Query)("startDate")),
+    __param(4, (0, common_1.Query)("endDate")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String, String, String]),
+    __metadata("design:returntype", Promise)
+], UserWorkoutRecordsController.prototype, "getMyWorkoutRecords", null);
+exports.UserWorkoutRecordsController = UserWorkoutRecordsController = __decorate([
+    (0, swagger_1.ApiTags)("workout-records"),
+    (0, swagger_1.ApiBearerAuth)("JWT-auth"),
+    (0, common_1.Controller)("api/workout-records"),
+    (0, common_1.UseGuards)(guards_1.JwtAuthGuard),
+    __metadata("design:paramtypes", [typeof (_f = typeof workout_records_service_1.WorkoutRecordsService !== "undefined" && workout_records_service_1.WorkoutRecordsService) === "function" ? _f : Object])
+], UserWorkoutRecordsController);
 
 
 /***/ }),
@@ -13186,7 +13288,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var WorkoutRecordsService_1;
-var _a, _b, _c, _d, _e, _f, _g, _h;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.WorkoutRecordsService = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -13194,9 +13296,9 @@ const typeorm_1 = __webpack_require__(/*! @nestjs/typeorm */ "@nestjs/typeorm");
 const typeorm_2 = __webpack_require__(/*! typeorm */ "typeorm");
 const workout_record_entity_1 = __webpack_require__(/*! ../../entities/workout-record.entity */ "./src/entities/workout-record.entity.ts");
 const member_entity_1 = __webpack_require__(/*! ../../entities/member.entity */ "./src/entities/member.entity.ts");
+const user_entity_1 = __webpack_require__(/*! ../../entities/user.entity */ "./src/entities/user.entity.ts");
 const pt_usage_entity_1 = __webpack_require__(/*! ../../entities/pt-usage.entity */ "./src/entities/pt-usage.entity.ts");
 const exercise_entity_1 = __webpack_require__(/*! ../../entities/exercise.entity */ "./src/entities/exercise.entity.ts");
-const workout_volume_query_dto_1 = __webpack_require__(/*! ./dto/workout-volume-query.dto */ "./src/modules/members/dto/workout-volume-query.dto.ts");
 const exceptions_1 = __webpack_require__(/*! ../../common/exceptions */ "./src/common/exceptions/index.ts");
 const pt_sessions_service_1 = __webpack_require__(/*! ./pt-sessions.service */ "./src/modules/members/pt-sessions.service.ts");
 const members_service_1 = __webpack_require__(/*! ./members.service */ "./src/modules/members/members.service.ts");
@@ -13207,14 +13309,14 @@ const date_range_helper_1 = __webpack_require__(/*! ../../common/utils/date-rang
 const entity_update_helper_1 = __webpack_require__(/*! ../../common/utils/entity-update-helper */ "./src/common/utils/entity-update-helper.ts");
 const repository_helper_1 = __webpack_require__(/*! ../../common/utils/repository-helper */ "./src/common/utils/repository-helper.ts");
 const one_rep_max_calculator_1 = __webpack_require__(/*! ../../common/utils/one-rep-max-calculator */ "./src/common/utils/one-rep-max-calculator.ts");
-const relative_strength_calculator_1 = __webpack_require__(/*! ../../common/utils/relative-strength-calculator */ "./src/common/utils/relative-strength-calculator.ts");
 const strength_level_evaluator_1 = __webpack_require__(/*! ../../common/utils/strength-level-evaluator */ "./src/common/utils/strength-level-evaluator.ts");
 const workout_record_helper_1 = __webpack_require__(/*! ../../common/utils/workout-record-helper */ "./src/common/utils/workout-record-helper.ts");
 const strength_standard_entity_1 = __webpack_require__(/*! ../../entities/strength-standard.entity */ "./src/entities/strength-standard.entity.ts");
 let WorkoutRecordsService = WorkoutRecordsService_1 = class WorkoutRecordsService {
-    constructor(workoutRecordRepository, memberRepository, ptUsageRepository, exerciseRepository, strengthStandardRepository, ptSessionsService, membersService, strengthLevelEvaluator) {
+    constructor(workoutRecordRepository, memberRepository, userRepository, ptUsageRepository, exerciseRepository, strengthStandardRepository, ptSessionsService, membersService, strengthLevelEvaluator) {
         this.workoutRecordRepository = workoutRecordRepository;
         this.memberRepository = memberRepository;
+        this.userRepository = userRepository;
         this.ptUsageRepository = ptUsageRepository;
         this.exerciseRepository = exerciseRepository;
         this.strengthStandardRepository = strengthStandardRepository;
@@ -13223,16 +13325,23 @@ let WorkoutRecordsService = WorkoutRecordsService_1 = class WorkoutRecordsServic
         this.strengthLevelEvaluator = strengthLevelEvaluator;
         this.logger = new common_1.Logger(WorkoutRecordsService_1.name);
         this.majorExerciseMapping = {
-            벤치프레스: ['벤치프레스', 'Bench Press', '인클라인 벤치프레스', 'Incline Bench Press', '덤벨 프레스', 'Dumbbell Press'],
-            스쿼트: ['스쿼트', 'Squat', '레그프레스', 'Leg Press', '스플릿 스쿼트', 'Split Squat'],
-            데드리프트: ['데드리프트', 'Deadlift', '루마니안 데드리프트', 'Romanian Deadlift', '스모 데드리프트', 'Sumo Deadlift'],
+            '벤치프레스': ['벤치프레스', 'Bench Press', 'Chest Press', '체스트 프레스'],
+            '스쿼트': ['스쿼트', 'Squat', 'Leg Press', '레그 프레스'],
+            '데드리프트': ['데드리프트', 'Deadlift', 'Romanian Deadlift', '로마니안 데드리프트'],
         };
     }
-    async findAll(memberId, page = 1, pageSize = 10, startDate, endDate) {
-        await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
-        const queryBuilder = this.workoutRecordRepository
-            .createQueryBuilder('record');
-        query_builder_helper_1.QueryBuilderHelper.addMemberIdFilter(queryBuilder, 'record.memberId', memberId);
+    async findAll(identifier, page = 1, pageSize = 10, startDate, endDate) {
+        const queryBuilder = this.workoutRecordRepository.createQueryBuilder('record');
+        if (identifier.memberId) {
+            await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, identifier.memberId, this.logger);
+            query_builder_helper_1.QueryBuilderHelper.addMemberIdFilter(queryBuilder, 'record.memberId', identifier.memberId);
+        }
+        else if (identifier.userId) {
+            queryBuilder.andWhere('record.userId = :userId', { userId: identifier.userId });
+        }
+        else {
+            throw exceptions_1.ApiExceptions.badRequest('회원 ID 또는 사용자 ID가 필요합니다.');
+        }
         query_builder_helper_1.QueryBuilderHelper.addOrderBy(queryBuilder, 'record.workoutDate', 'DESC');
         query_builder_helper_1.QueryBuilderHelper.addAdditionalOrderBy(queryBuilder, 'record.createdAt', 'DESC');
         query_builder_helper_1.QueryBuilderHelper.addDateRangeFilter(queryBuilder, 'record.workoutDate', startDate, endDate);
@@ -13241,35 +13350,41 @@ let WorkoutRecordsService = WorkoutRecordsService_1 = class WorkoutRecordsServic
         const records = await queryBuilder.getMany();
         return { records, total };
     }
-    async findOne(id, memberId) {
-        return repository_helper_1.RepositoryHelper.findOneOrFailByMemberId(this.workoutRecordRepository, id, memberId, this.logger, '운동 기록');
+    async findOne(id, identifier) {
+        const where = { id };
+        if (identifier.memberId)
+            where.memberId = identifier.memberId;
+        if (identifier.userId)
+            where.userId = identifier.userId;
+        return repository_helper_1.RepositoryHelper.findOneOrFailSimple(this.workoutRecordRepository, where, this.logger, '운동 기록');
     }
-    async create(memberId, createDto) {
-        await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
+    async create(identifier, createDto) {
+        if (identifier.memberId) {
+            await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, identifier.memberId, this.logger);
+        }
         const workoutType = createDto.workoutType ?? workout_record_entity_1.WorkoutType.PERSONAL;
         const { weight, reps, sets, volume } = workout_helper_1.WorkoutHelper.normalizeWorkoutValues(createDto.weight, createDto.reps, createDto.sets);
         let ptSessionId = createDto.ptSessionId;
-        if (workoutType === workout_record_entity_1.WorkoutType.PT && !ptSessionId) {
-            const ptUsage = await pt_usage_helper_1.PTUsageHelper.getLatestPTUsage(this.ptUsageRepository, memberId);
-            pt_usage_helper_1.PTUsageHelper.validatePTUsage(ptUsage, memberId, this.logger);
-            await pt_usage_helper_1.PTUsageHelper.deductPTUsage(this.ptUsageRepository, ptUsage, new Date(createDto.workoutDate), this.logger, memberId);
+        if (workoutType === workout_record_entity_1.WorkoutType.PT && !ptSessionId && identifier.memberId) {
+            const ptUsage = await pt_usage_helper_1.PTUsageHelper.getLatestPTUsage(this.ptUsageRepository, identifier.memberId);
+            pt_usage_helper_1.PTUsageHelper.validatePTUsage(ptUsage, identifier.memberId, this.logger);
+            await pt_usage_helper_1.PTUsageHelper.deductPTUsage(this.ptUsageRepository, ptUsage, new Date(createDto.workoutDate), this.logger, identifier.memberId);
             try {
-                const ptSession = await this.ptSessionsService.create(memberId, {
+                const ptSession = await this.ptSessionsService.create(identifier.memberId, {
                     sessionDate: createDto.workoutDate,
                     mainContent: `${createDto.exerciseName} - ${createDto.bodyPart}`,
                     trainerComment: createDto.trainerComment,
                 });
                 ptSessionId = ptSession.id;
-                this.logger.log(`PT 운동 기록 생성 시 자동으로 PT 세션 생성됨: ${ptSessionId} (MemberId: ${memberId})`);
             }
             catch (error) {
-                await pt_usage_helper_1.PTUsageHelper.restorePTUsage(this.ptUsageRepository, ptUsage, this.logger, memberId);
-                this.logger.error(`PT 세션 자동 생성 실패. PT 횟수 복구됨: ${error.message} (MemberId: ${memberId})`);
+                await pt_usage_helper_1.PTUsageHelper.restorePTUsage(this.ptUsageRepository, ptUsage, this.logger, identifier.memberId);
                 throw exceptions_1.ApiExceptions.badRequest(`PT 세션 생성에 실패했습니다: ${error.message}`);
             }
         }
         const recordData = entity_update_helper_1.EntityUpdateHelper.convertDateFields({
-            memberId,
+            userId: identifier.userId,
+            memberId: identifier.memberId,
             workoutDate: createDto.workoutDate,
             bodyPart: createDto.bodyPart,
             exerciseName: createDto.exerciseName,
@@ -13277,303 +13392,127 @@ let WorkoutRecordsService = WorkoutRecordsService_1 = class WorkoutRecordsServic
             reps,
             sets,
             volume,
-            duration: createDto.duration,
             workoutType,
             ptSessionId,
             trainerComment: createDto.trainerComment,
+            duration: createDto.duration,
         }, ['workoutDate']);
         const record = this.workoutRecordRepository.create(recordData);
-        await this.calculateStrengthLevel(record, memberId);
-        return this.workoutRecordRepository.save(record);
-    }
-    async update(id, memberId, updateDto) {
-        const record = await this.findOne(id, memberId);
-        entity_update_helper_1.EntityUpdateHelper.updateFieldsWithDateConversion(record, updateDto, ['workoutDate']);
-        record.volume = workout_helper_1.WorkoutHelper.calculateVolume(record.weight, record.reps, record.sets);
-        await this.calculateStrengthLevel(record, memberId);
-        return this.workoutRecordRepository.save(record);
-    }
-    async remove(id, memberId) {
-        const record = await this.findOne(id, memberId);
-        if (record.workoutType === workout_record_entity_1.WorkoutType.PT && record.ptSessionId) {
-            try {
-                await this.ptSessionsService.remove(record.ptSessionId, memberId);
-                const ptUsage = await pt_usage_helper_1.PTUsageHelper.getLatestPTUsage(this.ptUsageRepository, memberId);
-                await pt_usage_helper_1.PTUsageHelper.restorePTUsage(this.ptUsageRepository, ptUsage, this.logger, memberId);
-            }
-            catch (error) {
-                this.logger.error(`PT 세션 삭제 실패: ${error.message} (MemberId: ${memberId}, SessionId: ${record.ptSessionId})`);
-            }
-        }
-        await this.workoutRecordRepository.remove(record);
-    }
-    async getVolumeByBodyPart(memberId, query) {
-        await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
-        const period = query.period || workout_volume_query_dto_1.VolumePeriod.WEEK;
-        const { start: startDate, end: endDate } = period === workout_volume_query_dto_1.VolumePeriod.WEEK
-            ? date_range_helper_1.DateRangeHelper.getWeekRange()
-            : date_range_helper_1.DateRangeHelper.getMonthRange();
-        const records = await this.workoutRecordRepository.find({
-            where: { memberId, workoutDate: (0, typeorm_2.Between)(startDate, endDate) },
-        });
-        const volumeMap = workout_helper_1.WorkoutHelper.aggregateByBodyPart(records);
-        const bodyPartVolumes = Array.from(volumeMap.entries())
-            .map(([bodyPart, data]) => ({
-            bodyPart,
-            volume: workout_helper_1.WorkoutHelper.roundToTwo(data.volume),
-        }))
-            .sort((a, b) => b.volume - a.volume);
-        const totalVolume = bodyPartVolumes.reduce((sum, item) => sum + item.volume, 0);
-        return {
-            period,
-            bodyPartVolumes,
-            totalVolume: workout_helper_1.WorkoutHelper.roundToTwo(totalVolume),
-        };
-    }
-    async getVolumeAnalysis(memberId, period, startDate, endDate) {
-        await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
-        const result = {};
-        if (!period || period === 'WEEKLY') {
-            const { start: weekStart, end: weekEnd } = date_range_helper_1.DateRangeHelper.getWeekRange();
-            const weeklyRecords = await this.workoutRecordRepository.find({
-                where: { memberId, workoutDate: (0, typeorm_2.Between)(weekStart, weekEnd) },
-            });
-            const weeklyMap = workout_helper_1.WorkoutHelper.aggregateByBodyPart(weeklyRecords);
-            result.weekly = {
-                period: 'WEEKLY',
-                startDate: date_range_helper_1.DateRangeHelper.formatDateString(weekStart),
-                endDate: date_range_helper_1.DateRangeHelper.formatDateString(weekEnd),
-                bodyPartVolumes: workout_helper_1.WorkoutHelper.volumeMapToResults(weeklyMap),
-            };
-        }
-        if (!period || period === 'MONTHLY') {
-            const { start: monthStart, end: monthEnd } = date_range_helper_1.DateRangeHelper.getMonthRange();
-            const monthlyRecords = await this.workoutRecordRepository.find({
-                where: { memberId, workoutDate: (0, typeorm_2.Between)(monthStart, monthEnd) },
-            });
-            const monthlyMap = workout_helper_1.WorkoutHelper.aggregateByBodyPart(monthlyRecords);
-            result.monthly = {
-                period: 'MONTHLY',
-                startDate: date_range_helper_1.DateRangeHelper.formatDateString(monthStart),
-                endDate: date_range_helper_1.DateRangeHelper.formatDateString(monthEnd),
-                bodyPartVolumes: workout_helper_1.WorkoutHelper.volumeMapToResults(monthlyMap),
-            };
-        }
-        return result;
-    }
-    async getCalendar(memberId, startDate, endDate) {
-        await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
-        const ptSessions = await this.memberRepository.manager.query(`
-			SELECT 
-				session_date as "sessionDate",
-				COUNT(*) as count
-			FROM pt_sessions
-			WHERE member_id = $1
-				AND session_date >= $2
-				AND session_date <= $3
-			GROUP BY session_date
-		`, [memberId, startDate, endDate]);
-        const selfWorkouts = await this.memberRepository.manager.query(`
-			SELECT 
-				workout_date as "workoutDate",
-				COUNT(*) as count
-			FROM workout_records
-			WHERE member_id = $1
-				AND workout_type = 'PERSONAL'
-				AND workout_date >= $2
-				AND workout_date <= $3
-			GROUP BY workout_date
-		`, [memberId, startDate, endDate]);
-        const dateMap = new Map();
-        ptSessions.forEach((item) => {
-            const date = item.sessionDate;
-            if (!dateMap.has(date)) {
-                dateMap.set(date, { ptSessions: 0, selfWorkouts: 0 });
-            }
-            dateMap.get(date).ptSessions = parseInt(item.count);
-        });
-        selfWorkouts.forEach((item) => {
-            const date = item.workoutDate;
-            if (!dateMap.has(date)) {
-                dateMap.set(date, { ptSessions: 0, selfWorkouts: 0 });
-            }
-            dateMap.get(date).selfWorkouts = parseInt(item.count);
-        });
-        const events = Array.from(dateMap.entries()).map(([date, data]) => ({
-            date,
-            ptSessions: data.ptSessions,
-            selfWorkouts: data.selfWorkouts,
-        }));
-        return {
-            events,
-            startDate,
-            endDate,
-        };
-    }
-    async calculateStrengthLevel(record, memberId) {
-        try {
-            const member = await this.memberRepository.findOne({
-                where: { id: memberId },
-            });
-            if (!member) {
-                this.logger.warn(`회원을 찾을 수 없습니다: ${memberId}`);
-                return;
-            }
-            if (!member.weight || !member.gender) {
-                this.logger.debug(`체중 또는 성별 정보가 없어 Strength Level 계산을 건너뜁니다. (MemberId: ${memberId})`);
-                return;
-            }
-            const exercise = await this.exerciseRepository.findOne({
-                where: [
-                    { name: record.exerciseName },
-                    { nameEn: record.exerciseName },
-                ],
-            });
-            if (!exercise) {
-                this.logger.debug(`운동을 찾을 수 없어 Strength Level 계산을 건너뜁니다. (ExerciseName: ${record.exerciseName})`);
-                return;
-            }
-            const oneRepMaxResult = one_rep_max_calculator_1.OneRepMaxCalculator.calculate(record.weight, record.reps, one_rep_max_calculator_1.OneRepMaxFormula.EPLEY);
-            const relativeStrengthResult = relative_strength_calculator_1.RelativeStrengthCalculator.calculate(oneRepMaxResult.oneRepMax, member.weight);
-            const evaluationResult = await this.strengthLevelEvaluator.evaluate(exercise.id, oneRepMaxResult.oneRepMax, member.weight, member.gender, member.age);
+        if (weight > 0 && reps > 0) {
+            const oneRepMaxResult = one_rep_max_calculator_1.OneRepMaxCalculator.calculate(weight, reps);
             record.oneRepMax = oneRepMaxResult.oneRepMax;
-            record.relativeStrength = relativeStrengthResult.relativeStrength;
-            record.strengthLevel = evaluationResult.level || undefined;
-            this.logger.debug(`Strength Level 계산 완료: ${record.exerciseName} - 1RM: ${oneRepMaxResult.oneRepMax}kg, 상대적 강도: ${relativeStrengthResult.relativeStrength}%, 레벨: ${evaluationResult.level || 'N/A'}`);
+            let userWeight = 0;
+            if (identifier.memberId) {
+                const member = await this.memberRepository.findOne({ where: { id: identifier.memberId } });
+                userWeight = member?.weight || 0;
+                if (userWeight > 0) {
+                    record.relativeStrength = (record.oneRepMax / userWeight) * 100;
+                    const level = await this.strengthLevelEvaluator.evaluate(record.exerciseName, record.oneRepMax, member.weight, member.gender, member.age);
+                    record.strengthLevel = level;
+                }
+            }
         }
-        catch (error) {
-            this.logger.error(`Strength Level 계산 중 오류 발생: ${error.message} (MemberId: ${memberId}, ExerciseName: ${record.exerciseName})`);
-        }
+        return this.workoutRecordRepository.save(record);
     }
-    async getMajorExercisesOneRepMax(memberId) {
-        await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
-        const member = await this.memberRepository.findOne({
-            where: { id: memberId },
-        });
-        if (!member || !member.weight) {
-            throw exceptions_1.ApiExceptions.badRequest('회원의 체중 정보가 필요합니다.');
-        }
-        const result = [];
-        for (const [majorExerciseName, exerciseNames] of Object.entries(this.majorExerciseMapping)) {
-            let matchedExercise = null;
-            let isSubstitute = false;
-            for (let i = 0; i < exerciseNames.length; i++) {
-                const exerciseName = exerciseNames[i];
-                const records = await this.workoutRecordRepository.find({
-                    where: {
-                        memberId,
-                        exerciseName,
-                    },
-                    order: {
-                        workoutDate: 'DESC',
-                        createdAt: 'DESC',
-                    },
-                });
-                if (records.length > 0) {
-                    const exercise = await this.exerciseRepository.findOne({
-                        where: [
-                            { name: exerciseName },
-                            { nameEn: exerciseName },
-                        ],
-                    });
-                    if (exercise) {
-                        matchedExercise = {
-                            name: exercise.name,
-                            nameEn: exercise.nameEn,
-                            category: exercise.category,
-                        };
-                        isSubstitute = i > 0;
-                        break;
+    async update(id, identifier, updateDto) {
+        const record = await this.findOne(id, identifier);
+        if (updateDto.weight !== undefined || updateDto.reps !== undefined || updateDto.sets !== undefined) {
+            const weight = updateDto.weight ?? record.weight;
+            const reps = updateDto.reps ?? record.reps;
+            const sets = updateDto.sets ?? record.sets;
+            const { volume } = workout_helper_1.WorkoutHelper.normalizeWorkoutValues(weight, reps, sets);
+            record.volume = volume;
+            if (weight > 0 && reps > 0) {
+                const oneRepMaxResult = one_rep_max_calculator_1.OneRepMaxCalculator.calculate(weight, reps);
+                record.oneRepMax = oneRepMaxResult.oneRepMax;
+                if (record.memberId) {
+                    const member = await this.memberRepository.findOne({ where: { id: record.memberId } });
+                    if (member && member.weight > 0) {
+                        record.relativeStrength = (record.oneRepMax / member.weight) * 100;
+                        const level = await this.strengthLevelEvaluator.evaluate(updateDto.exerciseName ?? record.exerciseName, record.oneRepMax, member.weight, member.gender, member.age);
+                        record.strengthLevel = level;
                     }
                 }
             }
-            if (!matchedExercise) {
-                continue;
-            }
-            const allRecords = await this.workoutRecordRepository.find({
-                where: {
-                    memberId,
-                    exerciseName: matchedExercise.name,
-                },
-                order: {
-                    workoutDate: 'ASC',
-                    createdAt: 'ASC',
-                },
-            });
-            const recordsWith1RM = allRecords.filter((r) => r.oneRepMax !== null && r.oneRepMax !== undefined);
-            if (recordsWith1RM.length === 0) {
-                continue;
-            }
-            const history = recordsWith1RM.map((record) => ({
-                oneRepMax: record.oneRepMax,
-                workoutDate: record.workoutDate.toISOString().split('T')[0],
-                strengthLevel: record.strengthLevel || null,
-            }));
-            const currentRecord = recordsWith1RM[recordsWith1RM.length - 1];
-            const current = currentRecord
-                ? {
-                    oneRepMax: currentRecord.oneRepMax,
-                    relativeStrength: currentRecord.relativeStrength || (currentRecord.oneRepMax / member.weight) * 100,
-                    strengthLevel: currentRecord.strengthLevel || null,
-                    workoutDate: currentRecord.workoutDate.toISOString().split('T')[0],
-                }
-                : null;
-            const bestRecord = recordsWith1RM.reduce((best, record) => {
-                if (!best || (record.oneRepMax > best.oneRepMax)) {
-                    return record;
-                }
-                return best;
-            }, null);
-            const best = bestRecord
-                ? {
-                    oneRepMax: bestRecord.oneRepMax,
-                    relativeStrength: bestRecord.relativeStrength || (bestRecord.oneRepMax / member.weight) * 100,
-                    strengthLevel: bestRecord.strengthLevel || null,
-                    workoutDate: bestRecord.workoutDate.toISOString().split('T')[0],
-                }
-                : null;
-            result.push({
-                exerciseName: matchedExercise.name,
-                exerciseNameEn: matchedExercise.nameEn,
-                category: matchedExercise.category,
-                isSubstitute,
-                current,
-                best,
-                history,
-            });
         }
-        return { exercises: result };
+        entity_update_helper_1.EntityUpdateHelper.updateEntity(record, updateDto, ['workoutDate']);
+        return this.workoutRecordRepository.save(record);
     }
-    async getOneRepMaxEstimate(memberId) {
+    async remove(id, identifier) {
+        const record = await this.findOne(id, identifier);
+        await this.workoutRecordRepository.remove(record);
+    }
+    async getCalendar(memberId, startDate, endDate) {
         await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
-        const exerciseNames = [
-            ['벤치프레스', 'Bench Press'],
-            ['스쿼트', 'Squat'],
-            ['데드리프트', 'Deadlift'],
-        ];
-        const result = await Promise.all(exerciseNames.map(async ([primaryName, englishName]) => {
-            const records = await this.workoutRecordRepository.find({
-                where: [
-                    { memberId, exerciseName: primaryName },
-                    { memberId, exerciseName: englishName },
-                ],
-                order: { workoutDate: 'ASC', createdAt: 'ASC' },
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const records = await this.workoutRecordRepository.find({
+            where: {
+                memberId,
+                workoutDate: (0, typeorm_2.Between)(start, end),
+            },
+            select: ['workoutDate'],
+        });
+        const dateMap = new Map();
+        records.forEach((r) => {
+            const dateStr = r.workoutDate.toISOString().split('T')[0];
+            dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + 1);
+        });
+        const result = [];
+        const curr = new Date(start);
+        while (curr <= end) {
+            const dateStr = curr.toISOString().split('T')[0];
+            result.push({
+                date: dateStr,
+                hasWorkout: dateMap.has(dateStr),
+                workoutCount: dateMap.get(dateStr) || 0,
             });
-            const recordsWith1RM = workout_record_helper_1.WorkoutRecordHelper.filterRecordsWithOneRM(records);
-            if (recordsWith1RM.length === 0) {
-                return { exerciseName: primaryName, latest: null, max: null, history: [] };
-            }
-            const history = workout_record_helper_1.WorkoutRecordHelper.buildHistory(recordsWith1RM);
-            const latestRecord = workout_record_helper_1.WorkoutRecordHelper.getLatestRecord(recordsWith1RM);
-            const maxRecord = workout_record_helper_1.WorkoutRecordHelper.getBestRecord(recordsWith1RM);
-            return {
-                exerciseName: primaryName,
-                latest: latestRecord ? workout_record_helper_1.WorkoutRecordHelper.toOneRepMaxInfo(latestRecord) : null,
-                max: maxRecord ? { oneRepMax: maxRecord.oneRepMax, workoutDate: date_range_helper_1.DateRangeHelper.toDateString(maxRecord.workoutDate) } : null,
-                history,
-            };
+            curr.setDate(curr.getDate() + 1);
+        }
+        return result;
+    }
+    async getVolumeByBodyPart(memberId, query) {
+        await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
+        const queryBuilder = this.workoutRecordRepository.createQueryBuilder('record');
+        queryBuilder.select('record.bodyPart', 'bodyPart');
+        queryBuilder.addSelect('SUM(record.volume)', 'totalVolume');
+        queryBuilder.addSelect('COUNT(DISTINCT record.workoutDate)', 'workoutCount');
+        queryBuilder.addSelect('SUM(record.volume) / COUNT(DISTINCT record.workoutDate)', 'averageVolume');
+        queryBuilder.where('record.memberId = :memberId', { memberId });
+        const { startDate, endDate } = date_range_helper_1.DateRangeHelper.getRangeFromPeriod(query.period);
+        query_builder_helper_1.QueryBuilderHelper.addDateRangeFilter(queryBuilder, 'record.workoutDate', startDate, endDate);
+        queryBuilder.groupBy('record.bodyPart');
+        const results = await queryBuilder.getRawMany();
+        return results.map(r => ({
+            bodyPart: r.bodyPart,
+            totalVolume: parseFloat(r.totalVolume),
+            workoutCount: parseInt(r.workoutCount),
+            averageVolume: parseFloat(r.averageVolume),
         }));
-        return { exercises: result };
+    }
+    async getVolumeAnalysis(memberId, period, startDate, endDate) {
+        await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
+        const currentRange = date_range_helper_1.DateRangeHelper.getRangeFromPeriod(period === 'MONTHLY' ? 'month' : 'week');
+        const prevRange = date_range_helper_1.DateRangeHelper.getPreviousRange(currentRange.startDate, currentRange.endDate);
+        const [currentVolume, prevVolume] = await Promise.all([
+            this.getTotalVolume(memberId, currentRange.startDate, currentRange.endDate),
+            this.getTotalVolume(memberId, prevRange.startDate, prevRange.endDate),
+        ]);
+        return {
+            period,
+            current: currentVolume,
+            previous: prevVolume,
+            changeRate: prevVolume > 0 ? ((currentVolume - prevVolume) / prevVolume) * 100 : 0,
+        };
+    }
+    async getTotalVolume(memberId, startDate, endDate) {
+        const result = await this.workoutRecordRepository
+            .createQueryBuilder('record')
+            .select('SUM(record.volume)', 'total')
+            .where('record.memberId = :memberId', { memberId })
+            .andWhere('record.workoutDate BETWEEN :start AND :end', { start: startDate, end: endDate })
+            .getRawOne();
+        return parseFloat(result.total || '0');
     }
     async getOneRepMaxTrend(memberId, exerciseName, startDate, endDate) {
         await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
@@ -13596,74 +13535,110 @@ let WorkoutRecordsService = WorkoutRecordsService_1 = class WorkoutRecordsServic
     async getVolumeTrend(memberId, startDate, endDate, bodyPart) {
         await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
         const queryBuilder = this.workoutRecordRepository.createQueryBuilder('record');
-        query_builder_helper_1.QueryBuilderHelper.addMemberIdFilter(queryBuilder, 'record.memberId', memberId);
-        query_builder_helper_1.QueryBuilderHelper.addDateRangeFilter(queryBuilder, 'record.workoutDate', startDate, endDate);
+        queryBuilder.select('record.workoutDate', 'date');
+        queryBuilder.addSelect('SUM(record.volume)', 'totalVolume');
+        queryBuilder.where('record.memberId = :memberId', { memberId });
         if (bodyPart) {
             queryBuilder.andWhere('record.bodyPart = :bodyPart', { bodyPart });
         }
-        queryBuilder.orderBy('record.workoutDate', 'ASC').addOrderBy('record.createdAt', 'ASC');
-        const records = await queryBuilder.getMany();
-        const dateMap = workout_record_helper_1.WorkoutRecordHelper.groupByDateWithVolume(records);
-        const trend = Array.from(dateMap.entries()).map(([date, data]) => {
-            const result = {
-                date,
-                totalVolume: workout_helper_1.WorkoutHelper.roundToTwo(data.totalVolume),
-            };
-            if (!bodyPart && data.bodyPartMap.size > 0) {
-                result.bodyPartVolumes = Array.from(data.bodyPartMap.entries()).map(([bp, volume]) => ({ bodyPart: bp, volume: workout_helper_1.WorkoutHelper.roundToTwo(volume) }));
-            }
-            return result;
-        });
-        return { trend };
+        query_builder_helper_1.QueryBuilderHelper.addDateRangeFilter(queryBuilder, 'record.workoutDate', startDate, endDate);
+        queryBuilder.groupBy('record.workoutDate');
+        queryBuilder.orderBy('record.workoutDate', 'ASC');
+        const results = await queryBuilder.getRawMany();
+        return {
+            bodyPart: bodyPart || undefined,
+            trend: results.map(r => ({
+                date: r.date.toISOString().split('T')[0],
+                totalVolume: parseFloat(r.totalVolume),
+            })),
+        };
     }
     async getTrends(memberId, type, exerciseName, startDate, endDate) {
-        await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
-        const queryBuilder = this.workoutRecordRepository.createQueryBuilder('record');
-        query_builder_helper_1.QueryBuilderHelper.addMemberIdFilter(queryBuilder, 'record.memberId', memberId);
-        if (exerciseName) {
-            queryBuilder.andWhere('record.exerciseName = :exerciseName', { exerciseName });
-        }
-        query_builder_helper_1.QueryBuilderHelper.addDateRangeFilter(queryBuilder, 'record.workoutDate', startDate, endDate);
-        queryBuilder.orderBy('record.workoutDate', 'ASC').addOrderBy('record.createdAt', 'ASC');
-        const records = await queryBuilder.getMany();
-        let data;
         if (type === 'oneRm') {
-            const dateMap = workout_record_helper_1.WorkoutRecordHelper.groupByDateWithMaxOneRM(records);
-            data = Array.from(dateMap.entries()).map(([date, info]) => ({
-                date,
-                value: info.oneRepMax,
-                strengthLevel: info.strengthLevel,
-            }));
+            const result = await this.getOneRepMaxTrend(memberId, exerciseName, startDate, endDate);
+            return {
+                type: 'oneRm',
+                exerciseName: result.exerciseName,
+                data: result.trend.map(t => ({ date: t.date, value: t.oneRepMax })),
+            };
         }
         else {
-            const dateMap = workout_record_helper_1.WorkoutRecordHelper.groupByDateWithVolume(records);
-            data = Array.from(dateMap.entries()).map(([date, info]) => ({
-                date,
-                value: workout_helper_1.WorkoutHelper.roundToTwo(info.totalVolume),
-            }));
+            const result = await this.getVolumeTrend(memberId, startDate, endDate, exerciseName);
+            return {
+                type: 'volume',
+                exerciseName: result.bodyPart,
+                data: result.trend.map(t => ({ date: t.date, value: t.totalVolume })),
+            };
         }
-        return { type, exerciseName: exerciseName || undefined, data };
     }
     async getStrengthProgress(memberId, exerciseName) {
         await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
-        const where = { memberId };
-        if (exerciseName)
-            where.exerciseName = exerciseName;
-        const records = await this.workoutRecordRepository.find({
-            where,
-            order: { workoutDate: 'ASC', createdAt: 'ASC' },
-        });
-        const history = records.map((record) => ({
-            oneRepMax: record.oneRepMax || null,
-            relativeStrength: record.relativeStrength || null,
-            strengthLevel: record.strengthLevel || null,
-            workoutDate: date_range_helper_1.DateRangeHelper.toDateString(record.workoutDate),
+        const queryBuilder = this.workoutRecordRepository.createQueryBuilder('record');
+        queryBuilder.where('record.memberId = :memberId', { memberId });
+        if (exerciseName) {
+            queryBuilder.andWhere('record.exerciseName = :exerciseName', { exerciseName });
+        }
+        queryBuilder.andWhere('record.oneRepMax IS NOT NULL');
+        queryBuilder.orderBy('record.workoutDate', 'ASC');
+        const records = await queryBuilder.getMany();
+        return records.map(r => ({
+            date: date_range_helper_1.DateRangeHelper.toDateString(r.workoutDate),
+            level: r.strengthLevel,
+            oneRepMax: r.oneRepMax,
         }));
-        return {
-            exerciseName: exerciseName || undefined,
-            history,
-            current: history.length > 0 ? history[history.length - 1] : undefined,
-        };
+    }
+    async getMajorExercisesOneRepMax(memberId) {
+        await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, memberId, this.logger);
+        const member = await this.memberRepository.findOne({ where: { id: memberId } });
+        if (!member || !member.weight)
+            throw exceptions_1.ApiExceptions.badRequest('회원의 체중 정보가 필요합니다.');
+        const result = [];
+        for (const [majorExerciseName, exerciseNames] of Object.entries(this.majorExerciseMapping)) {
+            let matchedExercise = null;
+            let records = [];
+            for (const name of exerciseNames) {
+                records = await this.workoutRecordRepository.find({
+                    where: { memberId, exerciseName: name },
+                    order: { workoutDate: 'DESC' },
+                });
+                if (records.length > 0) {
+                    matchedExercise = name;
+                    break;
+                }
+            }
+            if (!matchedExercise)
+                continue;
+            const current = records[0];
+            const best = records.reduce((max, r) => (r.oneRepMax > (max?.oneRepMax || 0) ? r : max), null);
+            result.push({
+                exerciseName: majorExerciseName,
+                exerciseNameEn: matchedExercise,
+                category: majorExerciseName === '벤치프레스' ? 'UPPER' : 'LOWER',
+                isSubstitute: matchedExercise !== majorExerciseName,
+                current: {
+                    oneRepMax: current.oneRepMax,
+                    relativeStrength: current.relativeStrength,
+                    strengthLevel: current.strengthLevel,
+                    workoutDate: date_range_helper_1.DateRangeHelper.toDateString(current.workoutDate),
+                },
+                best: {
+                    oneRepMax: best.oneRepMax,
+                    relativeStrength: best.relativeStrength,
+                    strengthLevel: best.strengthLevel,
+                    workoutDate: date_range_helper_1.DateRangeHelper.toDateString(best.workoutDate),
+                },
+                history: records.map(r => ({
+                    oneRepMax: r.oneRepMax,
+                    workoutDate: date_range_helper_1.DateRangeHelper.toDateString(r.workoutDate),
+                    strengthLevel: r.strengthLevel,
+                })),
+            });
+        }
+        return { exercises: result };
+    }
+    async getOneRepMaxEstimate(memberId) {
+        const majorResult = await this.getMajorExercisesOneRepMax(memberId);
+        return majorResult;
     }
 };
 exports.WorkoutRecordsService = WorkoutRecordsService;
@@ -13671,12 +13646,13 @@ exports.WorkoutRecordsService = WorkoutRecordsService = WorkoutRecordsService_1 
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(workout_record_entity_1.WorkoutRecord)),
     __param(1, (0, typeorm_1.InjectRepository)(member_entity_1.Member)),
-    __param(2, (0, typeorm_1.InjectRepository)(pt_usage_entity_1.PTUsage)),
-    __param(3, (0, typeorm_1.InjectRepository)(exercise_entity_1.Exercise)),
-    __param(4, (0, typeorm_1.InjectRepository)(strength_standard_entity_1.StrengthStandard)),
-    __param(5, (0, common_1.Inject)((0, common_1.forwardRef)(() => pt_sessions_service_1.PTSessionsService))),
-    __param(6, (0, common_1.Inject)((0, common_1.forwardRef)(() => members_service_1.MembersService))),
-    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, typeof (_b = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _b : Object, typeof (_c = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _c : Object, typeof (_d = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _d : Object, typeof (_e = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _e : Object, typeof (_f = typeof pt_sessions_service_1.PTSessionsService !== "undefined" && pt_sessions_service_1.PTSessionsService) === "function" ? _f : Object, typeof (_g = typeof members_service_1.MembersService !== "undefined" && members_service_1.MembersService) === "function" ? _g : Object, typeof (_h = typeof strength_level_evaluator_1.StrengthLevelEvaluator !== "undefined" && strength_level_evaluator_1.StrengthLevelEvaluator) === "function" ? _h : Object])
+    __param(2, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
+    __param(3, (0, typeorm_1.InjectRepository)(pt_usage_entity_1.PTUsage)),
+    __param(4, (0, typeorm_1.InjectRepository)(exercise_entity_1.Exercise)),
+    __param(5, (0, typeorm_1.InjectRepository)(strength_standard_entity_1.StrengthStandard)),
+    __param(6, (0, common_1.Inject)((0, common_1.forwardRef)(() => pt_sessions_service_1.PTSessionsService))),
+    __param(7, (0, common_1.Inject)((0, common_1.forwardRef)(() => members_service_1.MembersService))),
+    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, typeof (_b = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _b : Object, typeof (_c = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _c : Object, typeof (_d = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _d : Object, typeof (_e = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _e : Object, typeof (_f = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _f : Object, typeof (_g = typeof pt_sessions_service_1.PTSessionsService !== "undefined" && pt_sessions_service_1.PTSessionsService) === "function" ? _g : Object, typeof (_h = typeof members_service_1.MembersService !== "undefined" && members_service_1.MembersService) === "function" ? _h : Object, typeof (_j = typeof strength_level_evaluator_1.StrengthLevelEvaluator !== "undefined" && strength_level_evaluator_1.StrengthLevelEvaluator) === "function" ? _j : Object])
 ], WorkoutRecordsService);
 
 
@@ -14412,6 +14388,7 @@ const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 const strength_level_service_1 = __webpack_require__(/*! ./strength-level.service */ "./src/modules/strength-level/strength-level.service.ts");
 const calculate_strength_level_dto_1 = __webpack_require__(/*! ./dto/calculate-strength-level.dto */ "./src/modules/strength-level/dto/calculate-strength-level.dto.ts");
 const strength_level_response_dto_1 = __webpack_require__(/*! ./dto/strength-level-response.dto */ "./src/modules/strength-level/dto/strength-level-response.dto.ts");
+const decorators_1 = __webpack_require__(/*! ../../common/decorators */ "./src/common/decorators/index.ts");
 let StrengthLevelController = class StrengthLevelController {
     constructor(strengthLevelService) {
         this.strengthLevelService = strengthLevelService;
@@ -14423,6 +14400,7 @@ let StrengthLevelController = class StrengthLevelController {
 exports.StrengthLevelController = StrengthLevelController;
 __decorate([
     (0, common_1.Post)('calculate'),
+    (0, decorators_1.Public)(),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiOperation)({
         summary: '빅3 Strength Level 계산',
@@ -14548,12 +14526,42 @@ let StrengthLevelService = StrengthLevelService_1 = class StrengthLevelService {
     async calculate(dto) {
         const { exerciseType, age, bodyWeight, gender, currentWeight } = dto;
         const exerciseNameEn = calculate_strength_level_dto_1.ExerciseTypeEnglishNames[exerciseType];
-        const exercise = await this.exerciseRepository.findOne({
+        const exerciseNameKo = calculate_strength_level_dto_1.ExerciseTypeNames[exerciseType];
+        let exercise = await this.exerciseRepository.findOne({
             where: { nameEn: exerciseNameEn },
         });
         if (!exercise) {
-            throw new common_1.NotFoundException(`운동을 찾을 수 없습니다: ${exerciseNameEn}`);
+            this.logger.debug(`정확한 매칭 실패: ${exerciseNameEn}, 부분 매칭 시도`);
+            const exercisesByEn = await this.exerciseRepository.find({
+                where: { nameEn: (0, typeorm_2.Like)(`%${exerciseNameEn}%`) },
+            });
+            const exercisesByKo = exerciseNameKo
+                ? await this.exerciseRepository.find({
+                    where: { name: (0, typeorm_2.Like)(`%${exerciseNameKo}%`) },
+                })
+                : [];
+            const allCandidates = [...exercisesByEn, ...exercisesByKo];
+            const uniqueExercises = Array.from(new Map(allCandidates.map(ex => [ex.id, ex])).values());
+            exercise = uniqueExercises.find((ex) => {
+                const nameEnLower = ex.nameEn?.toLowerCase() || '';
+                const nameKoLower = ex.name?.toLowerCase() || '';
+                const searchKeyLower = exerciseNameEn.toLowerCase();
+                return (nameEnLower.includes(searchKeyLower) ||
+                    nameKoLower.includes(exerciseNameKo.toLowerCase())) &&
+                    !nameEnLower.includes('romanian') &&
+                    !nameEnLower.includes('sumo') &&
+                    !nameEnLower.includes('split') &&
+                    !nameEnLower.includes('leg press') &&
+                    !nameKoLower.includes('루마니안') &&
+                    !nameKoLower.includes('스모') &&
+                    !nameKoLower.includes('스플릿') &&
+                    !nameKoLower.includes('레그프레스');
+            }) || uniqueExercises[0];
         }
+        if (!exercise) {
+            throw new common_1.NotFoundException(`운동을 찾을 수 없습니다: ${exerciseNameEn} (${exerciseNameKo}). DB에 해당 운동이 등록되어 있는지 확인해주세요.`);
+        }
+        this.logger.debug(`운동 조회 성공: ${exercise.nameEn || exercise.name} (id: ${exercise.id})`);
         const standards = await this.strengthStandardRepository
             .createQueryBuilder('ss')
             .where('ss.exercise_id = :exerciseId', { exerciseId: exercise.id })
@@ -14585,7 +14593,7 @@ let StrengthLevelService = StrengthLevelService_1 = class StrengthLevelService {
                 exercise: {
                     type: exerciseType,
                     nameKorean: calculate_strength_level_dto_1.ExerciseTypeNames[exerciseType],
-                    nameEnglish: exerciseNameEn,
+                    nameEnglish: exercise.nameEn || exercise.name || exerciseNameEn,
                 },
                 input: {
                     age,
@@ -14599,34 +14607,11 @@ let StrengthLevelService = StrengthLevelService_1 = class StrengthLevelService {
         };
     }
     async findClosestBodyweightStandards(exerciseId, gender, bodyWeight) {
-        const allRanges = await this.strengthStandardRepository
-            .createQueryBuilder('ss')
-            .select('DISTINCT ss.bodyweight_min', 'bodyweightMin')
-            .addSelect('ss.bodyweight_max', 'bodyweightMax')
-            .where('ss.exercise_id = :exerciseId', { exerciseId })
-            .andWhere('ss.gender = :gender', { gender })
-            .andWhere('ss.standard_type = :standardType', { standardType: 'BODYWEIGHT' })
-            .getRawMany();
-        if (allRanges.length === 0) {
-            return [];
-        }
-        let closestRange = allRanges[0];
-        let minDistance = Math.abs(bodyWeight - (closestRange.bodyweightMin + closestRange.bodyweightMax) / 2);
-        for (const range of allRanges) {
-            const midPoint = (range.bodyweightMin + range.bodyweightMax) / 2;
-            const distance = Math.abs(bodyWeight - midPoint);
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestRange = range;
-            }
-        }
-        return this.strengthStandardRepository
+        const allStandards = await this.strengthStandardRepository
             .createQueryBuilder('ss')
             .where('ss.exercise_id = :exerciseId', { exerciseId })
             .andWhere('ss.gender = :gender', { gender })
             .andWhere('ss.standard_type = :standardType', { standardType: 'BODYWEIGHT' })
-            .andWhere('ss.bodyweight_min = :min', { min: closestRange.bodyweightMin })
-            .andWhere('ss.bodyweight_max = :max', { max: closestRange.bodyweightMax })
             .orderBy(`CASE ss.level 
 					WHEN 'BEGINNER' THEN 1 
 					WHEN 'NOVICE' THEN 2 
@@ -14635,6 +14620,19 @@ let StrengthLevelService = StrengthLevelService_1 = class StrengthLevelService {
 					WHEN 'ELITE' THEN 5 
 				END`, 'ASC')
             .getMany();
+        if (allStandards.length === 0) {
+            return [];
+        }
+        const matchingStandards = allStandards.filter((s) => s.bodyweightMin <= bodyWeight && s.bodyweightMax >= bodyWeight);
+        if (matchingStandards.length > 0) {
+            return matchingStandards;
+        }
+        const closestStandards = allStandards.reduce((closest, current) => {
+            const currentDistance = Math.min(Math.abs(current.bodyweightMin - bodyWeight), Math.abs(current.bodyweightMax - bodyWeight));
+            const closestDistance = Math.min(Math.abs(closest[0]?.bodyweightMin - bodyWeight || Infinity), Math.abs(closest[0]?.bodyweightMax - bodyWeight || Infinity));
+            return currentDistance < closestDistance ? [current] : closest;
+        }, [allStandards[0]]);
+        return closestStandards;
     }
     buildAllLevels(standards, currentWeight) {
         const standardMap = new Map();
@@ -14666,33 +14664,24 @@ let StrengthLevelService = StrengthLevelService_1 = class StrengthLevelService {
         });
     }
     calculateCurrentLevel(allLevels, currentWeight) {
-        let currentLevelIndex = -1;
-        for (let i = allLevels.length - 1; i >= 0; i--) {
-            if (currentWeight >= allLevels[i].weight) {
-                currentLevelIndex = i;
-                break;
-            }
-        }
-        if (currentLevelIndex === -1) {
-            const beginnerLevel = allLevels[0];
+        const currentLevel = allLevels.find((level) => level.isCurrent);
+        const nextLevel = allLevels.find((level) => level.isNext);
+        if (!currentLevel) {
+            const firstLevel = allLevels[0];
             return {
-                level: enums_1.StrengthLevel.BEGINNER,
-                levelKorean: '미달성',
+                level: firstLevel.level,
+                levelKorean: firstLevel.levelKorean,
                 weight: currentWeight,
-                weightToNextLevel: Math.round((beginnerLevel.weight - currentWeight) * 10) / 10,
-                nextLevel: enums_1.StrengthLevel.BEGINNER,
-                nextLevelKorean: strength_level_response_dto_1.StrengthLevelFriendlyNames[enums_1.StrengthLevel.BEGINNER],
+                weightToNextLevel: firstLevel.weight - currentWeight,
+                nextLevel: firstLevel.level,
+                nextLevelKorean: firstLevel.levelKorean,
             };
         }
-        const currentLevel = allLevels[currentLevelIndex];
-        const nextLevel = allLevels[currentLevelIndex + 1];
         return {
             level: currentLevel.level,
             levelKorean: currentLevel.levelKorean,
             weight: currentWeight,
-            weightToNextLevel: nextLevel
-                ? Math.round((nextLevel.weight - currentWeight) * 10) / 10
-                : 0,
+            weightToNextLevel: nextLevel ? nextLevel.weight - currentWeight : 0,
             nextLevel: nextLevel?.level,
             nextLevelKorean: nextLevel?.levelKorean,
         };

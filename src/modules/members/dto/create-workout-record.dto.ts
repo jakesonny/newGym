@@ -97,5 +97,14 @@ export class CreateWorkoutRecordDto {
 	@IsOptional()
 	@IsString()
 	trainerComment?: string;
+
+	@ApiProperty({
+		description: '사용자 ID (선택적, 미입력시 현재 로그인 유저)',
+		example: 'uuid',
+		required: false,
+	})
+	@IsOptional()
+	@IsString()
+	userId?: string;
 }
 

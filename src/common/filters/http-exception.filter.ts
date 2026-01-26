@@ -39,7 +39,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 			} else if (status === HttpStatus.FORBIDDEN) {
 				errorCode = ErrorCodes.FORBIDDEN;
 			} else if (status === HttpStatus.NOT_FOUND) {
-				errorCode = ErrorCodes.MEMBER_NOT_FOUND; // 기본값
+				errorCode = ErrorCodes.RESOURCE_NOT_FOUND;
 			}
 
 			if (typeof exceptionResponse === "string") {

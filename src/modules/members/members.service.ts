@@ -36,14 +36,34 @@ export class MembersService {
 	) {}
 
   async findAll(page: number = 1, pageSize: number = 10): Promise<{ members: Member[]; total: number; page: number; pageSize: number }> {
-    const skip = (page - 1) * pageSize;
-    const [members, total] = await this.memberRepository.findAndCount({
-      relations: ['memberships', 'ptUsages'],
-      order: { createdAt: 'DESC' },
-      skip,
-      take: pageSize,
-    });
-    return { members, total, page, pageSize };
+    try {
+      const skip = (page - 1) * pageSize;
+      const [members, total] = await this.memberRepository.findAndCount({
+        relations: ['memberships', 'ptUsages'],
+        order: { createdAt: 'DESC' },
+        skip,
+        take: pageSize,
+        withDeleted: false, // soft delete된 항목 제외
+      });
+      return { members, total, page, pageSize };
+    } catch (error) {
+      this.logger.error(`회원 목록 조회 실패: ${error.message}`, error.stack);
+      // relations 로드 실패 시 relations 없이 재시도
+      try {
+        this.logger.warn('Relations 로드 실패, relations 없이 재시도...');
+        const skip = (page - 1) * pageSize;
+        const [members, total] = await this.memberRepository.findAndCount({
+          order: { createdAt: 'DESC' },
+          skip,
+          take: pageSize,
+          withDeleted: false,
+        });
+        return { members, total, page, pageSize };
+      } catch (retryError) {
+        this.logger.error(`회원 목록 조회 재시도 실패: ${retryError.message}`, retryError.stack);
+        throw ApiExceptions.internalServerError('회원 목록을 불러오는 중 오류가 발생했습니다.');
+      }
+    }
   }
 
   async findOne(id: string): Promise<Member> {
@@ -69,16 +89,19 @@ export class MembersService {
   }
 
   async create(createMemberDto: CreateMemberDto): Promise<Member> {
-    const existingMember = await this.memberRepository.findOne({
-      where: { email: createMemberDto.email },
-    });
+    // 이메일이 있는 경우에만 중복 체크
+    if (createMemberDto.email) {
+      const existingMember = await this.memberRepository.findOne({
+        where: { email: createMemberDto.email },
+      });
 
-		if (existingMember) {
-			this.logger.warn(
-				`이미 등록된 이메일입니다. Email: ${createMemberDto.email}`,
-			);
-			throw ApiExceptions.memberAlreadyExists();
-		}
+      if (existingMember) {
+        this.logger.warn(
+          `이미 등록된 이메일입니다. Email: ${createMemberDto.email}`,
+        );
+        throw ApiExceptions.memberAlreadyExists();
+      }
+    }
 
     // 생년월일이 있으면 한국나이 자동 계산하여 DB에 저장
     const birthDate = createMemberDto.birthDate ? new Date(createMemberDto.birthDate) : undefined;
@@ -106,14 +129,16 @@ export class MembersService {
     membership?: Membership;
     ptUsage?: PTUsage;
   }> {
-    // 이메일 중복 체크
-    const existingMember = await this.memberRepository.findOne({
-      where: { email: dto.email },
-    });
+    // 이메일이 있는 경우에만 중복 체크
+    if (dto.email) {
+      const existingMember = await this.memberRepository.findOne({
+        where: { email: dto.email },
+      });
 
-    if (existingMember) {
-      this.logger.warn(`이미 등록된 이메일입니다. Email: ${dto.email}`);
-      throw ApiExceptions.memberAlreadyExists();
+      if (existingMember) {
+        this.logger.warn(`이미 등록된 이메일입니다. Email: ${dto.email}`);
+        throw ApiExceptions.memberAlreadyExists();
+      }
     }
 
     // 트랜잭션으로 처리

@@ -30,6 +30,17 @@ export class EntityUpdateHelper {
 	}
 
 	/**
+	 * updateFields의 별칭
+	 */
+	static updateEntity<T extends Record<string, any>>(
+		entity: T,
+		updateDto: Partial<T>,
+		dateFields: string[] = [],
+	): T {
+		return this.updateFieldsWithDateConversion(entity, updateDto, dateFields);
+	}
+
+	/**
 	 * 날짜 필드 변환과 함께 업데이트
 	 * DTO의 날짜 필드는 string이지만 Entity는 Date이므로 변환 필요
 	 * @param entity 업데이트할 엔티티

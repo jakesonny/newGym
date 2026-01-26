@@ -10,6 +10,7 @@ import {
 	UseGuards,
 	HttpCode,
 	HttpStatus,
+	Req,
 } from "@nestjs/common";
 import {
 	ApiTags,
@@ -71,13 +72,12 @@ export class WorkoutRecordsController {
 		@Query("type") type?: "basic" | "analysis",
 	) {
 		if (type === "analysis") {
-			// VolumePeriod를 'WEEKLY' | 'MONTHLY'로 변환
 			const period = query.period === 'month' ? 'MONTHLY' : 'WEEKLY';
 			const analysis = await this.workoutRecordsService.getVolumeAnalysis(
 				memberId,
 				period,
-				undefined, // startDate는 서비스에서 자동 계산
-				undefined, // endDate는 서비스에서 자동 계산
+				undefined,
+				undefined,
 			);
 			return ApiResponseHelper.success(analysis, "볼륨 분석 조회 성공");
 		}
@@ -179,7 +179,7 @@ export class WorkoutRecordsController {
 	) {
 		const { page: pageNum, pageSize: pageSizeNum } = parsePagination(page, pageSize);
 		const result = await this.workoutRecordsService.findAll(
-			memberId,
+			{ memberId },
 			pageNum,
 			pageSizeNum,
 			startDate,
@@ -188,71 +188,72 @@ export class WorkoutRecordsController {
 		return ApiResponseHelper.success(result, "운동 기록 목록 조회 성공");
 	}
 
-	@Get(":recordId")
+	@Get(":id")
 	@MemberIdParam()
-	@ApiOperation({
-		summary: "운동 기록 상세 조회",
-		description: "특정 운동 기록의 상세 정보를 조회합니다.",
-	})
-	@ApiParam({ name: "recordId", description: "운동 기록 ID (UUID)" })
-	@ApiResponse({ status: 200, description: "운동 기록 상세 조회 성공" })
+	@ApiParam({ name: "id", description: "운동 기록 ID (UUID)" })
+	@ApiOperation({ summary: "운동 기록 상세 조회", description: "특정 운동 기록의 상세 정보를 조회합니다." })
+	@ApiResponse({ status: 200, description: "운동 기록 조회 성공" })
+	@ApiResponse({ status: 404, description: "운동 기록을 찾을 수 없습니다" })
 	async getWorkoutRecord(
 		@Param("memberId") memberId: string,
-		@Param("recordId") recordId: string,
+		@Param("id") id: string,
 	) {
-		const record = await this.workoutRecordsService.findOne(recordId, memberId);
-		return ApiResponseHelper.success(record, "운동 기록 상세 조회 성공");
+		const record = await this.workoutRecordsService.findOne(id, { memberId });
+		return ApiResponseHelper.success(record, "운동 기록 조회 성공");
 	}
 
 	@Post()
 	@HttpCode(HttpStatus.CREATED)
-	@MemberIdParam()
 	@AdminTrainerRoles()
-	@ApiOperation({
-		summary: "운동 기록 생성",
-		description: "새로운 운동 기록을 생성합니다. 볼륨은 자동 계산됩니다. (ADMIN, TRAINER 권한 필요)",
-	})
-	@ApiResponse({ status: 201, description: "운동 기록 생성 성공" })
+	@MemberIdParam()
+	@ApiOperation({ summary: "운동 기록 등록", description: "회원의 새로운 운동 기록을 등록합니다." })
+	@ApiResponse({ status: 201, description: "운동 기록 등록 성공" })
 	async createWorkoutRecord(
 		@Param("memberId") memberId: string,
-		@Body() createDto: CreateWorkoutRecordDto,
+		@Body() createWorkoutRecordDto: CreateWorkoutRecordDto,
+		@Req() req: any,
 	) {
-		const record = await this.workoutRecordsService.create(memberId, createDto);
-		return ApiResponseHelper.success(record, "운동 기록 생성 성공");
+		// 트레이너/어드민이 대리 등록하는 경우 userId를 전달받거나, 
+		// Member 엔티티에서 유저를 찾아야 하지만, 일단 현재 로그인한 유저(트레이너/어드민)를 userId로 사용
+		// (실제로는 Member의 userId를 사용해야 함)
+		const userId = createWorkoutRecordDto.userId || req.user.id;
+		const record = await this.workoutRecordsService.create(
+			{ memberId, userId },
+			createWorkoutRecordDto,
+		);
+		return ApiResponseHelper.success(record, "운동 기록 등록 성공");
 	}
 
-	@Put(":recordId")
-	@MemberIdParam()
+	@Put(":id")
 	@AdminTrainerRoles()
-	@ApiOperation({
-		summary: "운동 기록 수정",
-		description: "기존 운동 기록을 수정합니다. 볼륨은 자동 재계산됩니다. (ADMIN, TRAINER 권한 필요)",
-	})
-	@ApiParam({ name: "recordId", description: "운동 기록 ID (UUID)" })
+	@MemberIdParam()
+	@ApiParam({ name: "id", description: "운동 기록 ID (UUID)" })
+	@ApiOperation({ summary: "운동 기록 수정", description: "기존 운동 기록을 수정합니다." })
 	@ApiResponse({ status: 200, description: "운동 기록 수정 성공" })
 	async updateWorkoutRecord(
 		@Param("memberId") memberId: string,
-		@Param("recordId") recordId: string,
-		@Body() updateDto: UpdateWorkoutRecordDto,
+		@Param("id") id: string,
+		@Body() updateWorkoutRecordDto: UpdateWorkoutRecordDto,
 	) {
-		const record = await this.workoutRecordsService.update(recordId, memberId, updateDto);
+		const record = await this.workoutRecordsService.update(
+			id,
+			{ memberId },
+			updateWorkoutRecordDto,
+		);
 		return ApiResponseHelper.success(record, "운동 기록 수정 성공");
 	}
 
-	@Delete(":recordId")
-	@MemberIdParam()
+	@Delete(":id")
 	@AdminTrainerRoles()
-	@ApiOperation({
-		summary: "운동 기록 삭제",
-		description: "운동 기록을 삭제합니다. (ADMIN, TRAINER 권한 필요)",
-	})
-	@ApiParam({ name: "recordId", description: "운동 기록 ID (UUID)" })
+	@MemberIdParam()
+	@ApiParam({ name: "id", description: "운동 기록 ID (UUID)" })
+	@ApiOperation({ summary: "운동 기록 삭제", description: "특정 운동 기록을 삭제합니다." })
 	@ApiResponse({ status: 200, description: "운동 기록 삭제 성공" })
-	async deleteWorkoutRecord(
+	async removeWorkoutRecord(
 		@Param("memberId") memberId: string,
-		@Param("recordId") recordId: string,
+		@Param("id") id: string,
 	) {
-		await this.workoutRecordsService.remove(recordId, memberId);
+		await this.workoutRecordsService.remove(id, { memberId });
 		return ApiResponseHelper.success(null, "운동 기록 삭제 성공");
 	}
 
@@ -279,43 +280,62 @@ export class WorkoutRecordsController {
 	@Get("strength-progress")
 	@MemberIdParam()
 	@ApiOperation({
-		summary: "회원의 운동별 Strength Level 변화 추적",
-		description: "회원의 운동별 Strength Level 변화를 조회합니다.",
+		summary: "근력 발달 과정 조회",
+		description: "특정 운동의 근력 발달 과정을 날짜순으로 조회합니다.",
 	})
-	@ApiResponse({ status: 200, description: "Strength Level 변화 추적 조회 성공" })
-	@ApiQuery({ name: "exerciseName", required: false, description: "운동명 (선택적)" })
+	@ApiQuery({ name: "exerciseName", required: false, description: "조회할 운동명 (미지정시 전체)" })
+	@ApiResponse({ status: 200, description: "근력 발달 과정 조회 성공" })
 	async getStrengthProgress(
 		@Param("memberId") memberId: string,
 		@Query("exerciseName") exerciseName?: string,
 	) {
-		const progress = await this.workoutRecordsService.getStrengthProgress(memberId, exerciseName);
-		return ApiResponseHelper.success(progress, "Strength Level 변화 추적 조회 성공");
+		const result = await this.workoutRecordsService.getStrengthProgress(memberId, exerciseName);
+		return ApiResponseHelper.success(result, "근력 발달 과정 조회 성공");
+	}
+}
+
+@ApiTags("workout-records")
+@ApiBearerAuth("JWT-auth")
+@Controller("api/workout-records")
+@UseGuards(JwtAuthGuard)
+export class UserWorkoutRecordsController {
+	constructor(private readonly workoutRecordsService: WorkoutRecordsService) {}
+
+	@Post()
+	@HttpCode(HttpStatus.CREATED)
+	@ApiOperation({ summary: "내 운동 기록 등록", description: "현재 로그인한 사용자의 새로운 운동 기록을 등록합니다." })
+	@ApiResponse({ status: 201, description: "운동 기록 등록 성공" })
+	async createMyWorkoutRecord(
+		@Req() req: any,
+		@Body() createWorkoutRecordDto: CreateWorkoutRecordDto,
+	) {
+		const userId = req.user.id;
+		const record = await this.workoutRecordsService.create(
+			{ userId },
+			createWorkoutRecordDto,
+		);
+		return ApiResponseHelper.success(record, "운동 기록 등록 성공");
 	}
 
-	@Get("suggest-weight")
-	@MemberIdParam()
-	@ApiOperation({
-		summary: "운동별 무게 제안",
-		description: "Strength Level 기반으로 운동별 권장 무게를 제안합니다.",
-	})
-	@ApiResponse({ status: 200, description: "무게 제안 조회 성공" })
-	@ApiQuery({ name: "exerciseName", required: true, description: "운동명" })
-	@ApiQuery({ name: "reps", required: true, description: "반복 횟수" })
-	async suggestWeight(
-		@Param("memberId") memberId: string,
-		@Query("exerciseName") exerciseName: string,
-		@Query("reps") reps: string,
+	@Get()
+	@ApiOperation({ summary: "내 운동 기록 목록 조회", description: "현재 로그인한 사용자의 운동 기록을 조회합니다." })
+	@ApiResponse({ status: 200, description: "운동 기록 목록 조회 성공" })
+	async getMyWorkoutRecords(
+		@Req() req: any,
+		@Query("page") page?: string,
+		@Query("pageSize") pageSize?: string,
+		@Query("startDate") startDate?: string,
+		@Query("endDate") endDate?: string,
 	) {
-		const repsNum = parseInt(reps, 10);
-		if (isNaN(repsNum) || repsNum <= 0) {
-			throw ApiExceptions.badRequest("유효한 반복 횟수를 입력해주세요.");
-		}
-
-		const result = await this.workoutRoutinesService.suggestWeightForExercise(
-			memberId,
-			exerciseName,
-			repsNum,
+		const userId = req.user.id;
+		const { page: pageNum, pageSize: pageSizeNum } = parsePagination(page, pageSize);
+		const result = await this.workoutRecordsService.findAll(
+			{ userId },
+			pageNum,
+			pageSizeNum,
+			startDate,
+			endDate,
 		);
-		return ApiResponseHelper.success(result, "무게 제안 조회 성공");
+		return ApiResponseHelper.success(result, "운동 기록 목록 조회 성공");
 	}
 }

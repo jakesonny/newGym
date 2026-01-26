@@ -188,5 +188,8 @@ COMMENT ON COLUMN program_milestones.block_end_week IS '블록 종료 주차';
 -- 완료 메시지
 -- ============================================================
 DO $$ BEGIN
-    RAISE NOTICE 'Phase 2 스키마 업데이트 완료!';
+    RAISE NOTICE '✅ Phase 2 스키마 업데이트 완료!';
+    RAISE NOTICE '   - memberships 테이블에 프로그램/추세 필드 추가됨';
+    RAISE NOTICE '   - pt_sessions 테이블에 측정값 필드 추가됨';
+    RAISE NOTICE '   - program_milestones 테이블 생성됨';
 END $$;

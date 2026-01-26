@@ -28,10 +28,11 @@ export class MemberBasicInfoDto {
 	@MaxLength(50)
 	phone: string;
 
-	@ApiProperty({ description: '이메일', example: 'member@example.com' })
+	@ApiProperty({ description: '이메일', example: 'member@example.com', required: false })
+	@IsOptional()
 	@IsEmail()
 	@MaxLength(255)
-	email: string;
+	email?: string;
 
 	@ApiProperty({ description: '가입일', example: '2024-01-01' })
 	@IsDateString()
@@ -198,10 +199,11 @@ export class CreateMemberFullDto {
 	@MaxLength(50)
 	phone: string;
 
-	@ApiProperty({ description: '이메일', example: 'member@example.com' })
+	@ApiProperty({ description: '이메일', example: 'member@example.com', required: false })
+	@IsOptional()
 	@IsEmail()
 	@MaxLength(255)
-	email: string;
+	email?: string;
 
 	@ApiProperty({ description: '가입일', example: '2024-01-01' })
 	@IsDateString()

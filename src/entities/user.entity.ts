@@ -5,9 +5,11 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  OneToMany,
   Index,
 } from 'typeorm';
 import { Role } from '../common/enums';
+import { WorkoutRecord } from './workout-record.entity';
 
 @Index('idx_users_email', ['email'])
 @Index('idx_users_provider_providerId', ['provider', 'providerId'])
@@ -44,6 +46,9 @@ export class User {
 
 	@Column({ name: 'is_approved', default: true })
 	isApproved: boolean; // TRAINER는 ADMIN 승인 필요 (기본값: true, MEMBER는 자동 승인)
+
+	@OneToMany(() => WorkoutRecord, (workoutRecord) => workoutRecord.user)
+	workoutRecords: WorkoutRecord[];
 
 	@CreateDateColumn({ name: 'created_at' })
 	createdAt: Date;
