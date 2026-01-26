@@ -6335,10 +6335,12 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f;
+var AuthController_1;
+var _a, _b, _c, _d, _e, _f, _g;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const express_1 = __webpack_require__(/*! express */ "express");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 const auth_service_1 = __webpack_require__(/*! ./auth.service */ "./src/modules/auth/auth.service.ts");
 const login_dto_1 = __webpack_require__(/*! ./dto/login.dto */ "./src/modules/auth/dto/login.dto.ts");
@@ -6351,9 +6353,10 @@ const enums_1 = __webpack_require__(/*! ../../common/enums */ "./src/common/enum
 const decorators_1 = __webpack_require__(/*! ../../common/decorators */ "./src/common/decorators/index.ts");
 const api_response_1 = __webpack_require__(/*! ../../common/utils/api-response */ "./src/common/utils/api-response.ts");
 const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
-let AuthController = class AuthController {
+let AuthController = AuthController_1 = class AuthController {
     constructor(authService) {
         this.authService = authService;
+        this.logger = new common_1.Logger(AuthController_1.name);
     }
     async login(loginDto) {
         const result = await this.authService.login(loginDto);
@@ -6378,10 +6381,33 @@ let AuthController = class AuthController {
         const result = await this.authService.createTestAccount();
         return api_response_1.ApiResponseHelper.success(result, "테스트 계정 생성 성공");
     }
-    async kakaoLogin() {
+    async kakaoLogin(req) {
+        this.logger.log('카카오 로그인 시작 요청');
+        this.logger.debug(`요청 IP: ${req.ip}, User-Agent: ${req.headers['user-agent']}`);
     }
-    async kakaoCallback(req) {
-        return api_response_1.ApiResponseHelper.success(req.user, '카카오 로그인 성공');
+    async kakaoCallback(req, res, query) {
+        try {
+            if (!req.user) {
+                this.logger.error('카카오 콜백: req.user가 없습니다.');
+                this.logger.error(`쿼리 파라미터: ${JSON.stringify(query)}`);
+                throw new Error('카카오 인증 정보를 찾을 수 없습니다.');
+            }
+            const { accessToken } = req.user;
+            if (!accessToken) {
+                this.logger.error('카카오 콜백: accessToken이 없습니다.');
+                this.logger.error(`req.user 구조: ${JSON.stringify(Object.keys(req.user))}`);
+                throw new Error('액세스 토큰을 생성할 수 없습니다.');
+            }
+            this.logger.log(`카카오 로그인 성공: 사용자 ${req.user.user?.email || req.user.user?.id}`);
+            const redirectUrl = `strongsalon://login-success?token=${accessToken}`;
+            this.logger.debug(`딥링크 리다이렉트: ${redirectUrl.replace(accessToken, '***')}`);
+            return res.redirect(redirectUrl);
+        }
+        catch (error) {
+            this.logger.error('카카오 콜백 처리 중 오류:', error);
+            this.logger.error(`요청 정보: ${JSON.stringify({ query, user: req.user ? Object.keys(req.user) : null })}`);
+            throw error;
+        }
     }
     async updateProfile(req, updateUserDto) {
         const { role, ...updateData } = updateUserDto;
@@ -6497,20 +6523,23 @@ __decorate([
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('kakao')),
     (0, swagger_1.ApiOperation)({ summary: '카카오 로그인 시작', description: '카카오 로그인 페이지로 리다이렉트합니다.' }),
     (0, swagger_1.ApiResponse)({ status: 302, description: '카카오 로그인 페이지로 리다이렉트' }),
+    __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "kakaoLogin", null);
 __decorate([
     (0, common_1.Get)('kakao/callback'),
     (0, decorators_1.Public)(),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('kakao')),
-    (0, swagger_1.ApiOperation)({ summary: '카카오 로그인 콜백', description: '카카오 인증 후 콜백을 처리하고 JWT 토큰을 반환합니다.' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: '카카오 로그인 성공' }),
+    (0, swagger_1.ApiOperation)({ summary: '카카오 로그인 콜백', description: '카카오 인증 후 콜백을 처리하고 JWT 토큰을 실어서 앱의 딥링크로 리다이렉트합니다.' }),
+    (0, swagger_1.ApiResponse)({ status: 302, description: '카카오 로그인 성공 - 앱 딥링크로 리다이렉트' }),
     (0, swagger_1.ApiResponse)({ status: 401, description: '인증 실패' }),
     __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Res)()),
+    __param(2, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, typeof (_e = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _e : Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "kakaoCallback", null);
 __decorate([
@@ -6525,7 +6554,7 @@ __decorate([
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, typeof (_e = typeof update_user_dto_1.UpdateUserDto !== "undefined" && update_user_dto_1.UpdateUserDto) === "function" ? _e : Object]),
+    __metadata("design:paramtypes", [Object, typeof (_f = typeof update_user_dto_1.UpdateUserDto !== "undefined" && update_user_dto_1.UpdateUserDto) === "function" ? _f : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "updateProfile", null);
 __decorate([
@@ -6544,7 +6573,7 @@ __decorate([
     __param(1, (0, common_1.Request)()),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object, typeof (_f = typeof update_user_dto_1.UpdateUserDto !== "undefined" && update_user_dto_1.UpdateUserDto) === "function" ? _f : Object]),
+    __metadata("design:paramtypes", [String, Object, typeof (_g = typeof update_user_dto_1.UpdateUserDto !== "undefined" && update_user_dto_1.UpdateUserDto) === "function" ? _g : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "updateUser", null);
 __decorate([
@@ -6626,7 +6655,7 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "rejectTrainer", null);
-exports.AuthController = AuthController = __decorate([
+exports.AuthController = AuthController = AuthController_1 = __decorate([
     (0, swagger_1.ApiTags)("auth"),
     (0, common_1.Controller)('api/auth'),
     __metadata("design:paramtypes", [typeof (_a = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _a : Object])
@@ -7414,6 +7443,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var KakaoStrategy_1;
 var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.KakaoStrategy = void 0;
@@ -7422,30 +7452,58 @@ const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport
 const passport_kakao_1 = __webpack_require__(/*! passport-kakao */ "passport-kakao");
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
 const auth_service_1 = __webpack_require__(/*! ../auth.service */ "./src/modules/auth/auth.service.ts");
-let KakaoStrategy = class KakaoStrategy extends (0, passport_1.PassportStrategy)(passport_kakao_1.Strategy, 'kakao') {
+let KakaoStrategy = KakaoStrategy_1 = class KakaoStrategy extends (0, passport_1.PassportStrategy)(passport_kakao_1.Strategy, 'kakao') {
     constructor(configService, authService) {
+        const clientID = configService.get('KAKAO_CLIENT_ID');
         const clientSecret = configService.get('KAKAO_CLIENT_SECRET');
+        const callbackURL = configService.get('KAKAO_REDIRECT_URI');
         super({
-            clientID: configService.get('KAKAO_CLIENT_ID'),
+            clientID,
             ...(clientSecret && { clientSecret }),
-            callbackURL: configService.get('KAKAO_REDIRECT_URI'),
+            callbackURL,
         });
         this.configService = configService;
         this.authService = authService;
+        this.logger = new common_1.Logger(KakaoStrategy_1.name);
+        if (!clientID) {
+            this.logger.error('KAKAO_CLIENT_ID가 설정되지 않았습니다.');
+        }
+        if (!callbackURL) {
+            this.logger.error('KAKAO_REDIRECT_URI가 설정되지 않았습니다.');
+        }
+        this.logger.log('카카오 OAuth 설정 초기화:');
+        this.logger.log(`  - Client ID: ${clientID ? `${clientID.substring(0, 8)}...` : '없음'}`);
+        this.logger.log(`  - Callback URL: ${callbackURL || '없음'}`);
+        this.logger.log(`  - Client Secret: ${clientSecret ? '설정됨' : '없음'}`);
     }
     async validate(accessToken, refreshToken, profile) {
-        const { id, username, _json } = profile;
-        const kakaoUser = {
-            provider: 'KAKAO',
-            providerId: id.toString(),
-            email: _json.kakao_account?.email,
-            name: username || _json.kakao_account?.profile?.nickname || '카카오 사용자',
-        };
-        return await this.authService.validateOrCreateSocialUser(kakaoUser);
+        try {
+            this.logger.log('카카오 사용자 인증 시작');
+            this.logger.debug(`카카오 프로필 ID: ${profile?.id}`);
+            const { id, username, _json } = profile;
+            const kakaoUser = {
+                provider: 'KAKAO',
+                providerId: id.toString(),
+                email: _json.kakao_account?.email,
+                name: username || _json.kakao_account?.profile?.nickname || '카카오 사용자',
+            };
+            this.logger.log(`카카오 사용자 정보 추출 완료: ${kakaoUser.name} (${kakaoUser.providerId})`);
+            const result = await this.authService.validateOrCreateSocialUser(kakaoUser);
+            this.logger.log(`카카오 로그인 성공: 사용자 ID ${result.user.id}`);
+            return result;
+        }
+        catch (error) {
+            this.logger.error('카카오 사용자 인증 실패:', error);
+            this.logger.error(`에러 메시지: ${error.message}`);
+            if (error.stack) {
+                this.logger.error(`스택 트레이스: ${error.stack}`);
+            }
+            throw error;
+        }
     }
 };
 exports.KakaoStrategy = KakaoStrategy;
-exports.KakaoStrategy = KakaoStrategy = __decorate([
+exports.KakaoStrategy = KakaoStrategy = KakaoStrategy_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _b : Object])
 ], KakaoStrategy);
@@ -13435,7 +13493,7 @@ let WorkoutRecordsService = WorkoutRecordsService_1 = class WorkoutRecordsServic
                 }
             }
         }
-        entity_update_helper_1.EntityUpdateHelper.updateEntity(record, updateDto, ['workoutDate']);
+        entity_update_helper_1.EntityUpdateHelper.updateFieldsWithDateConversion(record, updateDto, ['workoutDate']);
         return this.workoutRecordRepository.save(record);
     }
     async remove(id, identifier) {
@@ -14795,6 +14853,16 @@ module.exports = require("class-transformer");
 /***/ ((module) => {
 
 module.exports = require("class-validator");
+
+/***/ }),
+
+/***/ "express":
+/*!**************************!*\
+  !*** external "express" ***!
+  \**************************/
+/***/ ((module) => {
+
+module.exports = require("express");
 
 /***/ }),
 

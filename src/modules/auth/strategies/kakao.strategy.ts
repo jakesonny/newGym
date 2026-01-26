@@ -16,7 +16,14 @@ export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
 		const clientSecret = configService.get<string>('KAKAO_CLIENT_SECRET');
 		const callbackURL = configService.get<string>('KAKAO_REDIRECT_URI');
 
-		// 설정 값 검증 및 로깅
+		// super()를 먼저 호출해야 this를 사용할 수 있음
+		super({
+			clientID,
+			...(clientSecret && { clientSecret }), // Client Secret이 있을 때만 추가
+			callbackURL,
+		});
+
+		// super() 호출 후 로깅
 		if (!clientID) {
 			this.logger.error('KAKAO_CLIENT_ID가 설정되지 않았습니다.');
 		}
@@ -28,12 +35,6 @@ export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
 		this.logger.log(`  - Client ID: ${clientID ? `${clientID.substring(0, 8)}...` : '없음'}`);
 		this.logger.log(`  - Callback URL: ${callbackURL || '없음'}`);
 		this.logger.log(`  - Client Secret: ${clientSecret ? '설정됨' : '없음'}`);
-
-		super({
-			clientID,
-			...(clientSecret && { clientSecret }), // Client Secret이 있을 때만 추가
-			callbackURL,
-		});
 	}
 
 	async validate(accessToken: string, refreshToken: string, profile: any) {

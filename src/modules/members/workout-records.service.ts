@@ -219,7 +219,7 @@ export class WorkoutRecordsService {
 			}
 		}
 
-		EntityUpdateHelper.updateEntity(record, updateDto, ['workoutDate']);
+		EntityUpdateHelper.updateFieldsWithDateConversion(record, updateDto, ['workoutDate']);
 		return this.workoutRecordRepository.save(record);
 	}
 
