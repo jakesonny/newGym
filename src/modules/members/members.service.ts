@@ -199,8 +199,9 @@ export class MembersService {
           mainGoalLabel,
           targetValue: m.targetValue,
           targetUnit,
-          startValue: m.startValue ?? dto.initialMeasurement?.weight,
-          currentValue: dto.initialMeasurement?.weight,
+          // 초기측정 null 허용; 미입력 시 0으로 저장해 진행률 계산에 사용
+          startValue: m.startValue ?? dto.initialMeasurement?.weight ?? 0,
+          currentValue: dto.initialMeasurement?.weight ?? 0,
           currentProgress: 0,
           riskStatus: RiskStatus.FOUNDATION,
         });
