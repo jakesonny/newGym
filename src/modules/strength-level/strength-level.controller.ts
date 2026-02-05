@@ -2,7 +2,8 @@ import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { StrengthLevelService } from './strength-level.service';
 import { CalculateStrengthLevelDto } from './dto/calculate-strength-level.dto';
-import { StrengthLevelResponse } from './dto/strength-level-response.dto';
+import { StrengthLevelData } from './dto/strength-level-response.dto';
+import { ApiResponseHelper } from '../../common/utils/api-response';
 import { Public } from '../../common/decorators';
 
 /**
@@ -46,7 +47,7 @@ export class StrengthLevelController {
 	@ApiResponse({
 		status: 200,
 		description: 'Strength Level 계산 성공',
-		type: StrengthLevelResponse,
+		type: StrengthLevelData,
 	})
 	@ApiResponse({
 		status: 400,
@@ -56,9 +57,8 @@ export class StrengthLevelController {
 		status: 404,
 		description: '운동 정보를 찾을 수 없음',
 	})
-	async calculate(
-		@Body() dto: CalculateStrengthLevelDto,
-	): Promise<StrengthLevelResponse> {
-		return this.strengthLevelService.calculate(dto);
+	async calculate(@Body() dto: CalculateStrengthLevelDto) {
+		const data = await this.strengthLevelService.calculate(dto);
+		return ApiResponseHelper.success(data, 'Strength Level 계산 성공');
 	}
 }

@@ -11,7 +11,7 @@ import {
 	ExerciseTypeEnglishNames,
 } from './dto/calculate-strength-level.dto';
 import {
-	StrengthLevelResponse,
+	StrengthLevelData,
 	StrengthLevelFriendlyNames,
 	StrengthLevelDescriptions,
 	LevelInfo,
@@ -33,7 +33,7 @@ export class StrengthLevelService {
 	 * Strength Level 계산
 	 * 체중/나이/성별 기반으로 5단계 레벨별 기준 무게 조회
 	 */
-	async calculate(dto: CalculateStrengthLevelDto): Promise<StrengthLevelResponse> {
+	async calculate(dto: CalculateStrengthLevelDto): Promise<StrengthLevelData> {
 		const { exerciseType, age, bodyWeight, gender, currentWeight } = dto;
 
 		// 1. 운동 정보 조회 - 부분 매칭으로 검색 (DB의 name_en이 "Bench Press - Powerlifting" 형태일 수 있음)
@@ -144,22 +144,19 @@ export class StrengthLevelService {
 		}
 
 		return {
-			success: true,
-			data: {
-				exercise: {
-					type: exerciseType,
-					nameKorean: ExerciseTypeNames[exerciseType],
-					nameEnglish: exercise.nameEn || exercise.name || exerciseNameEn,
-				},
-				input: {
-					age,
-					bodyWeight,
-					gender,
-					currentWeight,
-				},
-				currentLevel: currentLevelInfo,
-				allLevels,
+			exercise: {
+				type: exerciseType,
+				nameKorean: ExerciseTypeNames[exerciseType],
+				nameEnglish: exercise.nameEn || exercise.name || exerciseNameEn,
 			},
+			input: {
+				age,
+				bodyWeight,
+				gender,
+				currentWeight,
+			},
+			currentLevel: currentLevelInfo,
+			allLevels,
 		};
 	}
 

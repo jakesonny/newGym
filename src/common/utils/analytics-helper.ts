@@ -84,7 +84,7 @@ export class AnalyticsHelper {
 	}
 
 	/**
-	 * 스냅샷을 헥사곤 지표 배열로 변환
+	 * 스냅샷을 헥사곤 지표 배열로 변환 (레거시, 0 폴백)
 	 */
 	static toHexagonIndicators(snapshot: AbilitySnapshot | null): HexagonIndicator[] {
 		const normalized = snapshot ? SnapshotNormalizer.normalize(snapshot) : null;
@@ -96,6 +96,37 @@ export class AnalyticsHelper {
 			{ name: HEXAGON_INDICATOR_NAMES.body, score: normalized?.bodyScore ?? 0 },
 			{ name: HEXAGON_INDICATOR_NAMES.stability, score: normalized?.stabilityScore ?? 0 },
 		];
+	}
+
+	/**
+	 * 스냅샷을 헥사곤 지표 객체로 변환 (API 응답 통일용, 값 없으면 null)
+	 */
+	static toHexagonIndicatorsObject(snapshot: AbilitySnapshot | null): {
+		lowerBodyStrength: number | null;
+		cardiorespiratoryEndurance: number | null;
+		muscularEndurance: number | null;
+		flexibility: number | null;
+		bodyComposition: number | null;
+		stability: number | null;
+	} {
+		if (!snapshot) {
+			return {
+				lowerBodyStrength: null,
+				cardiorespiratoryEndurance: null,
+				muscularEndurance: null,
+				flexibility: null,
+				bodyComposition: null,
+				stability: null,
+			};
+		}
+		return {
+			lowerBodyStrength: snapshot.strengthScore ?? null,
+			cardiorespiratoryEndurance: snapshot.cardioScore ?? null,
+			muscularEndurance: snapshot.enduranceScore ?? null,
+			flexibility: snapshot.flexibilityScore ?? null,
+			bodyComposition: snapshot.bodyScore ?? null,
+			stability: snapshot.stabilityScore ?? null,
+		};
 	}
 
 	/**

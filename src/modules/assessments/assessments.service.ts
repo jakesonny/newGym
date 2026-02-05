@@ -465,17 +465,31 @@ export class AssessmentsService {
 	}
 
 	/**
-	 * 레이더 차트용 헥사곤 데이터 조회
+	 * 레이더 차트용 헥사곤 데이터 조회 (indicators는 객체 형태, 값 없으면 null)
 	 */
 	async getHexagonData(
 		memberId: string,
 		includeInitial: boolean = false,
 	): Promise<{
-		indicators: Array<{ name: string; score: number }>;
+		indicators: {
+			lowerBodyStrength: number | null;
+			cardiorespiratoryEndurance: number | null;
+			muscularEndurance: number | null;
+			flexibility: number | null;
+			bodyComposition: number | null;
+			stability: number | null;
+		};
 		assessedAt: string;
 		version: string;
 		initial?: {
-			indicators: Array<{ name: string; score: number }>;
+			indicators: {
+				lowerBodyStrength: number | null;
+				cardiorespiratoryEndurance: number | null;
+				muscularEndurance: number | null;
+				flexibility: number | null;
+				bodyComposition: number | null;
+				stability: number | null;
+			};
 			assessedAt: string;
 			version: string;
 		} | null;
@@ -488,7 +502,7 @@ export class AssessmentsService {
 		}
 
 		const current = {
-			indicators: AnalyticsHelper.toHexagonIndicators(snapshot),
+			indicators: AnalyticsHelper.toHexagonIndicatorsObject(snapshot),
 			assessedAt: DateHelper.toKoreaTimeISOString(snapshot.assessedAt),
 			version: snapshot.version || "v1",
 		};
@@ -497,11 +511,13 @@ export class AssessmentsService {
 			const initialSnapshot = await this.getInitialSnapshot(memberId);
 			return {
 				...current,
-				initial: initialSnapshot ? {
-					indicators: AnalyticsHelper.toHexagonIndicators(initialSnapshot),
-					assessedAt: DateHelper.toKoreaTimeISOString(initialSnapshot.assessedAt),
-					version: initialSnapshot.version || "v1",
-				} : null,
+				initial: initialSnapshot
+					? {
+							indicators: AnalyticsHelper.toHexagonIndicatorsObject(initialSnapshot),
+							assessedAt: DateHelper.toKoreaTimeISOString(initialSnapshot.assessedAt),
+							version: initialSnapshot.version || "v1",
+						}
+					: null,
 			};
 		}
 
