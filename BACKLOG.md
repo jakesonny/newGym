@@ -55,7 +55,7 @@
 ### 평가 시스템 개선
 - [ ] 유연성(FLEXIBILITY) 가중치 추가
 - [ ] 표준화 함수를 통한 실제 점수 계산
-- **관련 문서**: `DB구조/ABILITY_DB_STRUCTURE.md:150, 196`
+- **관련 문서**: `database/docs/ABILITY_DB_STRUCTURE.md:150, 196`
 
 ---
 

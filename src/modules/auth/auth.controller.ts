@@ -147,7 +147,7 @@ export class AuthController {
 			
 			// 앱의 딥링크 주소로 토큰을 실어서 보냅니다.
 			// 예: strongsalon://login-success?token=...
-			const redirectUrl = `strongsalon://login-success?token=${accessToken}`;
+			const redirectUrl = `strongsalon://login-success?token=${accessToken}`;	
 			this.logger.debug(`딥링크 리다이렉트: ${redirectUrl.replace(accessToken, '***')}`);
 			
 			return res.redirect(redirectUrl);

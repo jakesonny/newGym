@@ -16,6 +16,9 @@ import { AssessmentCategoryScore } from "../entities/assessment-category-score.e
 import { FlexibilityItemWeight } from "../entities/flexibility-item-weight.entity";
 import { FlexibilityGradeThreshold } from "../entities/flexibility-grade-threshold.entity";
 import { BodyCompositionStandard } from "../entities/body-composition-standard.entity";
+import { ProgramMilestone } from "../entities/program-milestone.entity";
+import { Exercise } from "../entities/exercise.entity";
+import { StrengthStandard } from "../entities/strength-standard.entity";
 
 // DATABASE_URL이 있으면 사용, 없으면 개별 설정 사용
 const getDatabaseConfig = () => {
@@ -43,13 +46,19 @@ const getDatabaseConfig = () => {
 export const dataSourceOptions: DataSourceOptions = {
 	type: "postgres",
 	...getDatabaseConfig(),
-	entities: [User, Member, Membership, PTUsage, Assessment, AssessmentItem, AbilitySnapshot, InjuryHistory, InjuryRestriction, WorkoutRecord, PTSession, WorkoutRoutine, AssessmentGradeConstant, AssessmentCategoryScore, FlexibilityItemWeight, FlexibilityGradeThreshold, BodyCompositionStandard],
+	schema: process.env.DB_SCHEMA || "newgym",
+	entities: [User, Member, Membership, PTUsage, Assessment, AssessmentItem, AbilitySnapshot, InjuryHistory, InjuryRestriction, WorkoutRecord, PTSession, WorkoutRoutine, AssessmentGradeConstant, AssessmentCategoryScore, FlexibilityItemWeight, FlexibilityGradeThreshold, BodyCompositionStandard, ProgramMilestone, Exercise, StrengthStandard],
 	migrations: [__dirname + "/../migrations/*{.ts,.js}"],
 	// synchronize는 프로덕션에서 절대 사용하지 않음
 	// enum 타입 변경 시 데이터베이스 마이그레이션 에러 발생 가능
 	// 개발 환경에서도 마이그레이션 사용 권장
 	synchronize: false, // process.env.DB_SYNCHRONIZE === "true" || process.env.NODE_ENV === "development",
 	logging: process.env.DB_LOGGING === "true" || process.env.NODE_ENV === "development",
+	extra: {
+		connectionTimeoutMillis: 10000,
+		idleTimeoutMillis: 30000,
+		keepAlive: true,
+	},
 	ssl: process.env.DB_HOST?.includes("render.com") || process.env.DB_HOST?.includes("amazonaws.com") ? { rejectUnauthorized: false } : false,
 };
 

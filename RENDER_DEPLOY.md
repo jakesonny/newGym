@@ -21,6 +21,7 @@ Render 대시보드의 **Environment** 탭에서 다음 변수들을 설정하�
 | `NODE_ENV` | `production` | 프로덕션 모드 |
 | `PORT` | `3001` | 서버 포트 (Render는 자동으로 감지하기도 함) |
 | `DATABASE_URL` | `postgresql://...` | Render PostgreSQL 서비스의 Internal DB URL |
+| `DB_SCHEMA` | `newgym` | 멀티 프로젝트 분리를 위한 스키마 고정 |
 | `JWT_SECRET` | `your-secure-secret` | 강력한 보안 문자열 |
 | `JWT_EXPIRES_IN` | `7d` | 토큰 만료 시간 |
 | `FRONTEND_URL` | `https://your-app.vercel.app` | Vercel 프론트엔드 주소 |

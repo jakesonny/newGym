@@ -10,6 +10,7 @@ TypeORM 마이그레이션을 실행하려면 다음 환경 변수들이 필요�
 
 ```env
 DATABASE_URL=postgresql://사용자명:비밀번호@호스트:포트/데이터베이스명
+DB_SCHEMA=newgym
 ```
 
 **예시:**
@@ -36,6 +37,7 @@ DB_NAME=gym_membership_db # 데이터베이스 이름
 # 선택 사항
 DB_LOGGING=true           # SQL 쿼리 로그 출력 (개발 환경)
 NODE_ENV=development      # 환경 설정
+DB_SCHEMA=newgym          # 스키마 고정 (멀티 프로젝트 분리)
 ```
 
 ## 🔧 .env 파일 생성 방법
@@ -115,6 +117,12 @@ cat .env | grep -E "DB_|DATABASE_URL"
 
 ```bash
 npm run migration:run
+```
+
+### 1-1. newgym 스키마 초기화 + 마이그레이션 + 운동시드 자동 실행
+
+```bash
+npm run db:bootstrap:newgym
 ```
 
 ### 2. 마이그레이션 상태 확인
@@ -203,12 +211,7 @@ DB_LOGGING=true
 
 ```env
 DATABASE_URL=postgresql://user:password@dpg-xxxxx-a.oregon-postgres.render.com:5432/dbname
-# 또는
-DB_HOST=dpg-xxxxx-a.oregon-postgres.render.com
-DB_PORT=5432
-DB_USERNAME=user
-DB_PASSWORD=password
-DB_NAME=dbname
+DB_SCHEMA=newgym
 ```
 
 ### .env 파일 보안

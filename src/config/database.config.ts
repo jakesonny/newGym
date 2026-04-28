@@ -24,10 +24,12 @@ import { ProgramMilestone } from '../entities/program-milestone.entity';
 export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOptions => {
 	const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
 	const isDevelopment = nodeEnv === 'development';
+	const schema = configService.get<string>('DB_SCHEMA') || 'newgym';
 
 	// 공통 설정
 	const commonConfig = {
 		type: 'postgres' as const,
+		schema,
 		entities: [
 			User,
 			Member,
@@ -56,6 +58,11 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
 		// 개발 환경에서도 마이그레이션 사용 권장
 		synchronize: false, // configService.get<string>('DB_SYNCHRONIZE') === 'true',
 		logging: configService.get<string>('DB_LOGGING') === 'true' || isDevelopment,
+		extra: {
+			connectionTimeoutMillis: 10000,
+			idleTimeoutMillis: 30000,
+			keepAlive: true,
+		},
 	};
 
 	// DATABASE_URL이 있으면 사용

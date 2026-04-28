@@ -42,6 +42,10 @@ lerna-debug.log*
 # TypeORM
 /migrations/*.js
 
+# Markdown
+*.md
+!README.md
+
 # Scripts (development tools)
 /scripts/
 
