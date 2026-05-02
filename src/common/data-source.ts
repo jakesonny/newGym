@@ -61,7 +61,7 @@ export const dataSourceOptions: DataSourceOptions = {
 		connectionTimeoutMillis: 10000,
 		idleTimeoutMillis: 30000,
 		keepAlive: true,
-		options: `-c search_path=${schema},public`,
+		options: `-c search_path=${schema}`,
 	},
 	ssl: process.env.DB_HOST?.includes("render.com") || process.env.DB_HOST?.includes("amazonaws.com") ? { rejectUnauthorized: false } : false,
 };

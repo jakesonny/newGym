@@ -6,10 +6,11 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_body_composition_standards_gender_age', ['gender', 'ageMin', 'ageMax'])
 @Index('idx_body_composition_standards_active', ['isActive'], { where: 'is_active = true' })
-@Entity('body_composition_standards')
+@Entity({ name: 'body_composition_standards', schema: ENTITY_SCHEMA })
 export class BodyCompositionStandard {
   @PrimaryGeneratedColumn('uuid')
   id: string;

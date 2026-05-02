@@ -13,11 +13,12 @@ import {
 import { Member } from './member.entity';
 import { InjuryRestriction } from './injury-restriction.entity';
 import { Severity, RecoveryStatus } from '../common/enums';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_injury_histories_member_id', ['memberId'])
 @Index('idx_injury_histories_recovery_status', ['recoveryStatus'])
 @Index('idx_injury_histories_deleted_at', ['deletedAt'])
-@Entity('injury_histories')
+@Entity({ name: 'injury_histories', schema: ENTITY_SCHEMA })
 export class InjuryHistory {
   @PrimaryGeneratedColumn('uuid')
   id: string;

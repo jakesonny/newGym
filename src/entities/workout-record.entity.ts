@@ -11,6 +11,7 @@ import {
 import { Member } from './member.entity';
 import { User } from './user.entity';
 import { StrengthLevel } from '../common/enums';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 export enum WorkoutType {
 	PT = 'PT', // PT 세션 참여
@@ -21,7 +22,7 @@ export enum WorkoutType {
 @Index('idx_workout_records_member_id', ['memberId'])
 @Index('idx_workout_records_workout_date', ['workoutDate'])
 @Index('idx_workout_records_workout_type', ['workoutType'])
-@Entity('workout_records')
+@Entity({ name: 'workout_records', schema: ENTITY_SCHEMA })
 export class WorkoutRecord {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;

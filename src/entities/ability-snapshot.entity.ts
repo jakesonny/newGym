@@ -1,11 +1,12 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, OneToOne, JoinColumn, Index } from "typeorm";
 import { Assessment } from "./assessment.entity";
 import { Member } from "./member.entity";
+import { ENTITY_SCHEMA } from "../common/constants/entity-schema";
 
 @Index("idx_ability_snapshots_assessment_id", ["assessmentId"])
 @Index("idx_ability_snapshots_member_id", ["memberId"])
 @Index("idx_ability_snapshots_assessed_at", ["assessedAt"])
-@Entity("ability_snapshots")
+@Entity({ name: "ability_snapshots", schema: ENTITY_SCHEMA })
 export class AbilitySnapshot {
 	@PrimaryGeneratedColumn("uuid")
 	id: string;

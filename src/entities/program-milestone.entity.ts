@@ -11,11 +11,12 @@ import {
 import { Membership } from './membership.entity';
 import { PTSession } from './pt-session.entity';
 import { BlockPurpose } from '../common/enums';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_program_milestones_membership_id', ['membershipId'])
 @Index('idx_program_milestones_week_number', ['weekNumber'])
 @Index('idx_program_milestones_is_achieved', ['isAchieved'])
-@Entity('program_milestones')
+@Entity({ name: 'program_milestones', schema: ENTITY_SCHEMA })
 export class ProgramMilestone {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;

@@ -26,7 +26,7 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
 	const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
 	const isDevelopment = nodeEnv === 'development';
 	const schema = configService.get<string>('DB_SCHEMA') || 'newgym';
-	const searchPathOption = `-c search_path=${schema},public`;
+	const searchPathOption = `-c search_path=${schema}`;
 
 	// 공통 설정
 	const commonConfig = {

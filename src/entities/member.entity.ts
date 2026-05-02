@@ -20,11 +20,12 @@ import { PTSession } from './pt-session.entity';
 import { WorkoutRoutine } from './workout-routine.entity';
 import { User } from './user.entity';
 import { MemberStatus, Gender } from '../common/enums';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_members_email', ['email'])
 @Index('idx_members_status', ['status'])
 @Index('idx_members_deleted_at', ['deletedAt'])
-@Entity('members')
+@Entity({ name: 'members', schema: ENTITY_SCHEMA })
 export class Member {
   @PrimaryGeneratedColumn('uuid')
   id: string;

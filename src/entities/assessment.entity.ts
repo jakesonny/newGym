@@ -15,12 +15,13 @@ import { Member } from './member.entity';
 import { AssessmentItem } from './assessment-item.entity';
 import { AbilitySnapshot } from './ability-snapshot.entity';
 import { AssessmentType, Condition, EvaluationType } from '../common/enums';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_assessments_member_id', ['memberId'])
 @Index('idx_assessments_assessed_at', ['assessedAt'])
 @Index('idx_assessments_is_initial', ['isInitial'])
 @Index('idx_assessments_deleted_at', ['deletedAt'])
-@Entity('assessments')
+@Entity({ name: 'assessments', schema: ENTITY_SCHEMA })
 export class Assessment {
   @PrimaryGeneratedColumn('uuid')
   id: string;

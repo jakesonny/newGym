@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Exercise } from './exercise.entity';
 import { Gender, StrengthLevel } from '../common/enums';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_strength_standards_exercise_id', ['exerciseId'])
 @Index('idx_strength_standards_gender', ['gender'])
@@ -18,7 +19,7 @@ import { Gender, StrengthLevel } from '../common/enums';
 @Index('idx_strength_standards_standard_type', ['standardType'])
 @Index('idx_strength_standards_age', ['ageMin', 'ageMax'])
 @Index('idx_strength_standards_lookup', ['exerciseId', 'gender', 'level', 'standardType', 'bodyweightMin', 'bodyweightMax', 'ageMin', 'ageMax'])
-@Entity('strength_standards')
+@Entity({ name: 'strength_standards', schema: ENTITY_SCHEMA })
 export class StrengthStandard {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;

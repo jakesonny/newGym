@@ -6,10 +6,11 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_assessment_grade_constants_code', ['gradeCode'])
 @Index('idx_assessment_grade_constants_active', ['isActive'], { where: 'is_active = true' })
-@Entity('assessment_grade_constants')
+@Entity({ name: 'assessment_grade_constants', schema: ENTITY_SCHEMA })
 export class AssessmentGradeConstant {
   @PrimaryGeneratedColumn('uuid')
   id: string;

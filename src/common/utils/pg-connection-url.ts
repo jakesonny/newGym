@@ -8,11 +8,14 @@ export function appendPgSearchPath(databaseUrl: string, schema: string): string 
 	if (!trimmed) {
 		return trimmed;
 	}
+	const optionsValue = `-c search_path=${schema}`;
 	try {
 		const u = new URL(trimmed);
-		u.searchParams.set('options', `-c search_path=${schema},public`);
+		u.searchParams.set('options', optionsValue);
 		return u.href;
 	} catch {
-		return trimmed;
+		const encoded = encodeURIComponent(optionsValue);
+		const sep = trimmed.includes('?') ? '&' : '?';
+		return `${trimmed}${sep}options=${encoded}`;
 	}
 }

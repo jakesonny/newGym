@@ -8,6 +8,7 @@ import {
 	Index,
 } from 'typeorm';
 import { StrengthStandard } from './strength-standard.entity';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 export enum ExerciseCategory {
 	UPPER = 'UPPER', // 상체
@@ -20,7 +21,7 @@ export enum ExerciseCategory {
 @Index('idx_exercises_category', ['category'])
 @Index('idx_exercises_body_part', ['bodyPart'])
 @Index('idx_exercises_is_active', ['isActive'])
-@Entity('exercises')
+@Entity({ name: 'exercises', schema: ENTITY_SCHEMA })
 export class Exercise {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;

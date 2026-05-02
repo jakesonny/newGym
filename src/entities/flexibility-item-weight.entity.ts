@@ -6,10 +6,11 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_flexibility_item_weights_item_name', ['itemName'])
 @Index('idx_flexibility_item_weights_active', ['isActive'], { where: 'is_active = true' })
-@Entity('flexibility_item_weights')
+@Entity({ name: 'flexibility_item_weights', schema: ENTITY_SCHEMA })
 export class FlexibilityItemWeight {
   @PrimaryGeneratedColumn('uuid')
   id: string;

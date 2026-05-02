@@ -9,9 +9,10 @@ import {
   Index,
 } from 'typeorm';
 import { Member } from './member.entity';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_pt_usages_member_id', ['memberId'])
-@Entity('pt_usages')
+@Entity({ name: 'pt_usages', schema: ENTITY_SCHEMA })
 export class PTUsage {
   @PrimaryGeneratedColumn('uuid')
   id: string;

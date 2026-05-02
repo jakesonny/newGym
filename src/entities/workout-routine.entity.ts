@@ -9,11 +9,12 @@ import {
 	Index,
 } from 'typeorm';
 import { Member } from './member.entity';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_workout_routines_member_id', ['memberId'])
 @Index('idx_workout_routines_routine_date', ['routineDate'])
 @Index('idx_workout_routines_member_date', ['memberId', 'routineDate'])
-@Entity('workout_routines')
+@Entity({ name: 'workout_routines', schema: ENTITY_SCHEMA })
 export class WorkoutRoutine {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;

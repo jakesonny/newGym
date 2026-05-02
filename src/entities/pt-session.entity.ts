@@ -10,12 +10,13 @@ import {
 } from 'typeorm';
 import { Member } from './member.entity';
 import { Membership } from './membership.entity';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_pt_sessions_member_id', ['memberId'])
 @Index('idx_pt_sessions_session_date', ['sessionDate'])
 @Index('idx_pt_sessions_session_number', ['memberId', 'sessionNumber'])
 @Index('idx_pt_sessions_membership_id', ['membershipId'])
-@Entity('pt_sessions')
+@Entity({ name: 'pt_sessions', schema: ENTITY_SCHEMA })
 export class PTSession {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;

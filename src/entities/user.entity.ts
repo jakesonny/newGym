@@ -9,12 +9,13 @@ import {
   Index,
 } from 'typeorm';
 import { Role } from '../common/enums';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 import { WorkoutRecord } from './workout-record.entity';
 
 @Index('idx_users_email', ['email'])
 @Index('idx_users_provider_providerId', ['provider', 'providerId'])
 @Index('idx_users_deleted_at', ['deletedAt'])
-@Entity('users')
+@Entity({ name: 'users', schema: ENTITY_SCHEMA })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;

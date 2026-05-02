@@ -9,10 +9,11 @@ import {
 } from 'typeorm';
 import { Assessment } from './assessment.entity';
 import { Category } from '../common/enums';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_assessment_items_assessment_id', ['assessmentId'])
 @Index('idx_assessment_items_category', ['category'])
-@Entity('assessment_items')
+@Entity({ name: 'assessment_items', schema: ENTITY_SCHEMA })
 export class AssessmentItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;

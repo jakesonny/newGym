@@ -10,11 +10,12 @@ import {
 } from 'typeorm';
 import { Category } from '../common/enums';
 import { AssessmentGradeConstant } from './assessment-grade-constant.entity';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_assessment_category_scores_category', ['category'])
 @Index('idx_assessment_category_scores_input_grade', ['inputGrade'])
 @Index('idx_assessment_category_scores_active', ['isActive'], { where: '"is_active" = true' })
-@Entity('assessment_category_scores')
+@Entity({ name: 'assessment_category_scores', schema: ENTITY_SCHEMA })
 export class AssessmentCategoryScore {
   @PrimaryGeneratedColumn('uuid')
   id: string;

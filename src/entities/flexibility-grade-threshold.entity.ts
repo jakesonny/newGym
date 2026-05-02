@@ -9,9 +9,10 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { AssessmentGradeConstant } from './assessment-grade-constant.entity';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_flexibility_grade_thresholds_active', ['isActive'], { where: 'is_active = true' })
-@Entity('flexibility_grade_thresholds')
+@Entity({ name: 'flexibility_grade_thresholds', schema: ENTITY_SCHEMA })
 export class FlexibilityGradeThreshold {
   @PrimaryGeneratedColumn('uuid')
   id: string;

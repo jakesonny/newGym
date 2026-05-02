@@ -12,12 +12,13 @@ import {
 import { Member } from './member.entity';
 import { ProgramMilestone } from './program-milestone.entity';
 import { MembershipType, MembershipStatus, GoalType, RiskStatus, GoalDirection } from '../common/enums';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_memberships_member_id', ['memberId'])
 @Index('idx_memberships_status', ['status'])
 @Index('idx_memberships_expiry_date', ['expiryDate'])
 @Index('idx_memberships_risk_status', ['riskStatus'])
-@Entity('memberships')
+@Entity({ name: 'memberships', schema: ENTITY_SCHEMA })
 export class Membership {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -9,10 +9,11 @@ import {
 } from 'typeorm';
 import { InjuryHistory } from './injury-history.entity';
 import { Category } from '../common/enums';
+import { ENTITY_SCHEMA } from '../common/constants/entity-schema';
 
 @Index('idx_injury_restrictions_injury_id', ['injuryId'])
 @Index('idx_injury_restrictions_category', ['restrictedCategory'])
-@Entity('injury_restrictions')
+@Entity({ name: 'injury_restrictions', schema: ENTITY_SCHEMA })
 export class InjuryRestriction {
   @PrimaryGeneratedColumn('uuid')
   id: string;
