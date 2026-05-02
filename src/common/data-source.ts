@@ -19,13 +19,16 @@ import { BodyCompositionStandard } from "../entities/body-composition-standard.e
 import { ProgramMilestone } from "../entities/program-milestone.entity";
 import { Exercise } from "../entities/exercise.entity";
 import { StrengthStandard } from "../entities/strength-standard.entity";
+import { appendPgSearchPath } from "./utils/pg-connection-url";
+
+const schema = process.env.DB_SCHEMA || "newgym";
 
 // DATABASE_URL이 있으면 사용, 없으면 개별 설정 사용
 const getDatabaseConfig = () => {
 	// DATABASE_URL 우선 사용
 	if (process.env.DATABASE_URL) {
 		return {
-			url: process.env.DATABASE_URL,
+			url: appendPgSearchPath(process.env.DATABASE_URL, schema),
 		};
 	}
 
@@ -46,7 +49,7 @@ const getDatabaseConfig = () => {
 export const dataSourceOptions: DataSourceOptions = {
 	type: "postgres",
 	...getDatabaseConfig(),
-	schema: process.env.DB_SCHEMA || "newgym",
+	schema,
 	entities: [User, Member, Membership, PTUsage, Assessment, AssessmentItem, AbilitySnapshot, InjuryHistory, InjuryRestriction, WorkoutRecord, PTSession, WorkoutRoutine, AssessmentGradeConstant, AssessmentCategoryScore, FlexibilityItemWeight, FlexibilityGradeThreshold, BodyCompositionStandard, ProgramMilestone, Exercise, StrengthStandard],
 	migrations: [__dirname + "/../migrations/*{.ts,.js}"],
 	// synchronize는 프로덕션에서 절대 사용하지 않음
@@ -58,6 +61,7 @@ export const dataSourceOptions: DataSourceOptions = {
 		connectionTimeoutMillis: 10000,
 		idleTimeoutMillis: 30000,
 		keepAlive: true,
+		options: `-c search_path=${schema},public`,
 	},
 	ssl: process.env.DB_HOST?.includes("render.com") || process.env.DB_HOST?.includes("amazonaws.com") ? { rejectUnauthorized: false } : false,
 };

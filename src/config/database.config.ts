@@ -20,11 +20,13 @@ import { BodyCompositionStandard } from '../entities/body-composition-standard.e
 import { Exercise } from '../entities/exercise.entity';
 import { StrengthStandard } from '../entities/strength-standard.entity';
 import { ProgramMilestone } from '../entities/program-milestone.entity';
+import { appendPgSearchPath } from '../common/utils/pg-connection-url';
 
 export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOptions => {
 	const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
 	const isDevelopment = nodeEnv === 'development';
 	const schema = configService.get<string>('DB_SCHEMA') || 'newgym';
+	const searchPathOption = `-c search_path=${schema},public`;
 
 	// 공통 설정
 	const commonConfig = {
@@ -62,6 +64,7 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
 			connectionTimeoutMillis: 10000,
 			idleTimeoutMillis: 30000,
 			keepAlive: true,
+			options: searchPathOption,
 		},
 	};
 
@@ -71,7 +74,7 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
 		const isProduction = databaseUrl.includes('render.com') || databaseUrl.includes('amazonaws.com');
 		return {
 			...commonConfig,
-			url: databaseUrl,
+			url: appendPgSearchPath(databaseUrl, schema),
 			ssl: isProduction ? { rejectUnauthorized: false } : false,
 		};
 	}
