@@ -67,7 +67,13 @@ export class WorkoutRecordsService {
 			await RepositoryHelper.ensureMemberExists(this.memberRepository, identifier.memberId, this.logger);
 			QueryBuilderHelper.addMemberIdFilter(queryBuilder, 'record.memberId', identifier.memberId);
 		} else if (identifier.userId) {
-			queryBuilder.andWhere('record.userId = :userId', { userId: identifier.userId });
+			const mappedMemberId = await this.resolveMemberIdByUserId(identifier.userId);
+			if (mappedMemberId) {
+				QueryBuilderHelper.addMemberIdFilter(queryBuilder, 'record.memberId', mappedMemberId);
+			} else {
+				// 하위 호환: 아직 member.userId 매핑이 없는 레거시 데이터는 userId로 조회
+				queryBuilder.andWhere('record.userId = :userId', { userId: identifier.userId });
+			}
 		} else {
 			throw ApiExceptions.badRequest('회원 ID 또는 사용자 ID가 필요합니다.');
 		}
@@ -85,8 +91,17 @@ export class WorkoutRecordsService {
 
 	async findOne(id: string, identifier: { memberId?: string; userId?: string }): Promise<WorkoutRecord> {
 		const where: any = { id };
-		if (identifier.memberId) where.memberId = identifier.memberId;
-		if (identifier.userId) where.userId = identifier.userId;
+		if (identifier.memberId) {
+			where.memberId = identifier.memberId;
+		} else if (identifier.userId) {
+			const mappedMemberId = await this.resolveMemberIdByUserId(identifier.userId);
+			if (mappedMemberId) {
+				where.memberId = mappedMemberId;
+			} else {
+				// 하위 호환: member 매핑이 없는 레거시 데이터는 userId로 조회
+				where.userId = identifier.userId;
+			}
+		}
 
 		return RepositoryHelper.findOneOrFailSimple(
 			this.workoutRecordRepository,
@@ -100,8 +115,10 @@ export class WorkoutRecordsService {
 		identifier: { memberId?: string; userId: string },
 		createDto: CreateWorkoutRecordDto,
 	): Promise<WorkoutRecord> {
-		if (identifier.memberId) {
-			await RepositoryHelper.ensureMemberExists(this.memberRepository, identifier.memberId, this.logger);
+		const resolvedMemberId =
+			identifier.memberId || (await this.resolveMemberIdByUserId(identifier.userId));
+		if (resolvedMemberId) {
+			await RepositoryHelper.ensureMemberExists(this.memberRepository, resolvedMemberId, this.logger);
 		}
 
 		const workoutType = createDto.workoutType ?? WorkoutType.PERSONAL;
@@ -112,27 +129,27 @@ export class WorkoutRecordsService {
 		);
 
 		let ptSessionId = createDto.ptSessionId;
-		if (workoutType === WorkoutType.PT && !ptSessionId && identifier.memberId) {
-			const ptUsage = await PTUsageHelper.getLatestPTUsage(this.ptUsageRepository, identifier.memberId);
-			PTUsageHelper.validatePTUsage(ptUsage, identifier.memberId, this.logger);
+		if (workoutType === WorkoutType.PT && !ptSessionId && resolvedMemberId) {
+			const ptUsage = await PTUsageHelper.getLatestPTUsage(this.ptUsageRepository, resolvedMemberId);
+			PTUsageHelper.validatePTUsage(ptUsage, resolvedMemberId, this.logger);
 
 			await PTUsageHelper.deductPTUsage(
 				this.ptUsageRepository,
 				ptUsage!,
 				new Date(createDto.workoutDate),
 				this.logger,
-				identifier.memberId,
+				resolvedMemberId,
 			);
 
 			try {
-				const ptSession = await this.ptSessionsService.create(identifier.memberId, {
+				const ptSession = await this.ptSessionsService.create(resolvedMemberId, {
 					sessionDate: createDto.workoutDate,
 					mainContent: `${createDto.exerciseName} - ${createDto.bodyPart}`,
 					trainerComment: createDto.trainerComment,
 				});
 				ptSessionId = ptSession.id;
 			} catch (error) {
-				await PTUsageHelper.restorePTUsage(this.ptUsageRepository, ptUsage, this.logger, identifier.memberId);
+				await PTUsageHelper.restorePTUsage(this.ptUsageRepository, ptUsage, this.logger, resolvedMemberId);
 				throw ApiExceptions.badRequest(`PT 세션 생성에 실패했습니다: ${error.message}`);
 			}
 		}
@@ -140,7 +157,7 @@ export class WorkoutRecordsService {
 		const recordData = EntityUpdateHelper.convertDateFields(
 			{
 				userId: identifier.userId,
-				memberId: identifier.memberId,
+				memberId: resolvedMemberId,
 				workoutDate: createDto.workoutDate,
 				bodyPart: createDto.bodyPart,
 				exerciseName: createDto.exerciseName,
@@ -163,8 +180,8 @@ export class WorkoutRecordsService {
 			record.oneRepMax = oneRepMaxResult.oneRepMax;
 
 			let userWeight = 0;
-			if (identifier.memberId) {
-				const member = await this.memberRepository.findOne({ where: { id: identifier.memberId } });
+			if (resolvedMemberId) {
+				const member = await this.memberRepository.findOne({ where: { id: resolvedMemberId } });
 				userWeight = member?.weight || 0;
 				if (userWeight > 0) {
 					record.relativeStrength = (record.oneRepMax / userWeight) * 100;
@@ -181,6 +198,14 @@ export class WorkoutRecordsService {
 		}
 
 		return this.workoutRecordRepository.save(record);
+	}
+
+	private async resolveMemberIdByUserId(userId: string): Promise<string | null> {
+		const member = await this.memberRepository.findOne({
+			where: { userId },
+			select: ['id'],
+		});
+		return member?.id || null;
 	}
 
 	async update(

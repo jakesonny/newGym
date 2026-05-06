@@ -5445,7 +5445,13 @@ let WorkoutRecordsService = WorkoutRecordsService_1 = class WorkoutRecordsServic
             query_builder_helper_1.QueryBuilderHelper.addMemberIdFilter(queryBuilder, 'record.memberId', identifier.memberId);
         }
         else if (identifier.userId) {
-            queryBuilder.andWhere('record.userId = :userId', { userId: identifier.userId });
+            const mappedMemberId = await this.resolveMemberIdByUserId(identifier.userId);
+            if (mappedMemberId) {
+                query_builder_helper_1.QueryBuilderHelper.addMemberIdFilter(queryBuilder, 'record.memberId', mappedMemberId);
+            }
+            else {
+                queryBuilder.andWhere('record.userId = :userId', { userId: identifier.userId });
+            }
         }
         else {
             throw exceptions_1.ApiExceptions.badRequest('회원 ID 또는 사용자 ID가 필요합니다.');
@@ -5460,25 +5466,34 @@ let WorkoutRecordsService = WorkoutRecordsService_1 = class WorkoutRecordsServic
     }
     async findOne(id, identifier) {
         const where = { id };
-        if (identifier.memberId)
+        if (identifier.memberId) {
             where.memberId = identifier.memberId;
-        if (identifier.userId)
-            where.userId = identifier.userId;
+        }
+        else if (identifier.userId) {
+            const mappedMemberId = await this.resolveMemberIdByUserId(identifier.userId);
+            if (mappedMemberId) {
+                where.memberId = mappedMemberId;
+            }
+            else {
+                where.userId = identifier.userId;
+            }
+        }
         return repository_helper_1.RepositoryHelper.findOneOrFailSimple(this.workoutRecordRepository, where, this.logger, '운동 기록');
     }
     async create(identifier, createDto) {
-        if (identifier.memberId) {
-            await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, identifier.memberId, this.logger);
+        const resolvedMemberId = identifier.memberId || (await this.resolveMemberIdByUserId(identifier.userId));
+        if (resolvedMemberId) {
+            await repository_helper_1.RepositoryHelper.ensureMemberExists(this.memberRepository, resolvedMemberId, this.logger);
         }
         const workoutType = createDto.workoutType ?? workout_record_entity_1.WorkoutType.PERSONAL;
         const { weight, reps, sets, volume } = workout_helper_1.WorkoutHelper.normalizeWorkoutValues(createDto.weight, createDto.reps, createDto.sets);
         let ptSessionId = createDto.ptSessionId;
-        if (workoutType === workout_record_entity_1.WorkoutType.PT && !ptSessionId && identifier.memberId) {
-            const ptUsage = await pt_usage_helper_1.PTUsageHelper.getLatestPTUsage(this.ptUsageRepository, identifier.memberId);
-            pt_usage_helper_1.PTUsageHelper.validatePTUsage(ptUsage, identifier.memberId, this.logger);
-            await pt_usage_helper_1.PTUsageHelper.deductPTUsage(this.ptUsageRepository, ptUsage, new Date(createDto.workoutDate), this.logger, identifier.memberId);
+        if (workoutType === workout_record_entity_1.WorkoutType.PT && !ptSessionId && resolvedMemberId) {
+            const ptUsage = await pt_usage_helper_1.PTUsageHelper.getLatestPTUsage(this.ptUsageRepository, resolvedMemberId);
+            pt_usage_helper_1.PTUsageHelper.validatePTUsage(ptUsage, resolvedMemberId, this.logger);
+            await pt_usage_helper_1.PTUsageHelper.deductPTUsage(this.ptUsageRepository, ptUsage, new Date(createDto.workoutDate), this.logger, resolvedMemberId);
             try {
-                const ptSession = await this.ptSessionsService.create(identifier.memberId, {
+                const ptSession = await this.ptSessionsService.create(resolvedMemberId, {
                     sessionDate: createDto.workoutDate,
                     mainContent: `${createDto.exerciseName} - ${createDto.bodyPart}`,
                     trainerComment: createDto.trainerComment,
@@ -5486,13 +5501,13 @@ let WorkoutRecordsService = WorkoutRecordsService_1 = class WorkoutRecordsServic
                 ptSessionId = ptSession.id;
             }
             catch (error) {
-                await pt_usage_helper_1.PTUsageHelper.restorePTUsage(this.ptUsageRepository, ptUsage, this.logger, identifier.memberId);
+                await pt_usage_helper_1.PTUsageHelper.restorePTUsage(this.ptUsageRepository, ptUsage, this.logger, resolvedMemberId);
                 throw exceptions_1.ApiExceptions.badRequest(`PT 세션 생성에 실패했습니다: ${error.message}`);
             }
         }
         const recordData = entity_update_helper_1.EntityUpdateHelper.convertDateFields({
             userId: identifier.userId,
-            memberId: identifier.memberId,
+            memberId: resolvedMemberId,
             workoutDate: createDto.workoutDate,
             bodyPart: createDto.bodyPart,
             exerciseName: createDto.exerciseName,
@@ -5510,8 +5525,8 @@ let WorkoutRecordsService = WorkoutRecordsService_1 = class WorkoutRecordsServic
             const oneRepMaxResult = one_rep_max_calculator_1.OneRepMaxCalculator.calculate(weight, reps);
             record.oneRepMax = oneRepMaxResult.oneRepMax;
             let userWeight = 0;
-            if (identifier.memberId) {
-                const member = await this.memberRepository.findOne({ where: { id: identifier.memberId } });
+            if (resolvedMemberId) {
+                const member = await this.memberRepository.findOne({ where: { id: resolvedMemberId } });
                 userWeight = member?.weight || 0;
                 if (userWeight > 0) {
                     record.relativeStrength = (record.oneRepMax / userWeight) * 100;
@@ -5521,6 +5536,13 @@ let WorkoutRecordsService = WorkoutRecordsService_1 = class WorkoutRecordsServic
             }
         }
         return this.workoutRecordRepository.save(record);
+    }
+    async resolveMemberIdByUserId(userId) {
+        const member = await this.memberRepository.findOne({
+            where: { userId },
+            select: ['id'],
+        });
+        return member?.id || null;
     }
     async update(id, identifier, updateDto) {
         const record = await this.findOne(id, identifier);
@@ -13955,7 +13977,7 @@ const getDatabaseConfig = (configService) => {
     const nodeEnv = configService.get('NODE_ENV') || 'development';
     const isDevelopment = nodeEnv === 'development';
     const schema = configService.get('DB_SCHEMA') || 'newgym';
-    const searchPathOption = `-c search_path=${schema},public`;
+    const searchPathOption = `-c search_path=${schema}`;
     const commonConfig = {
         type: 'postgres',
         schema,
@@ -14031,7 +14053,7 @@ function appendPgSearchPath(databaseUrl, schema) {
     if (!trimmed) {
         return trimmed;
     }
-    const optionsValue = `-c search_path=${schema},public`;
+    const optionsValue = `-c search_path=${schema}`;
     try {
         const u = new URL(trimmed);
         u.searchParams.set('options', optionsValue);
