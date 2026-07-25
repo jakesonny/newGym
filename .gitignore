@@ -46,6 +46,10 @@ lerna-debug.log*
 *.md
 !README.md
 
+# 학습 자료 PDF(로컬/면접 준비용, 공개 레포 제외)
+STUDY.pdf
+INTERVIEW.pdf
+
 # Scripts (development tools)
 /scripts/
 
