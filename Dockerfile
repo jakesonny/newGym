@@ -1,8 +1,14 @@
 # 헬스장 회원관리 시스템 백엔드 — 멀티스테이지 Docker 빌드
 # 1) builder: 전체 의존성으로 NestJS 앱을 빌드
 # 2) runner : 실행에 필요한 산출물만 담아 컨테이너를 구동
-# 마이그레이션은 TypeORM CLI(ts-node 기반)로 소스(src/migrations)를 직접 읽으므로
-# runner 단계에도 devDependencies(ts-node 등)와 src 디렉터리를 함께 포함한다.
+#
+# 참고: 이 저장소의 src/migrations는 초기 개발 단계에서 synchronize:true로
+# 스키마를 진화시키던 시절의 후속 변경분만 기록돼 있어, 빈 DB에 처음부터
+# 순서대로 적용하면 이전 마이그레이션이 만들었어야 할 테이블/컬럼이 없어
+# 실패한다(예: AddProgramFields가 memberships 테이블을 전제함). 그래서
+# 컨테이너 기동 시 migration:run을 자동 실행하지 않는다 — 최초 스키마는
+# `database/newgym_bootstrap.sql` + TypeORM synchronize(엔티티 기준)로
+# 한 번 부트스트랩하고, 이후 스키마 변경분만 마이그레이션으로 관리할 것.
 
 FROM node:20-alpine AS builder
 WORKDIR /app
@@ -25,5 +31,4 @@ COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 EXPOSE 3001
 
-# 마이그레이션 적용 후 애플리케이션 기동 (배포 시점마다 스키마를 최신 상태로 맞춤)
-CMD ["sh", "-c", "npm run migration:run && node dist/main.js"]
+CMD ["node", "dist/main.js"]

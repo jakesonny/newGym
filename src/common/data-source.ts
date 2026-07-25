@@ -19,51 +19,78 @@ import { BodyCompositionStandard } from "../entities/body-composition-standard.e
 import { ProgramMilestone } from "../entities/program-milestone.entity";
 import { Exercise } from "../entities/exercise.entity";
 import { StrengthStandard } from "../entities/strength-standard.entity";
-import { appendPgSearchPath } from "./utils/pg-connection-url";
+import {
+  appendPgSearchPath,
+  isSslRequiredHost,
+} from "./utils/pg-connection-url";
 
 const schema = process.env.DB_SCHEMA || "newgym";
 
 // DATABASE_URL이 있으면 사용, 없으면 개별 설정 사용
 const getDatabaseConfig = () => {
-	// DATABASE_URL 우선 사용
-	if (process.env.DATABASE_URL) {
-		return {
-			url: appendPgSearchPath(process.env.DATABASE_URL, schema),
-		};
-	}
+  // DATABASE_URL 우선 사용
+  if (process.env.DATABASE_URL) {
+    return {
+      url: appendPgSearchPath(process.env.DATABASE_URL, schema),
+    };
+  }
 
-	// 개별 설정 사용 (Render 등 외부 DB 호환)
-	const host = process.env.DB_HOST;
-	const ssl = host && (host.includes("render.com") || host.includes("amazonaws.com")) ? { rejectUnauthorized: false } : false;
+  // 개별 설정 사용 (Render 등 외부 DB 호환)
+  const host = process.env.DB_HOST;
+  const ssl = isSslRequiredHost(host) ? { rejectUnauthorized: false } : false;
 
-	return {
-		host: process.env.DB_HOST,
-		port: parseInt(process.env.DB_PORT || "5432", 10),
-		username: process.env.DB_USERNAME,
-		password: process.env.DB_PASSWORD,
-		database: process.env.DB_NAME,
-		ssl: ssl as any,
-	};
+  return {
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT || "5432", 10),
+    username: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    ssl: ssl as any,
+  };
 };
 
 export const dataSourceOptions: DataSourceOptions = {
-	type: "postgres",
-	...getDatabaseConfig(),
-	schema,
-	entities: [User, Member, Membership, PTUsage, Assessment, AssessmentItem, AbilitySnapshot, InjuryHistory, InjuryRestriction, WorkoutRecord, PTSession, WorkoutRoutine, AssessmentGradeConstant, AssessmentCategoryScore, FlexibilityItemWeight, FlexibilityGradeThreshold, BodyCompositionStandard, ProgramMilestone, Exercise, StrengthStandard],
-	migrations: [__dirname + "/../migrations/*{.ts,.js}"],
-	// synchronize는 프로덕션에서 절대 사용하지 않음
-	// enum 타입 변경 시 데이터베이스 마이그레이션 에러 발생 가능
-	// 개발 환경에서도 마이그레이션 사용 권장
-	synchronize: false, // process.env.DB_SYNCHRONIZE === "true" || process.env.NODE_ENV === "development",
-	logging: process.env.DB_LOGGING === "true" || process.env.NODE_ENV === "development",
-	extra: {
-		connectionTimeoutMillis: 10000,
-		idleTimeoutMillis: 30000,
-		keepAlive: true,
-		options: `-c search_path=${schema}`,
-	},
-	ssl: process.env.DB_HOST?.includes("render.com") || process.env.DB_HOST?.includes("amazonaws.com") ? { rejectUnauthorized: false } : false,
+  type: "postgres",
+  ...getDatabaseConfig(),
+  schema,
+  entities: [
+    User,
+    Member,
+    Membership,
+    PTUsage,
+    Assessment,
+    AssessmentItem,
+    AbilitySnapshot,
+    InjuryHistory,
+    InjuryRestriction,
+    WorkoutRecord,
+    PTSession,
+    WorkoutRoutine,
+    AssessmentGradeConstant,
+    AssessmentCategoryScore,
+    FlexibilityItemWeight,
+    FlexibilityGradeThreshold,
+    BodyCompositionStandard,
+    ProgramMilestone,
+    Exercise,
+    StrengthStandard,
+  ],
+  migrations: [__dirname + "/../migrations/*{.ts,.js}"],
+  // synchronize는 프로덕션에서 절대 사용하지 않음
+  // enum 타입 변경 시 데이터베이스 마이그레이션 에러 발생 가능
+  // 개발 환경에서도 마이그레이션 사용 권장
+  synchronize: false, // process.env.DB_SYNCHRONIZE === "true" || process.env.NODE_ENV === "development",
+  logging:
+    process.env.DB_LOGGING === "true" || process.env.NODE_ENV === "development",
+  extra: {
+    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis: 30000,
+    keepAlive: true,
+    options: `-c search_path=${schema},public`,
+  },
+  ssl: isSslRequiredHost(process.env.DATABASE_URL || process.env.DB_HOST)
+    ? { rejectUnauthorized: false }
+    : false,
 };
 
 export const dataSource = new DataSource(dataSourceOptions);

@@ -1,74 +1,73 @@
-import {
-	Injectable,
-	Logger,
-} from "@nestjs/common";
-import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
-import { User } from '../../entities/user.entity';
-import { Member } from '../../entities/member.entity';
-import { Role } from '../../common/enums';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { ApiResponseHelper } from '../../common/utils/api-response';
-import { ApiExceptions } from '../../common/exceptions';
-import { EntityUpdateHelper } from '../../common/utils/entity-update-helper';
+import { Injectable, Logger } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { ConfigService } from "@nestjs/config";
+import * as bcrypt from "bcrypt";
+import { User } from "../../entities/user.entity";
+import { Member } from "../../entities/member.entity";
+import { Role } from "../../common/enums";
+import { LoginDto } from "./dto/login.dto";
+import { RegisterDto } from "./dto/register.dto";
+import { ApiResponseHelper } from "../../common/utils/api-response";
+import { ApiExceptions } from "../../common/exceptions";
+import { EntityUpdateHelper } from "../../common/utils/entity-update-helper";
 
 @Injectable()
 export class AuthService {
-	private readonly logger = new Logger(AuthService.name);
+  private readonly logger = new Logger(AuthService.name);
 
-	constructor(
-		@InjectRepository(User)
-		private userRepository: Repository<User>,
-		@InjectRepository(Member)
-		private memberRepository: Repository<Member>,
-		private jwtService: JwtService,
-		private configService: ConfigService,
-	) {}
+  constructor(
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    @InjectRepository(Member)
+    private memberRepository: Repository<Member>,
+    private jwtService: JwtService,
+    private configService: ConfigService,
+  ) {}
 
-	async validateUser(email: string, password: string): Promise<User | null> {
-		const user = await this.userRepository.findOne({
-			where: { email },
-		});
+  async validateUser(email: string, password: string): Promise<User | null> {
+    const user = await this.userRepository.findOne({
+      where: { email },
+    });
 
-		// 소셜 로그인 사용자는 비밀번호가 없음
-		if (!user || !user.password) {
-			return null;
-		}
+    // 소셜 로그인 사용자는 비밀번호가 없음
+    if (!user || !user.password) {
+      return null;
+    }
 
-		// provider가 KAKAO 등 소셜 로그인이면 일반 로그인 불가
-		if (user.provider && user.provider !== 'LOCAL') {
-			return null;
-		}
+    // provider가 KAKAO 등 소셜 로그인이면 일반 로그인 불가
+    if (user.provider && user.provider !== "LOCAL") {
+      return null;
+    }
 
-		// 승인 대기 TRAINER도 로그인 가능 (프론트엔드에서 처리)
-		// isApproved 체크 제거
+    // 승인 대기 TRAINER도 로그인 가능 (프론트엔드에서 처리)
+    // isApproved 체크 제거
 
-		if (await bcrypt.compare(password, user.password)) {
-			return user;
-		}
+    if (await bcrypt.compare(password, user.password)) {
+      return user;
+    }
 
-		return null;
-	}
+    return null;
+  }
 
-	async login(loginDto: LoginDto) {
-		const user = await this.validateUser(loginDto.email, loginDto.password);
+  async login(loginDto: LoginDto) {
+    const user = await this.validateUser(loginDto.email, loginDto.password);
 
-		if (!user) {
-			throw ApiExceptions.unauthorized('이메일 또는 비밀번호가 올바르지 않습니다.');
-		}
+    if (!user) {
+      throw ApiExceptions.unauthorized(
+        "이메일 또는 비밀번호가 올바르지 않습니다.",
+      );
+    }
 
-		// 승인 대기 TRAINER도 로그인 가능 (프론트엔드에서 isApproved 체크하여 리다이렉트)
-		return await this.generateToken(user);
-	}
+    // 승인 대기 TRAINER도 로그인 가능 (프론트엔드에서 isApproved 체크하여 리다이렉트)
+    return await this.generateToken(user);
+  }
 
   async register(registerDto: RegisterDto) {
     try {
       this.logger.log(`회원가입 시도 시작: ${registerDto.email}`);
-      
+
       const existingUser = await this.userRepository.findOne({
         where: { email: registerDto.email },
       });
@@ -82,7 +81,7 @@ export class AuthService {
 
       const hashedPassword = await bcrypt.hash(registerDto.password, 10);
       const requestedRole = registerDto.role || Role.MEMBER;
-      
+
       // TRAINER는 ADMIN 승인 필요 (isApproved: false)
       // MEMBER는 자동 승인 (isApproved: true)
       // ADMIN은 회원가입 불가 (test 계정만 사용)
@@ -92,7 +91,9 @@ export class AuthService {
         this.logger.warn(
           `회원가입 실패: ADMIN 역할은 회원가입으로 생성할 수 없습니다. Email: ${registerDto.email}`,
         );
-        throw ApiExceptions.forbidden("ADMIN 역할은 회원가입으로 생성할 수 없습니다.");
+        throw ApiExceptions.forbidden(
+          "ADMIN 역할은 회원가입으로 생성할 수 없습니다.",
+        );
       }
 
       const user = this.userRepository.create({
@@ -101,17 +102,21 @@ export class AuthService {
         name: registerDto.name,
         role: requestedRole,
         isApproved: isApproved,
-        provider: 'LOCAL', // 일반 회원가입은 LOCAL
+        provider: "LOCAL", // 일반 회원가입은 LOCAL
         providerId: null,
       });
 
-      this.logger.log(`사용자 객체 생성 완료, DB 저장 시도: ${registerDto.email}`);
-      
+      this.logger.log(
+        `사용자 객체 생성 완료, DB 저장 시도: ${registerDto.email}`,
+      );
+
       // 에러 처리를 위한 try-catch 추가
       let savedUser: User;
       try {
         savedUser = await this.userRepository.save(user);
-        this.logger.log(`DB 저장 성공 - ID: ${savedUser.id}, Email: ${savedUser.email}`);
+        this.logger.log(
+          `DB 저장 성공 - ID: ${savedUser.id}, Email: ${savedUser.email}`,
+        );
       } catch (saveError: any) {
         this.logger.error(
           `DB 저장 실패: ${saveError.message}`,
@@ -132,7 +137,7 @@ export class AuthService {
           `DB 저장 검증 실패: 저장 후 조회되지 않음. ID: ${savedUser.id}`,
         );
         throw ApiExceptions.internalServerError(
-          '회원가입은 완료되었지만 데이터베이스에 저장되지 않았습니다.',
+          "회원가입은 완료되었지만 데이터베이스에 저장되지 않았습니다.",
         );
       }
 
@@ -142,7 +147,9 @@ export class AuthService {
         );
       }
 
-      this.logger.log(`회원가입 완료: ${savedUser.email} (ID: ${savedUser.id})`);
+      this.logger.log(
+        `회원가입 완료: ${savedUser.email} (ID: ${savedUser.id})`,
+      );
 
       // 1차피드백: 회원가입 시 email로 Member 찾아서 userId 연결
       try {
@@ -169,19 +176,21 @@ export class AuthService {
         name: savedUser.name,
         role: savedUser.role,
         isApproved: savedUser.isApproved,
-        message: requestedRole === Role.TRAINER 
-          ? 'TRAINER 회원가입이 완료되었습니다. ADMIN의 승인을 기다려주세요.'
-          : '회원가입이 완료되었습니다.',
+        message:
+          requestedRole === Role.TRAINER
+            ? "TRAINER 회원가입이 완료되었습니다. ADMIN의 승인을 기다려주세요."
+            : "회원가입이 완료되었습니다.",
       };
     } catch (error: any) {
       // 이미 처리된 에러는 그대로 throw
-      if (error instanceof Error && (
-        error.message.includes('이미 등록된') || 
-        error.message.includes('ADMIN 역할')
-      )) {
+      if (
+        error instanceof Error &&
+        (error.message.includes("이미 등록된") ||
+          error.message.includes("ADMIN 역할"))
+      ) {
         throw error;
       }
-      
+
       // 예상치 못한 에러 로깅
       this.logger.error(
         `회원가입 중 예상치 못한 오류 발생: ${error.message}`,
@@ -191,400 +200,373 @@ export class AuthService {
     }
   }
 
-	async findById(id: string): Promise<User | null> {
-		return this.userRepository.findOne({
-			where: { id },
-		});
-	}
+  async findById(id: string): Promise<User | null> {
+    return this.userRepository.findOne({
+      where: { id },
+    });
+  }
 
-	/**
-	 * 승인 대기 중인 TRAINER 목록 조회 (ADMIN만)
-	 */
-	async getPendingTrainers(): Promise<User[]> {
-		const pendingTrainers = await this.userRepository.find({
-			where: {
-				role: Role.TRAINER,
-				isApproved: false,
-			},
-			order: {
-				createdAt: 'ASC', // 가입일 순으로 정렬
-			},
-		});
+  /**
+   * 승인 대기 중인 TRAINER 목록 조회 (ADMIN만)
+   */
+  async getPendingTrainers(): Promise<User[]> {
+    const pendingTrainers = await this.userRepository.find({
+      where: {
+        role: Role.TRAINER,
+        isApproved: false,
+      },
+      order: {
+        createdAt: "ASC", // 가입일 순으로 정렬
+      },
+    });
 
-		return pendingTrainers;
-	}
+    return pendingTrainers;
+  }
 
-	/**
-	 * 전체 TRAINER 목록 조회 (ADMIN만) - 승인됨, 대기중 모두 포함
-	 */
-	async getAllTrainers(): Promise<User[]> {
-		const trainers = await this.userRepository.find({
-			where: {
-				role: Role.TRAINER,
-			},
-			order: {
-				createdAt: 'ASC', // 가입일 순으로 정렬
-			},
-		});
+  /**
+   * 전체 TRAINER 목록 조회 (ADMIN만) - 승인됨, 대기중 모두 포함
+   */
+  async getAllTrainers(): Promise<User[]> {
+    const trainers = await this.userRepository.find({
+      where: {
+        role: Role.TRAINER,
+      },
+      order: {
+        createdAt: "ASC", // 가입일 순으로 정렬
+      },
+    });
 
-		return trainers;
-	}
+    return trainers;
+  }
 
-	/**
-	 * TRAINER 승인 (ADMIN만)
-	 */
-	async approveTrainer(trainerId: string, adminId: string): Promise<User> {
-		const trainer = await this.userRepository.findOne({
-			where: { id: trainerId },
-		});
+  /**
+   * TRAINER 승인 (ADMIN만)
+   */
+  async approveTrainer(trainerId: string, adminId: string): Promise<User> {
+    const trainer = await this.userRepository.findOne({
+      where: { id: trainerId },
+    });
 
-		if (!trainer) {
-			throw ApiExceptions.trainerNotFound();
-		}
+    if (!trainer) {
+      throw ApiExceptions.trainerNotFound();
+    }
 
-		if (trainer.role !== Role.TRAINER) {
-			throw ApiExceptions.notATrainer();
-		}
+    if (trainer.role !== Role.TRAINER) {
+      throw ApiExceptions.notATrainer();
+    }
 
-		if (trainer.isApproved) {
-			throw ApiExceptions.trainerAlreadyApproved();
-		}
+    if (trainer.isApproved) {
+      throw ApiExceptions.trainerAlreadyApproved();
+    }
 
-		trainer.isApproved = true;
-		const approvedTrainer = await this.userRepository.save(trainer);
+    trainer.isApproved = true;
+    const approvedTrainer = await this.userRepository.save(trainer);
 
-		this.logger.log(
-			`TRAINER 승인 완료: ${approvedTrainer.email} (승인자: ${adminId})`,
-		);
+    this.logger.log(
+      `TRAINER 승인 완료: ${approvedTrainer.email} (승인자: ${adminId})`,
+    );
 
-		return approvedTrainer;
-	}
+    return approvedTrainer;
+  }
 
-	/**
-	 * TRAINER 승인 취소 (ADMIN만) - 이미 승인된 TRAINER를 다시 막기
-	 */
-	async disapproveTrainer(trainerId: string, adminId: string): Promise<User> {
-		const trainer = await this.userRepository.findOne({
-			where: { id: trainerId },
-		});
+  /**
+   * TRAINER 승인 취소 (ADMIN만) - 이미 승인된 TRAINER를 다시 막기
+   */
+  async disapproveTrainer(trainerId: string, adminId: string): Promise<User> {
+    const trainer = await this.userRepository.findOne({
+      where: { id: trainerId },
+    });
 
-		if (!trainer) {
-			throw ApiExceptions.trainerNotFound();
-		}
+    if (!trainer) {
+      throw ApiExceptions.trainerNotFound();
+    }
 
-		if (trainer.role !== Role.TRAINER) {
-			throw ApiExceptions.notATrainer();
-		}
+    if (trainer.role !== Role.TRAINER) {
+      throw ApiExceptions.notATrainer();
+    }
 
-		if (!trainer.isApproved) {
-			throw ApiExceptions.validationError('이미 승인되지 않은 TRAINER입니다.');
-		}
+    if (!trainer.isApproved) {
+      throw ApiExceptions.validationError("이미 승인되지 않은 TRAINER입니다.");
+    }
 
-		trainer.isApproved = false;
-		const disapprovedTrainer = await this.userRepository.save(trainer);
+    trainer.isApproved = false;
+    const disapprovedTrainer = await this.userRepository.save(trainer);
 
-		this.logger.log(
-			`TRAINER 승인 취소 완료: ${disapprovedTrainer.email} (취소자: ${adminId})`,
-		);
+    this.logger.log(
+      `TRAINER 승인 취소 완료: ${disapprovedTrainer.email} (취소자: ${adminId})`,
+    );
 
-		return disapprovedTrainer;
-	}
+    return disapprovedTrainer;
+  }
 
-	/**
-	 * TRAINER 거부 (ADMIN만) - isApproved를 false로 변경 (계정 삭제하지 않음)
-	 */
-	async rejectTrainer(trainerId: string, adminId: string): Promise<User> {
-		const trainer = await this.userRepository.findOne({
-			where: { id: trainerId },
-		});
+  /**
+   * TRAINER 거부 (ADMIN만) - isApproved를 false로 변경 (계정 삭제하지 않음)
+   */
+  async rejectTrainer(trainerId: string, adminId: string): Promise<User> {
+    const trainer = await this.userRepository.findOne({
+      where: { id: trainerId },
+    });
 
-		if (!trainer) {
-			throw ApiExceptions.trainerNotFound();
-		}
+    if (!trainer) {
+      throw ApiExceptions.trainerNotFound();
+    }
 
-		if (trainer.role !== Role.TRAINER) {
-			throw ApiExceptions.notATrainer();
-		}
+    if (trainer.role !== Role.TRAINER) {
+      throw ApiExceptions.notATrainer();
+    }
 
-		if (!trainer.isApproved) {
-			throw ApiExceptions.validationError('이미 거부된 TRAINER입니다.');
-		}
+    if (!trainer.isApproved) {
+      throw ApiExceptions.validationError("이미 거부된 TRAINER입니다.");
+    }
 
-		trainer.isApproved = false;
-		const rejectedTrainer = await this.userRepository.save(trainer);
+    trainer.isApproved = false;
+    const rejectedTrainer = await this.userRepository.save(trainer);
 
-		this.logger.log(
-			`TRAINER 거부 완료: ${rejectedTrainer.email} (거부자: ${adminId})`,
-		);
+    this.logger.log(
+      `TRAINER 거부 완료: ${rejectedTrainer.email} (거부자: ${adminId})`,
+    );
 
-		return rejectedTrainer;
-	}
+    return rejectedTrainer;
+  }
 
-	/**
-	 * 사용자 정보 수정
-	 */
-	async updateUser(
-		userId: string,
-		updateUserDto: {
-			name?: string;
-			email?: string;
-			password?: string;
-			role?: Role;
-		},
-		currentUser: { id: string; role: Role },
-	): Promise<User> {
-		const user = await this.userRepository.findOne({
-			where: { id: userId },
-		});
+  /**
+   * 사용자 정보 수정
+   */
+  async updateUser(
+    userId: string,
+    updateUserDto: {
+      name?: string;
+      email?: string;
+      password?: string;
+      role?: Role;
+    },
+    currentUser: { id: string; role: Role },
+  ): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
 
-		if (!user) {
-			throw ApiExceptions.memberNotFound('사용자를 찾을 수 없습니다.');
-		}
+    if (!user) {
+      throw ApiExceptions.memberNotFound("사용자를 찾을 수 없습니다.");
+    }
 
-		// 이메일 변경 시 중복 체크
-		if (updateUserDto.email && updateUserDto.email !== user.email) {
-			const existingUser = await this.userRepository.findOne({
-				where: { email: updateUserDto.email },
-			});
+    // 이메일 변경 시 중복 체크
+    if (updateUserDto.email && updateUserDto.email !== user.email) {
+      const existingUser = await this.userRepository.findOne({
+        where: { email: updateUserDto.email },
+      });
 
-			if (existingUser) {
-				this.logger.warn(
-					`사용자 수정 실패: 이미 등록된 이메일입니다. Email: ${updateUserDto.email}`,
-				);
-				throw ApiExceptions.memberAlreadyExists('이미 등록된 이메일입니다.');
-			}
-		}
+      if (existingUser) {
+        this.logger.warn(
+          `사용자 수정 실패: 이미 등록된 이메일입니다. Email: ${updateUserDto.email}`,
+        );
+        throw ApiExceptions.memberAlreadyExists("이미 등록된 이메일입니다.");
+      }
+    }
 
-		// 역할 변경은 ADMIN만 가능
-		if (updateUserDto.role && updateUserDto.role !== user.role) {
-			if (currentUser.role !== Role.ADMIN) {
-				this.logger.warn(
-					`사용자 수정 실패: 역할 변경은 ADMIN만 가능합니다. User: ${currentUser.id}`,
-				);
-				throw ApiExceptions.forbidden('역할 변경은 ADMIN만 가능합니다.');
-			}
-		}
+    // 역할 변경은 ADMIN만 가능
+    if (updateUserDto.role && updateUserDto.role !== user.role) {
+      if (currentUser.role !== Role.ADMIN) {
+        this.logger.warn(
+          `사용자 수정 실패: 역할 변경은 ADMIN만 가능합니다. User: ${currentUser.id}`,
+        );
+        throw ApiExceptions.forbidden("역할 변경은 ADMIN만 가능합니다.");
+      }
+    }
 
-		// 비밀번호 변경 시 해싱
-		if (updateUserDto.password) {
-			updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
-		}
+    // 비밀번호 변경 시 해싱
+    if (updateUserDto.password) {
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+    }
 
-		// 소셜 로그인 사용자는 비밀번호 변경 불가
-		if (updateUserDto.password && user.provider && user.provider !== 'LOCAL') {
-			this.logger.warn(
-				`사용자 수정 실패: 소셜 로그인 사용자는 비밀번호를 변경할 수 없습니다. User: ${userId}`,
-			);
-			throw ApiExceptions.forbidden('소셜 로그인 사용자는 비밀번호를 변경할 수 없습니다.');
-		}
+    // 소셜 로그인 사용자는 비밀번호 변경 불가
+    if (updateUserDto.password && user.provider && user.provider !== "LOCAL") {
+      this.logger.warn(
+        `사용자 수정 실패: 소셜 로그인 사용자는 비밀번호를 변경할 수 없습니다. User: ${userId}`,
+      );
+      throw ApiExceptions.forbidden(
+        "소셜 로그인 사용자는 비밀번호를 변경할 수 없습니다.",
+      );
+    }
 
-		// 정보 업데이트
-		EntityUpdateHelper.updateFields(user, {
-			...(updateUserDto.name && { name: updateUserDto.name }),
-			...(updateUserDto.email && { email: updateUserDto.email }),
-			...(updateUserDto.password && { password: updateUserDto.password }),
-			...(updateUserDto.role && currentUser.role === Role.ADMIN && { role: updateUserDto.role }),
-		});
+    // 정보 업데이트
+    EntityUpdateHelper.updateFields(user, {
+      ...(updateUserDto.name && { name: updateUserDto.name }),
+      ...(updateUserDto.email && { email: updateUserDto.email }),
+      ...(updateUserDto.password && { password: updateUserDto.password }),
+      ...(updateUserDto.role &&
+        currentUser.role === Role.ADMIN && { role: updateUserDto.role }),
+    });
 
-		const updatedUser = await this.userRepository.save(user);
-		this.logger.log(`사용자 정보 수정 완료: ${userId}`);
+    const updatedUser = await this.userRepository.save(user);
+    this.logger.log(`사용자 정보 수정 완료: ${userId}`);
 
-		return updatedUser;
-	}
+    return updatedUser;
+  }
 
-	/**
-	 * refreshToken으로 accessToken 갱신
-	 */
-	async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string; user: any }> {
-		try {
-			// refreshToken 검증
-			const payload = this.jwtService.verify(refreshToken);
+  /**
+   * refreshToken으로 accessToken 갱신
+   */
+  async refreshToken(
+    refreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string; user: any }> {
+    try {
+      // refreshToken 검증
+      const payload = this.jwtService.verify(refreshToken);
 
-			// DB에서 사용자와 refreshToken 확인
-			const user = await this.userRepository.findOne({
-				where: { id: payload.sub },
-			});
+      // DB에서 사용자와 refreshToken 확인
+      const user = await this.userRepository.findOne({
+        where: { id: payload.sub },
+      });
 
-			if (!user || !user.refreshToken || user.refreshToken !== refreshToken) {
-				this.logger.warn(`토큰 갱신 실패: 유효하지 않은 refreshToken`);
-				throw ApiExceptions.unauthorized('유효하지 않은 refreshToken입니다.');
-			}
+      if (!user || !user.refreshToken || user.refreshToken !== refreshToken) {
+        this.logger.warn(`토큰 갱신 실패: 유효하지 않은 refreshToken`);
+        throw ApiExceptions.unauthorized("유효하지 않은 refreshToken입니다.");
+      }
 
-			// 새로운 토큰 생성
-			return await this.generateToken(user);
-		} catch (error) {
-			this.logger.error(`토큰 갱신 실패: ${error.message}`);
-			throw ApiExceptions.unauthorized('유효하지 않은 refreshToken입니다.');
-		}
-	}
+      // 새로운 토큰 생성
+      return await this.generateToken(user);
+    } catch (error) {
+      this.logger.error(`토큰 갱신 실패: ${error.message}`);
+      throw ApiExceptions.unauthorized("유효하지 않은 refreshToken입니다.");
+    }
+  }
 
-	/**
-	 * 로그아웃 시 refreshToken 삭제
-	 */
-	async logout(userId: string): Promise<void> {
-		const user = await this.userRepository.findOne({
-			where: { id: userId },
-		});
+  /**
+   * 로그아웃 시 refreshToken 삭제
+   */
+  async logout(userId: string): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
 
-		if (user) {
-			user.refreshToken = null;
-			await this.userRepository.save(user);
-			this.logger.log(`로그아웃: 사용자(${userId})의 refreshToken 삭제됨`);
-		}
-	}
+    if (user) {
+      user.refreshToken = null;
+      await this.userRepository.save(user);
+      this.logger.log(`로그아웃: 사용자(${userId})의 refreshToken 삭제됨`);
+    }
+  }
 
-	/**
-	 * 소셜 로그인 사용자 검증 및 생성
-	 * 카카오 로그인 등에서 사용
-	 */
-	async validateOrCreateSocialUser(socialUser: {
-		provider: string;
-		providerId: string;
-		email?: string;
-		name: string;
-	}): Promise<{ accessToken: string; refreshToken: string; user: any }> {
-		// 기존 소셜 로그인 사용자 찾기
-		let user = await this.userRepository.findOne({
-			where: {
-				provider: socialUser.provider,
-				providerId: socialUser.providerId,
-			},
-		});
+  /**
+   * 소셜 로그인 사용자 검증 및 생성
+   * 카카오 로그인 등에서 사용
+   */
+  async validateOrCreateSocialUser(socialUser: {
+    provider: string;
+    providerId: string;
+    email?: string;
+    name: string;
+  }): Promise<{ accessToken: string; refreshToken: string; user: any }> {
+    // 기존 소셜 로그인 사용자 찾기
+    let user = await this.userRepository.findOne({
+      where: {
+        provider: socialUser.provider,
+        providerId: socialUser.providerId,
+      },
+    });
 
-		// 없으면 새로 생성
-		if (!user) {
-			// 이메일이 있고, 같은 이메일의 일반 계정이 있는지 확인
-			if (socialUser.email) {
-				const existingUser = await this.userRepository.findOne({
-					where: { email: socialUser.email },
-				});
+    // 없으면 새로 생성
+    if (!user) {
+      // 이메일이 있고, 같은 이메일의 일반 계정이 있는지 확인
+      if (socialUser.email) {
+        const existingUser = await this.userRepository.findOne({
+          where: { email: socialUser.email },
+        });
 
-				if (existingUser) {
-					// 기존 계정에 소셜 로그인 정보 연결
-					existingUser.provider = socialUser.provider;
-					existingUser.providerId = socialUser.providerId;
-					user = await this.userRepository.save(existingUser);
-					this.logger.log(
-						`소셜 로그인 계정 연결: ${socialUser.provider} 계정이 기존 이메일(${socialUser.email})과 연결됨`,
-					);
-				}
-			}
+        if (existingUser) {
+          // 기존 계정에 소셜 로그인 정보 연결
+          existingUser.provider = socialUser.provider;
+          existingUser.providerId = socialUser.providerId;
+          user = await this.userRepository.save(existingUser);
+          this.logger.log(
+            `소셜 로그인 계정 연결: ${socialUser.provider} 계정이 기존 이메일(${socialUser.email})과 연결됨`,
+          );
+        }
+      }
 
-			// 여전히 없으면 새로 생성
-			if (!user) {
-				// 이메일이 없으면 자동 생성
-				const generatedEmail = socialUser.email || `${socialUser.provider}_${socialUser.providerId}@social.local`;
-				
-				if (!socialUser.email) {
-					this.logger.warn(
-						`소셜 로그인 이메일 없음: ${socialUser.provider} 사용자(${socialUser.providerId})의 이메일 정보가 없어 자동 생성: ${generatedEmail}`,
-					);
-				}
+      // 여전히 없으면 새로 생성
+      if (!user) {
+        // 이메일이 없으면 자동 생성
+        const generatedEmail =
+          socialUser.email ||
+          `${socialUser.provider}_${socialUser.providerId}@social.local`;
 
-				user = this.userRepository.create({
-					email: generatedEmail,
-					password: null, // 소셜 로그인은 비밀번호 없음
-					name: socialUser.name,
-					provider: socialUser.provider,
-					providerId: socialUser.providerId,
-					role: Role.MEMBER, // 기본 역할
-				});
+        if (!socialUser.email) {
+          this.logger.warn(
+            `소셜 로그인 이메일 없음: ${socialUser.provider} 사용자(${socialUser.providerId})의 이메일 정보가 없어 자동 생성: ${generatedEmail}`,
+          );
+        }
 
-				user = await this.userRepository.save(user);
-				this.logger.log(
-					`소셜 로그인 사용자 생성: ${socialUser.provider} 사용자 생성 완료 (Email: ${generatedEmail}, Name: ${socialUser.name})`,
-				);
-			}
-		}
+        user = this.userRepository.create({
+          email: generatedEmail,
+          password: null, // 소셜 로그인은 비밀번호 없음
+          name: socialUser.name,
+          provider: socialUser.provider,
+          providerId: socialUser.providerId,
+          role: Role.MEMBER, // 기본 역할
+        });
 
-		// 토큰 생성 (accessToken + refreshToken)
-		return await this.generateToken(user);
-	}
+        user = await this.userRepository.save(user);
+        this.logger.log(
+          `소셜 로그인 사용자 생성: ${socialUser.provider} 사용자 생성 완료 (Email: ${generatedEmail}, Name: ${socialUser.name})`,
+        );
+      }
+    }
 
-	/**
-	 * 토큰 생성 로직 (일반 로그인과 소셜 로그인 공통 사용)
-	 * accessToken: 15분, refreshToken: 7일
-	 */
-	private async generateToken(user: User): Promise<{ accessToken: string; refreshToken: string; user: any }> {
-		const payload = {
-			sub: user.id,
-			email: user.email,
-			role: user.role,
-			isApproved: user.isApproved, // 프론트엔드에서 승인 상태 확인용
-		};
+    // 토큰 생성 (accessToken + refreshToken)
+    return await this.generateToken(user);
+  }
 
-		// accessToken 생성 (15분)
-		const accessTokenExpiresIn = this.configService.get<string>('JWT_EXPIRES_IN') || '15m';
-		// @ts-ignore - JWT expiresIn accepts string values like '15m'
-		const accessToken = this.jwtService.sign(payload, {
-			expiresIn: accessTokenExpiresIn,
-		});
+  /**
+   * 토큰 생성 로직 (일반 로그인과 소셜 로그인 공통 사용)
+   * accessToken: 15분, refreshToken: 7일
+   */
+  private async generateToken(
+    user: User,
+  ): Promise<{ accessToken: string; refreshToken: string; user: any }> {
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      isApproved: user.isApproved, // 프론트엔드에서 승인 상태 확인용
+    };
 
-		// refreshToken 생성 (7일)
-		const refreshTokenExpiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d';
-		// @ts-ignore - JWT expiresIn accepts string values like '7d'
-		const refreshToken = this.jwtService.sign(payload, {
-			expiresIn: refreshTokenExpiresIn,
-		});
+    // accessToken 생성 (15분)
+    const accessTokenExpiresIn =
+      this.configService.get<string>("JWT_EXPIRES_IN") || "15m";
+    // @ts-ignore - JWT expiresIn accepts string values like '15m'
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: accessTokenExpiresIn,
+    });
 
-		// refreshToken을 DB에 저장 (기존 refreshToken이 있으면 무효화됨)
-		if (user.refreshToken) {
-			this.logger.log(
-				`기존 refreshToken 무효화: 사용자(${user.id})의 이전 세션이 종료됨 (새 로그인 또는 토큰 갱신)`,
-			);
-		}
-		user.refreshToken = refreshToken;
-		await this.userRepository.save(user);
+    // refreshToken 생성 (7일)
+    const refreshTokenExpiresIn =
+      this.configService.get<string>("JWT_REFRESH_EXPIRES_IN") || "7d";
+    // @ts-ignore - JWT expiresIn accepts string values like '7d'
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: refreshTokenExpiresIn,
+    });
 
-		return {
-			accessToken,
-			refreshToken,
-			user: {
-				id: user.id,
-				email: user.email,
-				name: user.name,
-				role: user.role,
-				provider: user.provider || 'LOCAL',
-				isApproved: user.isApproved, // 프론트엔드에서 승인 상태 확인용
-			},
-		};
-	}
+    // refreshToken을 DB에 저장 (기존 refreshToken이 있으면 무효화됨)
+    if (user.refreshToken) {
+      this.logger.log(
+        `기존 refreshToken 무효화: 사용자(${user.id})의 이전 세션이 종료됨 (새 로그인 또는 토큰 갱신)`,
+      );
+    }
+    user.refreshToken = refreshToken;
+    await this.userRepository.save(user);
 
-	/**
-	 * 테스트 계정 생성 (개발 환경 전용)
-	 * email: test, password: test, 권한: ADMIN (모든 권한)
-	 */
-	async createTestAccount(): Promise<{ accessToken: string; refreshToken: string; user: any }> {
-		const testEmail = 'test';
-		const testPassword = 'test';
-
-		// 기존 계정 확인
-		const existingUser = await this.userRepository.findOne({
-			where: { email: testEmail },
-		});
-
-		if (existingUser) {
-			// 이미 존재하면 로그인 처리
-			this.logger.warn(`테스트 계정이 이미 존재합니다. 로그인 처리: ${testEmail}`);
-			return await this.generateToken(existingUser);
-		}
-
-		// 새 테스트 계정 생성
-		const hashedPassword = await bcrypt.hash(testPassword, 10);
-
-		const user = this.userRepository.create({
-			email: testEmail,
-			password: hashedPassword,
-			name: '테스트 사용자 (ADMIN)',
-			role: Role.ADMIN, // 모든 권한 부여
-			provider: 'LOCAL',
-			providerId: null,
-		});
-
-		const savedUser = await this.userRepository.save(user);
-		this.logger.log(`테스트 계정 생성 완료: ${testEmail} (권한: ADMIN)`);
-
-		return await this.generateToken(savedUser);
-	}
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        provider: user.provider || "LOCAL",
+        isApproved: user.isApproved, // 프론트엔드에서 승인 상태 확인용
+      },
+    };
+  }
 }
-
