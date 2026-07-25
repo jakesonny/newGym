@@ -1,0 +1,16 @@
+node_modules
+dist
+coverage
+.git
+.env
+.env.*
+!.env.example
+*.md
+!README.md
+docs
+database
+scripts
+exercises.json
+1차피드백.md
+점수계산표.md
+평가항목.md
