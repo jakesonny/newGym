@@ -1,307 +1,215 @@
-# 헬스장 회원관리 시스템 - 백엔드
+# 헬스장 회원관리 시스템 — 백엔드
 
-헬스장 회원의 신체 능력을 수치화·평균화·시각화하고 시간에 따른 변화를 추적하는 데이터 기반 헬스 관리 시스템의 백엔드입니다.
+헬스장 회원의 신체 능력을 **수치화·평균화·시각화**하고, 시간에 따른 변화를 추적하는 데이터 기반 PT 관리 시스템의 백엔드입니다.
+단순 회원 CRUD가 아니라, 트레이너가 입력한 등급(A/B/C…)을 내부 점수로 환산해 6영역 종합 점수를 산출하고, 목표 대비 진행률의 "정체/급변"을 판정하는 도메인 로직이 핵심입니다.
+
+## 핵심 기능
+
+- **회원/회원권 관리**: 3단계 위저드 통합 등록(회원 + 회원권 + 초기 측정값), PT 횟수 관리
+- **체력평가 시스템**: 하체 근력·심폐지구력·근지구력·유연성·체성분·안정성 6영역 평가 → 등급→점수 환산 → 가중 평균 종합 점수
+- **운동 기록 & 근력 분석**: 1RM 추정(Epley/Brzycki/Lombardi), 체중 대비 상대 강도, StrengthLevel.com 기준 레벨 판정
+- **프로그램 진행률 추적**: 목표 유형별 진행률 계산, 최근 2회 측정값 기반 "정체/급변" 추세 판정(위험도 GREEN/YELLOW/RED)
+- **인사이트 대시보드**: 센터 전체 평균, 위험 회원 목록, 주간 요약 (관리자/트레이너 전용)
+- **인증/인가**: JWT 기반 인증 + 카카오 소셜 로그인, 역할(ADMIN/TRAINER/MEMBER) 기반 접근 제어
 
 ## 기술 스택
 
-- **NestJS** - Node.js 프레임워크
-- **TypeORM** - ORM
-- **PostgreSQL** - 데이터베이스
-- **JWT** - 인증
-- **TypeScript** - 타입 안정성
+| 구분      | 기술                                |
+| --------- | ----------------------------------- |
+| Framework | NestJS (TypeScript)                 |
+| ORM       | TypeORM                             |
+| Database  | PostgreSQL                          |
+| 인증      | JWT (passport-jwt) + Kakao OAuth    |
+| 검증      | class-validator / class-transformer |
+| API 문서  | Swagger (@nestjs/swagger)           |
+| 테스트    | Jest                                |
+| 배포      | Docker (멀티스테이지 빌드)          |
 
-## 프로젝트 구조
+## 아키텍처
 
+```mermaid
+flowchart LR
+    subgraph Client
+        FE[React SPA]
+    end
+
+    subgraph NestJS["NestJS Backend"]
+        Guard["JwtRolesGuard / RolesGuard"]
+        Auth[auth]
+        Members[members]
+        Assessments[assessments]
+        Analytics[analytics]
+        Insights[insights]
+        StrengthLevel[strength-level]
+        Exercises[exercises]
+    end
+
+    DB[(PostgreSQL)]
+
+    FE -->|REST + JWT| Guard --> Auth
+    Guard --> Members
+    Guard --> Assessments
+    Guard --> Analytics
+    Guard --> Insights
+    Guard --> StrengthLevel
+    Guard --> Exercises
+
+    Members --> DB
+    Assessments --> DB
+    Analytics --> DB
+    Insights --> DB
+    StrengthLevel --> DB
+    Exercises --> DB
 ```
-src/
-├── entities/              # TypeORM 엔티티
-│   ├── user.entity.ts
-│   ├── member.entity.ts
-│   ├── assessment.entity.ts
-│   ├── assessment-item.entity.ts
-│   ├── ability-snapshot.entity.ts
-│   ├── injury-history.entity.ts
-│   └── ...
-├── entities-generated/    # 자동 생성된 엔티티 (레거시)
-│   └── ...
-├── modules/               # NestJS 모듈
-│   ├── auth/              # 인증 모듈
-│   ├── members/           # 회원 관리 모듈
-│   ├── assessments/       # 평가 시스템 모듈
-│   ├── analytics/         # 분석 모듈
-│   └── insights/          # 인사이트 모듈
-├── common/                # 공통 유틸리티
-│   ├── decorators/        # 커스텀 데코레이터
-│   ├── enums/             # 열거형 타입
-│   ├── exceptions/        # 예외 처리
-│   ├── filters/           # 예외 필터
-│   ├── guards/            # 가드 (인증/인가)
-│   ├── interceptors/      # 인터셉터
-│   ├── utils/             # 유틸리티 함수
-│   └── data-source.ts     # TypeORM 설정
-├── config/                # 설정 파일
-│   ├── cors.config.ts
-│   └── database.config.ts
-├── app.module.ts          # 루트 모듈
-├── app.controller.ts      # 루트 컨트롤러
-├── app.service.ts         # 루트 서비스
-└── main.ts                # 애플리케이션 진입점
+
+### 도메인 엔티티 관계 (요약)
+
+```mermaid
+erDiagram
+    Member ||--o{ Membership : has
+    Member ||--o{ Assessment : "receives"
+    Member ||--o{ WorkoutRecord : logs
+    Member ||--o{ InjuryHistory : has
+    Membership ||--o{ ProgramMilestone : "4주 블록"
+    Assessment ||--o{ AssessmentItem : contains
+    Assessment ||--|| AbilitySnapshot : produces
+    InjuryHistory ||--o{ InjuryRestriction : restricts
+    WorkoutRecord }o--|| Exercise : references
 ```
 
-## 설치 및 실행
+## 도메인 로직
+
+### 1) 체력평가 6영역 → 종합 점수
+
+| 영역                | 가중치 |
+| ------------------- | :----: |
+| 안정성(Stability)   |  20%   |
+| 심폐지구력(Cardio)  |  20%   |
+| 근지구력(Endurance) |  20%   |
+| 하체 근력(Strength) |  15%   |
+| 체성분(Body)        |  15%   |
+| 유연성(Flexibility) |  10%   |
+
+- 트레이너가 입력한 등급(A/B/C/D-1/D-2 등)을 `GradeScoreConverter`가 0~100점 내부 점수로 환산한다.
+- `ScoreCalculator`가 영역별 내부 점수를 위 가중치로 합산해 종합 점수를 계산한다. 측정하지 않았거나 부상으로 제외된 영역은 가중치를 재정규화(남은 가중치 기준으로 나눔)해 계산에서 빠진다.
+- 부상 회복 중(`RECOVERING`)/만성(`CHRONIC`) 상태인 신체 부위는 해당 평가 영역 점수를 자동으로 제외한다.
+
+(`src/common/utils/score-calculator.ts`, `grade-score-converter.ts`)
+
+### 2) 프로그램 진행률 — "정체/급변" 추세 판정
+
+목표(체중 감량/근력 상승/체력 증진/유지) 유형별로 최근 측정값의 변화량을 임계값과 비교해 위험도를 판정한다.
+
+| 목표              | 정체 기준(YELLOW) | 급변 기준(플래그) |
+| ----------------- | :---------------: | :---------------: |
+| 체중 감량         |      ±0.5kg       |    1.5kg 이상     |
+| 근력 상승         |      ±2.5kg       |    7.5kg 이상     |
+| 체력 증진         |       ±5초        |     20초 이상     |
+| 유지(MAINTENANCE) |      ±0.5kg       |    1.0kg 이상     |
+
+- 측정 2회 미만이면 `FOUNDATION`(기초 단계)으로 판정하고 추세 판정은 하지 않는다.
+- 최근 변화량이 정체 기준 이내면 `YELLOW`, 목표 방향으로 개선 중이면 `GREEN`, 단기적으로 역행해도 측정 3회 이상이고 장기 추세가 개선 중이면 `YELLOW`, 그렇지 않으면 `RED`로 판정한다.
+- 급변 기준 이상 변화가 있으면 방향에 따라 `rapid_progress`/`rapid_decline` 플래그가 함께 표시된다.
+- 위 임계값은 의학/피트니스 연구 자료를 근거로 초안을 설정했으며, 실제 현장 트레이너 피드백을 받아 검증하는 과정을 거쳤다.
+
+(`src/common/utils/progress-calculator.ts`, `src/common/enums/program.enum.ts`)
+
+### 3) 1RM / 상대 강도 / Strength Level
+
+- 1RM은 Epley 공식(`weight × (1 + reps/30)`)을 기본으로 사용하며 Brzycki·Lombardi 공식도 지원한다.
+- 상대 강도(%) = `(1RM / 체중) × 100`
+- StrengthLevel.com 기준 데이터(`strength_standards`)와 회원의 체중·성별을 비교해 BEGINNER~ELITE 5단계로 판정한다.
+
+(`src/common/utils/one-rep-max-calculator.ts`, `relative-strength-calculator.ts`, `strength-level-evaluator.ts`)
+
+## 로컬 실행
 
 ### 사전 요구사항
 
-- **Node.js** v18 이상
-- **npm** 또는 **yarn**
-- **PostgreSQL** 12 이상
-- **Python** 3.x (선택사항 - 스크립트 실행 시만 필요)
+- Node.js 20+, PostgreSQL 14+
 
-### 1. 저장소 클론
-
-```bash
-git clone <repository-url>
-cd gym-membership-backend
-```
-
-### 2. 의존성 설치
+### 1. 의존성 설치 및 환경 변수 설정
 
 ```bash
 npm install
-```
-
-### 2. 환경 변수 설정
-
-`.env.example` 파일을 복사하여 `.env` 파일을 생성하세요:
-
-```bash
-# Windows
-copy .env.example .env
-
-# Linux/Mac
 cp .env.example .env
+# .env에서 DATABASE_URL, JWT_SECRET 등을 채워 넣는다
 ```
 
-그 다음 `.env` 파일을 열어 실제 환경에 맞게 값을 수정하세요:
+### 2. 데이터베이스 마이그레이션
 
-- `DATABASE_URL`: PostgreSQL 데이터베이스 연결 문자열
-- `JWT_SECRET`: 강력한 랜덤 문자열 (최소 32자)
-- `FRONTEND_URL`: 프론트엔드 URL (여러 개는 쉼표로 구분)
-
-자세한 설정은 `.env.example` 파일을 참고하세요.
-
-### 4. 데이터베이스 설정
-
-PostgreSQL 데이터베이스를 생성하고 `.env` 파일의 `DATABASE_URL`을 설정하세요.
-
-**로컬 PostgreSQL 사용 시:**
 ```bash
-# PostgreSQL 설치 후 데이터베이스 생성
-createdb gym_membership
-
-# 또는 psql 사용
-psql -U postgres
-CREATE DATABASE gym_membership;
+npm run migration:run
 ```
 
-**스키마 생성:**
-```bash
-# database/create_full_schema.sql 파일 실행
-psql -U postgres -d gym_membership -f database/create_full_schema.sql
-```
-
-**초기 데이터 추가 (선택사항):**
-```bash
-# 운동 데이터 추가
-psql -U postgres -d gym_membership -f database/seeds/exercises_seed.sql
-
-# Strength Level 기준 데이터 추가 (빅3 운동)
-psql -U postgres -d gym_membership -f database/bench_press_male_standards.sql
-psql -U postgres -d gym_membership -f database/bench_press_female_standards.sql
-psql -U postgres -d gym_membership -f database/squat_male_standards.sql
-psql -U postgres -d gym_membership -f database/squat_female_standards.sql
-psql -U postgres -d gym_membership -f database/deadlift_male_standards.sql
-psql -U postgres -d gym_membership -f database/deadlift_female_standards.sql
-```
-
-### 5. 애플리케이션 실행
+### 3. 개발 서버 실행
 
 ```bash
-# 개발 모드
 npm run start:dev
-
-# 프로덕션 모드
-npm run build
-npm run start:prod
+# http://localhost:3001
 ```
 
-## Render 배포
+## API 문서
 
-### Build Command
-
-```bash
-npm install && npm run build
-```
-
-### Start Command
-
-```bash
-npm run start:prod
-```
-
-자세한 배포 가이드는 [docs/RENDER_DEPLOYMENT.md](docs/RENDER_DEPLOYMENT.md)를 참고하세요.
-
-## Swagger API 문서
-
-애플리케이션 실행 후 다음 URL에서 API 문서를 확인할 수 있습니다:
+서버 실행 후 Swagger UI에서 전체 엔드포인트, 요청/응답 스키마, JWT 인증 테스트를 확인할 수 있다.
 
 ```
 http://localhost:3001/api
 ```
 
-Swagger UI에서:
+헬스체크: `GET /health`
 
-- 모든 API 엔드포인트 확인
-- 요청/응답 스키마 확인
-- 직접 API 테스트 가능
-- JWT 인증 토큰 설정 가능
+추가 API 가이드: [`docs/EXERCISE_DETAIL_GUIDE.md`](docs/EXERCISE_DETAIL_GUIDE.md), [`docs/STRENGTH_LEVEL_API_GUIDE.md`](docs/STRENGTH_LEVEL_API_GUIDE.md)
 
-## 주요 API 엔드포인트
+## 테스트
 
-### 인증
-
-- `POST /api/auth/login` - 로그인
-- `POST /api/auth/register` - 회원가입
-- `GET /api/auth/session` - 세션 확인
-
-### 회원 관리
-
-- `GET /api/members` - 회원 목록
-- `GET /api/members/:id` - 회원 상세
-- `POST /api/members` - 회원 등록
-- `PUT /api/members/:id` - 회원 수정
-- `DELETE /api/members/:id` - 회원 삭제
-
-### 평가 시스템
-
-- `GET /api/members/:memberId/assessments` - 평가 목록
-- `POST /api/members/:memberId/assessments` - 평가 생성
-- `PUT /api/members/:memberId/assessments/:id` - 평가 수정
-- `GET /api/members/:memberId/assessments/abilities/latest` - 최신 능력치
-- `GET /api/members/:memberId/assessments/abilities/compare` - 능력치 비교
-- `GET /api/members/:id/abilities/hexagon` - 레이더 차트 데이터 (초기 vs 현재 비교 지원)
-
-### 분석
-
-- `GET /api/analytics/averages` - 전체 평균
-- `GET /api/analytics/comparison/:memberId` - 개별 vs 평균 비교
-
-### 인사이트 (관리자/트레이너 전용)
-
-- `GET /api/insights/hexagon` - 운영 능력치 헥사곤 조회
-- `GET /api/insights/weekly-summary` - 주간 요약 조회
-- `GET /api/insights/risk-members` - 위험 신호 회원 조회
-
-### 부상 관리
-
-- `GET /api/members/:memberId/injuries` - 부상 이력 조회
-- `POST /api/members/:memberId/injuries` - 부상 이력 등록
-- `POST /api/members/:memberId/injuries/:id/restrictions` - 평가 제한 설정
-
-### 운동 기록
-
-- `GET /api/members/:id/workout-records` - 운동 기록 목록
-- `POST /api/members/:id/workout-records` - 운동 기록 생성
-- `PUT /api/members/:id/workout-records/:recordId` - 운동 기록 수정
-- `DELETE /api/members/:id/workout-records/:recordId` - 운동 기록 삭제
-- `GET /api/members/:id/workout-records/volume` - 부위별 볼륨 조회
-- `GET /api/members/:id/workout-records/volume-analysis` - 부위별 볼륨 분석
-- `GET /api/members/:id/workout-records/calendar` - 운동 캘린더 조회
-
-### 🔄 추후 구현 예정 API
-
-- `GET /api/members/:id/workout-records/:recordId/strength-level` - 운동 기록의 Strength Level 조회 (추후 구현 예정)
-- `GET /api/members/:id/strength-progress` - 회원의 운동별 Strength Level 변화 추적 (추후 구현 예정)
-
-## 현재 구현 상태
-
-### ✅ 구현 완료
-
-- 기본 인증 시스템 (JWT 기반, 카카오 소셜 로그인 지원)
-- 회원 관리 CRUD
-- 평가 시스템 기본 기능
-- 능력치 계산 및 스냅샷 생성
-- 레이더 차트 데이터 API (초기 vs 현재 비교 포함)
-- 전체 평균 및 개별 비교 분석
-- 인사이트 모듈 (운영 헥사곤, 주간 요약, 위험 신호 회원)
-- 부상 이력 관리
-- 운동 기록 및 루틴 관리
-- PT 세션 관리
-- Swagger API 문서
-
-### 🔄 추후 구현 예정
-
-다음 기능들은 추후 단계적으로 구현될 예정입니다:
-
-- **Phase 2**: 초기 평가 세부항목 정의 및 검증 로직
-- **Phase 3**: 정기 평가 세부항목 및 환산 메커니즘
-- **Phase 4**: 그래프 차트 및 상세 시각화 API
-- **Phase 5**: 평가 기준표 및 등급 체계
-- **Phase 6**: Strength Level 판정 기능
-    - Strength Level 자동 계산 및 판정 (StrengthLevel.com 기준)
-    - 평가 항목 생성 시 Strength Level 자동 계산
-    - 운동 기록 생성/수정 시 Strength Level 자동 계산
-    - Strength Level 조회 API (`GET /api/members/:id/workout-records/:recordId/strength-level`)
-    - Strength Level 변화 추적 API (`GET /api/members/:id/strength-progress`)
-    - **참고**: DB에는 `strength_standards` 테이블이 이미 추가되어 있으며, API 구현은 추후 진행 예정입니다.
-
-자세한 내용은 [docs/BACKEND_FUTURE_DEVELOPMENT.md](docs/BACKEND_FUTURE_DEVELOPMENT.md)를 참고하세요.
-
-## 데이터베이스 마이그레이션
+핵심 도메인 계산 로직(점수 산정, 정체/급변 판정, 1RM·상대강도 계산)과 역할 기반 인가 가드를 Jest로 검증한다.
 
 ```bash
-# 마이그레이션 생성
-npm run migration:generate -- -n MigrationName
-
-# 마이그레이션 실행
-npm run migration:run
-
-# 마이그레이션 되돌리기
-npm run migration:revert
+npm test          # 전체 단위 테스트
+npm run test:cov  # 커버리지 리포트
 ```
 
-## 개발 가이드
+## Docker로 실행
 
-### 코드 스타일
+```bash
+docker build -t gym-membership-backend .
+docker run --rm -p 3001:3001 \
+  -e DATABASE_URL="postgresql://user:password@host:5432/db" \
+  -e JWT_SECRET="change-me" \
+  gym-membership-backend
+```
 
-- TypeScript 사용
-- camelCase 네이밍 (변수, 함수)
-- PascalCase 네이밍 (클래스, 인터페이스)
-- API 응답은 camelCase 사용
+컨테이너 기동 시 `npm run migration:run` 실행 후 앱이 시작된다.
 
-### 에러 처리
+## 프로젝트 구조
 
-모든 API 응답은 다음 형식을 따릅니다:
+```
+src/
+├── common/
+│   ├── enums/          # 목표·평가·상태 등 도메인 Enum
+│   ├── guards/          # JWT 인증 / 역할 기반 인가 가드
+│   └── utils/           # 점수 계산·진행률 판정 등 순수 도메인 로직
+├── config/              # DB, CORS 설정
+├── entities/             # TypeORM 엔티티
+├── migrations/           # TypeORM 마이그레이션
+├── modules/
+│   ├── auth/            # JWT / 카카오 로그인
+│   ├── members/         # 회원·회원권·PT·운동기록 (핵심)
+│   ├── assessments/     # 체력평가
+│   ├── analytics/       # 평균/비교 분석
+│   ├── insights/        # 센터 대시보드
+│   ├── exercises/       # 운동 정보
+│   └── strength-level/  # 근력 레벨 계산
+└── main.ts
+```
+
+## 에러 응답 형식
 
 ```typescript
 // 성공
-{
-  success: true,
-  data: {...},
-  message?: string
-}
+{ success: true, data: {...}, message?: string }
 
 // 실패
-{
-  success: false,
-  error: {
-    code: string,
-    message: string,
-    details?: unknown
-  }
-}
+{ success: false, error: { code: string, message: string, details?: unknown } }
 ```
-
-## 라이선스
-
-ISC
