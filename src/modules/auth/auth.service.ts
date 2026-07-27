@@ -170,12 +170,13 @@ export class AuthService {
         );
       }
 
+      // 로그인과 동일하게 회원가입 즉시 JWT 토큰을 발급한다.
+      // (프론트가 회원가입 응답에서 accessToken/refreshToken을 기대하고 있어,
+      //  토큰 없이는 가입 후 자동 로그인 상태로 전환되지 않는 버그가 있었음)
+      const tokens = await this.generateToken(savedUser);
+
       return {
-        id: savedUser.id,
-        email: savedUser.email,
-        name: savedUser.name,
-        role: savedUser.role,
-        isApproved: savedUser.isApproved,
+        ...tokens,
         message:
           requestedRole === Role.TRAINER
             ? "TRAINER 회원가입이 완료되었습니다. ADMIN의 승인을 기다려주세요."
