@@ -439,6 +439,21 @@ export class InsightsService {
 
 		const memberIds = members.map(m => m.id);
 
+		// 회원이 0명이면 이후 IN (:...memberIds) 쿼리빌더 쿼리가 빈 배열로 치환되어
+		// `IN ()` 형태의 유효하지 않은 SQL이 되므로(Postgres 문법 오류), 여기서 바로 빈 결과를 반환한다.
+		if (memberIds.length === 0) {
+			return {
+				summary: {
+					totalMembers: 0,
+					activeMembers: 0,
+					averageProgress: 0,
+					riskCounts: { foundation: 0, green: 0, yellow: 0, red: 0 },
+					missingMeasurements: 0,
+				},
+				memberList: [],
+			};
+		}
+
 		// 병렬 쿼리 실행
 		const [memberships, lastAssessments] = await Promise.all([
 			// 활성 회원권 조회
