@@ -154,4 +154,35 @@ describe("ScoreCalculator", () => {
 
     expect(snapshot.totalScore).toBe(0);
   });
+
+  it("assessedAt을 지정하면 서버 현재 시각이 아니라 지정된 과거 시각으로 저장한다 (회귀: 주간비교 0% 버그)", async () => {
+    assessmentItemRepository.find.mockResolvedValue([
+      makeItem(Category.STRENGTH, 60),
+    ]);
+    const pastDate = new Date("2026-07-01T00:00:00.000Z");
+
+    const snapshot = await calculator.calculateAssessmentScore(
+      "assessment-1",
+      "member-1",
+      pastDate,
+    );
+
+    expect(snapshot.assessedAt).toEqual(pastDate);
+  });
+
+  it("assessedAt을 지정하지 않으면 현재 시각으로 저장한다 (기존 동작 유지)", async () => {
+    assessmentItemRepository.find.mockResolvedValue([
+      makeItem(Category.STRENGTH, 60),
+    ]);
+    const before = Date.now();
+
+    const snapshot = await calculator.calculateAssessmentScore(
+      "assessment-1",
+      "member-1",
+    );
+
+    expect((snapshot.assessedAt as Date).getTime()).toBeGreaterThanOrEqual(
+      before,
+    );
+  });
 });
